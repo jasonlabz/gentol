@@ -52,7 +52,7 @@ type LogicDBInfo struct {
 }
 type TableInfo struct {
 	TableName string // 列名
-	Comment   string // 数据类型
+	Comment   string // 注释
 }
 type TableColInfo struct {
 	TableName      string
@@ -60,6 +60,7 @@ type TableColInfo struct {
 }
 type ColumnInfo struct {
 	ColumnName string // 列名
+	Comment    string // 注释
 	DataType   string // 数据类型
 }
 

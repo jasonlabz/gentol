@@ -37,16 +37,16 @@ func (G GPOperator) GetTablesUnderDB(ctx context.Context, dbName string) (dbTabl
 		return
 	}
 	db.WithContext(ctx).
-		Raw(`SELECT tb.schemaname as table_schema,
-       tb.tablename as table_name,
-       d.description as comment
-FROM pg_tables tb
-JOIN pg_class c ON c.relname = tb.tablename
-LEFT JOIN pg_description d ON d.objoid = c.oid AND d.objsubid = '0'
-WHERE schemaname <> 'information_schema'
-    AND tablename NOT LIKE 'pg%'
-  AND tablename NOT LIKE 'gp%'
-  AND tablename NOT LIKE 'sql_%'`).
+		Raw("SELECT tb.schemaname as table_schema, " +
+			"tb.tablename as table_name, " +
+			"d.description as comment " +
+			"FROM pg_tables tb " +
+			"JOIN pg_class c ON c.relname = tb.tablename " +
+			"LEFT JOIN pg_description d ON d.objoid = c.oid AND d.objsubid = '0' " +
+			"WHERE schemaname <> 'information_schema' " +
+			"AND tablename NOT LIKE 'pg%' " +
+			"AND tablename NOT LIKE 'gp%' " +
+			"AND tablename NOT LIKE 'sql_%' ").
 		Find(&gormDBTables)
 	if len(gormDBTables) == 0 {
 		return
@@ -83,21 +83,21 @@ func (G GPOperator) GetColumns(ctx context.Context, dbName string) (dbTableColMa
 		return
 	}
 	db.WithContext(ctx).
-		Raw(`select
-    t.table_schema,
-    t.table_name,
-    c.column_name,
-    c.udt_name data_type
-from
-    information_schema.tables t
-inner join information_schema.columns c on
-    t.table_name = c.table_name
-and t.table_schema = c.table_schema
-where
-    t.table_schema <> 'information_schema'
-  AND t.table_name NOT LIKE 'pg%'
-  AND t.table_name NOT LIKE 'gp%'
-  AND t.table_name NOT LIKE 'sql_%'`).
+		Raw("select " +
+			"t.table_schema, " +
+			"t.table_name, " +
+			"c.column_name, " +
+			"c.udt_name data_type " +
+			"from " +
+			"information_schema.tables t " +
+			"inner join information_schema.columns c on " +
+			"t.table_name = c.table_name " +
+			"and t.table_schema = c.table_schema " +
+			"where " +
+			"t.table_schema <> 'information_schema' " +
+			"AND t.table_name NOT LIKE 'pg%' " +
+			"AND t.table_name NOT LIKE 'gp%' " +
+			"AND t.table_name NOT LIKE 'sql_%'").
 		Find(&gormTableColumns)
 	if len(gormTableColumns) == 0 {
 		return
@@ -149,17 +149,17 @@ func (G GPOperator) GetColumnsUnderTables(ctx context.Context, dbName, logicDBNa
 		return
 	}
 	db.WithContext(ctx).
-		Raw(`select
-    t.table_name,
-    c.column_name,
-    c.udt_name data_type
-from
-    information_schema.tables t
-inner join information_schema.columns c on
-    t.table_name = c.table_name
-where
-    t.table_schema = ?
-    and c.table_name in ?`, logicDBName, tableNames).
+		Raw("select "+
+			"t.table_name, "+
+			"c.column_name, "+
+			"c.udt_name data_type "+
+			"from "+
+			"information_schema.tables t "+
+			"inner join information_schema.columns c on "+
+			"t.table_name = c.table_name "+
+			"where "+
+			"t.table_schema = ? "+
+			"and c.table_name in ?", logicDBName, tableNames).
 		Find(&gormTableColumns)
 	if len(gormTableColumns) == 0 {
 		return

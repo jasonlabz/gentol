@@ -79,20 +79,20 @@ func (m MySQLOperator) GetColumns(ctx context.Context, dbName string) (dbTableCo
 		return
 	}
 	db.WithContext(ctx).
-		Raw(`select
-    t.TABLE_SCHEMA table_schema,
-    t.TABLE_NAME table_name,
-    c.COLUMN_NAME column_name,
-    c.COLUMN_COMMENT comment,
-    c.COLUMN_TYPE data_type
-from
-    INFORMATION_SCHEMA.TABLES t
-inner join INFORMATION_SCHEMA.COLUMNS c on
-    t.TABLE_NAME = c.TABLE_NAME
-and t.TABLE_SCHEMA = c.TABLE_SCHEMA
-where
-     TABLE_TYPE = 'BASE TABLE'
-    AND TABLE_SCHEMA NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')`).
+		Raw("select " +
+			"t.TABLE_SCHEMA table_schema, " +
+			"t.TABLE_NAME table_name, " +
+			"c.COLUMN_NAME column_name, " +
+			"c.COLUMN_COMMENT comment, " +
+			"c.COLUMN_TYPE data_type " +
+			"from " +
+			"INFORMATION_SCHEMA.TABLES t " +
+			"inner join INFORMATION_SCHEMA.COLUMNS c on " +
+			"t.TABLE_NAME = c.TABLE_NAME " +
+			"and t.TABLE_SCHEMA = c.TABLE_SCHEMA " +
+			"where " +
+			"TABLE_TYPE = 'BASE TABLE' " +
+			"AND TABLE_SCHEMA NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')").
 		Find(&gormTableColumns)
 	if len(gormTableColumns) == 0 {
 		return
@@ -105,6 +105,7 @@ where
 					TableName: row.TableName,
 					ColumnInfoList: []*ColumnInfo{{
 						ColumnName: row.ColumnName,
+						Comment:    row.Comment,
 						DataType:   row.DataType,
 					}},
 				},
@@ -114,12 +115,14 @@ where
 				TableName: row.TableName,
 				ColumnInfoList: []*ColumnInfo{{
 					ColumnName: row.ColumnName,
+					Comment:    row.Comment,
 					DataType:   row.DataType,
 				}},
 			}
 		} else {
 			tableColInfo.ColumnInfoList = append(tableColInfo.ColumnInfoList, &ColumnInfo{
 				ColumnName: row.ColumnName,
+				Comment:    row.Comment,
 				DataType:   row.DataType,
 			})
 		}
@@ -144,21 +147,21 @@ func (m MySQLOperator) GetColumnsUnderTables(ctx context.Context, dbName, logicD
 		return
 	}
 	db.WithContext(ctx).
-		Raw(`select
-    t.TABLE_SCHEMA table_schema,
-    t.TABLE_NAME table_name,
-    c.COLUMN_NAME column_name,
-    c.COLUMN_COMMENT comment,
-    c.COLUMN_TYPE data_type
-from
-    INFORMATION_SCHEMA.TABLES t
-inner join INFORMATION_SCHEMA.COLUMNS c on
-    t.TABLE_NAME = c.TABLE_NAME
-and t.TABLE_SCHEMA = c.TABLE_SCHEMA
-where
-     t.TABLE_TYPE = 'BASE TABLE'
-    AND t.TABLE_SCHEMA = ?
-    AND t.TABLE_NAME IN ?`, logicDBName, tableNames).
+		Raw("select "+
+			"t.TABLE_SCHEMA table_schema, "+
+			"t.TABLE_NAME table_name, "+
+			"c.COLUMN_NAME column_name, "+
+			"c.COLUMN_COMMENT comment, "+
+			"c.COLUMN_TYPE data_type "+
+			"from "+
+			"INFORMATION_SCHEMA.TABLES t "+
+			"inner join INFORMATION_SCHEMA.COLUMNS c on "+
+			"t.TABLE_NAME = c.TABLE_NAME "+
+			"and t.TABLE_SCHEMA = c.TABLE_SCHEMA "+
+			"where "+
+			"t.TABLE_TYPE = 'BASE TABLE' "+
+			"t.TABLE_SCHEMA = ? "+
+			"AND t.TABLE_NAME IN ?", logicDBName, tableNames).
 		Find(&gormTableColumns)
 	if len(gormTableColumns) == 0 {
 		return
@@ -170,12 +173,14 @@ where
 				TableName: row.TableName,
 				ColumnInfoList: []*ColumnInfo{{
 					ColumnName: row.ColumnName,
+					Comment:    row.Comment,
 					DataType:   row.DataType,
 				}},
 			}
 		} else {
 			tableColInfo.ColumnInfoList = append(tableColInfo.ColumnInfoList, &ColumnInfo{
 				ColumnName: row.ColumnName,
+				Comment:    row.Comment,
 				DataType:   row.DataType,
 			})
 		}

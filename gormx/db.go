@@ -25,9 +25,16 @@ func init() {
 	dbMap = &sync.Map{}
 }
 
+type DBWrapper struct {
+	DB     *gorm.DB
+	Config *Config
+}
+
 // InitWithDB init database instance with db instance
-func InitWithDB(dbName string, db *gorm.DB) error {
-	if db == nil {
+func InitWithDB(dbName string, dbWrapper *DBWrapper) error {
+	if dbWrapper == nil ||
+		dbWrapper.DB == nil ||
+		dbWrapper.Config == nil {
 		return errors.New("no db")
 	}
 	if dbName == "" {
@@ -38,7 +45,7 @@ func InitWithDB(dbName string, db *gorm.DB) error {
 		return nil
 	}
 	// Store database
-	dbMap.Store(dbName, db)
+	dbMap.Store(dbName, dbWrapper)
 	return nil
 }
 
@@ -94,16 +101,29 @@ func InitWithConfig(config *Config) error {
 	sqlDB.SetMaxIdleConns(config.MaxIdleConn)
 	sqlDB.SetConnMaxLifetime(config.ConnMaxLifeTime)
 	// Store database
-	dbMap.Store(config.DBName, db)
+	dbWrapper := &DBWrapper{
+		DB:     db,
+		Config: config,
+	}
+	dbMap.Store(config.DBName, dbWrapper)
 	return nil
 }
 
+func GetDBConfig(name string) (*Config, error) {
+	db, ok := dbMap.Load(name)
+	if !ok {
+		return nil, errors.New("no db instance")
+	}
+
+	return db.(*DBWrapper).Config, nil
+}
 func GetDB(name string) (*gorm.DB, error) {
 	db, ok := dbMap.Load(name)
 	if !ok {
 		return nil, errors.New("no db instance")
 	}
-	return db.(*gorm.DB), nil
+
+	return db.(*DBWrapper).DB, nil
 }
 
 func GetDBWithPanic(name string) *gorm.DB {
@@ -111,7 +131,7 @@ func GetDBWithPanic(name string) *gorm.DB {
 	if !ok {
 		panic("no db instance")
 	}
-	return db.(*gorm.DB)
+	return db.(*DBWrapper).DB
 }
 
 func Close(dbName string) error {
@@ -122,7 +142,7 @@ func Close(dbName string) error {
 	if !ok || v == nil {
 		return nil
 	}
-	db, err := v.(*gorm.DB).DB()
+	db, err := v.(*DBWrapper).DB.DB()
 	if err != nil {
 		return err
 	}
