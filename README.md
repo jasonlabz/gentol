@@ -1,1 +1,1 @@
-# gentol
+# github.com/onlyzzg/gentol
