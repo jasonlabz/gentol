@@ -39,7 +39,7 @@ func (G GPOperator) GetTablesUnderDB(ctx context.Context, dbName string) (dbTabl
 	db.WithContext(ctx).
 		Raw("SELECT tb.schemaname as table_schema, " +
 			"tb.tablename as table_name, " +
-			"d.description as comment " +
+			"d.description as comments " +
 			"FROM pg_tables tb " +
 			"JOIN pg_class c ON c.relname = tb.tablename " +
 			"LEFT JOIN pg_description d ON d.objoid = c.oid AND d.objsubid = '0' " +
@@ -57,14 +57,14 @@ func (G GPOperator) GetTablesUnderDB(ctx context.Context, dbName string) (dbTabl
 				SchemaName: row.TableSchema,
 				TableInfoList: []*TableInfo{{
 					TableName: row.TableName,
-					Comment:   row.Comment,
+					Comment:   row.Comments,
 				}},
 			}
 		} else {
 			logicDBInfo.TableInfoList = append(logicDBInfo.TableInfoList,
 				&TableInfo{
 					TableName: row.TableName,
-					Comment:   row.Comment,
+					Comment:   row.Comments,
 				})
 		}
 	}
@@ -84,20 +84,20 @@ func (G GPOperator) GetColumns(ctx context.Context, dbName string) (dbTableColMa
 	}
 	db.WithContext(ctx).
 		Raw("select " +
-			"t.table_schema, " +
-			"t.table_name, " +
-			"c.column_name, " +
-			"c.udt_name data_type " +
+			"ic.table_schema table_schema, " +
+			"ic.table_name table_name, " +
+			"ic.column_name as column_name, " +
+			"ic.data_type as data_type, " +
+			"d.description as comments " +
 			"from " +
-			"information_schema.tables t " +
-			"inner join information_schema.columns c on " +
-			"t.table_name = c.table_name " +
-			"and t.table_schema = c.table_schema " +
-			"where " +
-			"t.table_schema <> 'information_schema' " +
-			"AND t.table_name NOT LIKE 'pg%' " +
-			"AND t.table_name NOT LIKE 'gp%' " +
-			"AND t.table_name NOT LIKE 'sql_%'").
+			"information_schema.columns ic " +
+			"JOIN pg_class c ON c.relname = ic.table_name " +
+			"LEFT JOIN pg_description d " +
+			"ON d.objoid = c.oid AND d.objsubid = ic.ordinal_position " +
+			"where ic.table_name NOT LIKE 'pg%' " +
+			"AND ic.table_name NOT LIKE 'gp%' " +
+			"AND ic.table_name NOT LIKE 'sql_%' " +
+			"AND ic.table_schema <> 'information_schema'").
 		Find(&gormTableColumns)
 	if len(gormTableColumns) == 0 {
 		return
@@ -110,6 +110,7 @@ func (G GPOperator) GetColumns(ctx context.Context, dbName string) (dbTableColMa
 					TableName: row.TableName,
 					ColumnInfoList: []*ColumnInfo{{
 						ColumnName: row.ColumnName,
+						Comment:    row.Comments,
 						DataType:   row.DataType,
 					}},
 				},
@@ -119,12 +120,14 @@ func (G GPOperator) GetColumns(ctx context.Context, dbName string) (dbTableColMa
 				TableName: row.TableName,
 				ColumnInfoList: []*ColumnInfo{{
 					ColumnName: row.ColumnName,
+					Comment:    row.Comments,
 					DataType:   row.DataType,
 				}},
 			}
 		} else {
 			tableColInfo.ColumnInfoList = append(tableColInfo.ColumnInfoList, &ColumnInfo{
 				ColumnName: row.ColumnName,
+				Comment:    row.Comments,
 				DataType:   row.DataType,
 			})
 		}
@@ -150,16 +153,19 @@ func (G GPOperator) GetColumnsUnderTables(ctx context.Context, dbName, logicDBNa
 	}
 	db.WithContext(ctx).
 		Raw("select "+
-			"t.table_name, "+
-			"c.column_name, "+
-			"c.udt_name data_type "+
+			"ic.table_schema table_schema, "+
+			"ic.table_name table_name, "+
+			"ic.column_name as column_name, "+
+			"ic.data_type as data_type, "+
+			"d.description as comments "+
 			"from "+
-			"information_schema.tables t "+
-			"inner join information_schema.columns c on "+
-			"t.table_name = c.table_name "+
+			"information_schema.columns ic "+
+			"JOIN pg_class c ON c.relname = ic.table_name "+
+			"LEFT JOIN pg_description d "+
+			"ON d.objoid = c.oid AND d.objsubid = ic.ordinal_position "+
 			"where "+
-			"t.table_schema = ? "+
-			"and c.table_name in ?", logicDBName, tableNames).
+			"ic.table_schema = ? "+
+			"and ic.table_name in ?", logicDBName, tableNames).
 		Find(&gormTableColumns)
 	if len(gormTableColumns) == 0 {
 		return
@@ -171,12 +177,14 @@ func (G GPOperator) GetColumnsUnderTables(ctx context.Context, dbName, logicDBNa
 				TableName: row.TableName,
 				ColumnInfoList: []*ColumnInfo{{
 					ColumnName: row.ColumnName,
+					Comment:    row.Comments,
 					DataType:   row.DataType,
 				}},
 			}
 		} else {
 			tableColInfo.ColumnInfoList = append(tableColInfo.ColumnInfoList, &ColumnInfo{
 				ColumnName: row.ColumnName,
+				Comment:    row.Comments,
 				DataType:   row.DataType,
 			})
 		}

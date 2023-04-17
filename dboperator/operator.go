@@ -35,14 +35,14 @@ type IOperator interface {
 type GormDBTable struct {
 	TableSchema string `db:"table_schema"`
 	TableName   string `db:"table_name"`
-	Comment     string `db:"comment"`
+	Comments    string `db:"comments"`
 }
 
 type GormTableColumn struct {
 	TableSchema string `db:"table_schema"`
 	TableName   string `db:"table_name"`
 	ColumnName  string `db:"column_name"`
-	Comment     string `db:"comment"`
+	Comments    string `db:"comments"`
 	DataType    string `db:"data_type"`
 }
 

@@ -36,13 +36,13 @@ func (m MySQLOperator) GetTablesUnderDB(ctx context.Context, dbName string) (dbT
 		return
 	}
 	db.WithContext(ctx).
-		Raw(`SELECT TABLE_SCHEMA as table_schema,
-       TABLE_NAME as table_name,
-       TABLE_COMMENT as comment
-FROM INFORMATION_SCHEMA.TABLES
-WHERE TABLE_TYPE = 'BASE TABLE'
-    AND TABLE_SCHEMA NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')
-ORDER  BY TABLE_SCHEMA, TABLE_NAME`).
+		Raw("SELECT TABLE_SCHEMA as table_schema, " +
+			"TABLE_NAME as table_name, " +
+			"TABLE_COMMENT as comments " +
+			"FROM INFORMATION_SCHEMA.TABLES " +
+			"WHERE TABLE_TYPE = 'BASE TABLE' " +
+			"AND TABLE_SCHEMA NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema') " +
+			"ORDER  BY TABLE_SCHEMA, TABLE_NAME").
 		Find(&gormDBTables)
 	if len(gormDBTables) == 0 {
 		return
@@ -53,14 +53,14 @@ ORDER  BY TABLE_SCHEMA, TABLE_NAME`).
 				SchemaName: row.TableSchema,
 				TableInfoList: []*TableInfo{{
 					TableName: row.TableName,
-					Comment:   row.Comment,
+					Comment:   row.Comments,
 				}},
 			}
 		} else {
 			logicDBInfo.TableInfoList = append(logicDBInfo.TableInfoList,
 				&TableInfo{
 					TableName: row.TableName,
-					Comment:   row.Comment,
+					Comment:   row.Comments,
 				})
 		}
 	}
@@ -83,7 +83,7 @@ func (m MySQLOperator) GetColumns(ctx context.Context, dbName string) (dbTableCo
 			"t.TABLE_SCHEMA table_schema, " +
 			"t.TABLE_NAME table_name, " +
 			"c.COLUMN_NAME column_name, " +
-			"c.COLUMN_COMMENT comment, " +
+			"c.COLUMN_COMMENT comments, " +
 			"c.COLUMN_TYPE data_type " +
 			"from " +
 			"INFORMATION_SCHEMA.TABLES t " +
@@ -91,8 +91,8 @@ func (m MySQLOperator) GetColumns(ctx context.Context, dbName string) (dbTableCo
 			"t.TABLE_NAME = c.TABLE_NAME " +
 			"and t.TABLE_SCHEMA = c.TABLE_SCHEMA " +
 			"where " +
-			"TABLE_TYPE = 'BASE TABLE' " +
-			"AND TABLE_SCHEMA NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')").
+			"t.TABLE_TYPE = 'BASE TABLE' " +
+			"AND t.TABLE_SCHEMA NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')").
 		Find(&gormTableColumns)
 	if len(gormTableColumns) == 0 {
 		return
@@ -105,7 +105,7 @@ func (m MySQLOperator) GetColumns(ctx context.Context, dbName string) (dbTableCo
 					TableName: row.TableName,
 					ColumnInfoList: []*ColumnInfo{{
 						ColumnName: row.ColumnName,
-						Comment:    row.Comment,
+						Comment:    row.Comments,
 						DataType:   row.DataType,
 					}},
 				},
@@ -115,14 +115,14 @@ func (m MySQLOperator) GetColumns(ctx context.Context, dbName string) (dbTableCo
 				TableName: row.TableName,
 				ColumnInfoList: []*ColumnInfo{{
 					ColumnName: row.ColumnName,
-					Comment:    row.Comment,
+					Comment:    row.Comments,
 					DataType:   row.DataType,
 				}},
 			}
 		} else {
 			tableColInfo.ColumnInfoList = append(tableColInfo.ColumnInfoList, &ColumnInfo{
 				ColumnName: row.ColumnName,
-				Comment:    row.Comment,
+				Comment:    row.Comments,
 				DataType:   row.DataType,
 			})
 		}
@@ -151,7 +151,7 @@ func (m MySQLOperator) GetColumnsUnderTables(ctx context.Context, dbName, logicD
 			"t.TABLE_SCHEMA table_schema, "+
 			"t.TABLE_NAME table_name, "+
 			"c.COLUMN_NAME column_name, "+
-			"c.COLUMN_COMMENT comment, "+
+			"c.COLUMN_COMMENT comments, "+
 			"c.COLUMN_TYPE data_type "+
 			"from "+
 			"INFORMATION_SCHEMA.TABLES t "+
@@ -160,7 +160,7 @@ func (m MySQLOperator) GetColumnsUnderTables(ctx context.Context, dbName, logicD
 			"and t.TABLE_SCHEMA = c.TABLE_SCHEMA "+
 			"where "+
 			"t.TABLE_TYPE = 'BASE TABLE' "+
-			"t.TABLE_SCHEMA = ? "+
+			"AND t.TABLE_SCHEMA = ? "+
 			"AND t.TABLE_NAME IN ?", logicDBName, tableNames).
 		Find(&gormTableColumns)
 	if len(gormTableColumns) == 0 {
@@ -173,14 +173,14 @@ func (m MySQLOperator) GetColumnsUnderTables(ctx context.Context, dbName, logicD
 				TableName: row.TableName,
 				ColumnInfoList: []*ColumnInfo{{
 					ColumnName: row.ColumnName,
-					Comment:    row.Comment,
+					Comment:    row.Comments,
 					DataType:   row.DataType,
 				}},
 			}
 		} else {
 			tableColInfo.ColumnInfoList = append(tableColInfo.ColumnInfoList, &ColumnInfo{
 				ColumnName: row.ColumnName,
-				Comment:    row.Comment,
+				Comment:    row.Comments,
 				DataType:   row.DataType,
 			})
 		}

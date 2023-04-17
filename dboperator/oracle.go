@@ -39,7 +39,7 @@ func (o OracleOperator) GetTablesUnderDB(ctx context.Context, dbName string) (db
 	db.WithContext(ctx).
 		Raw("SELECT OWNER as table_schema, " +
 			"TABLE_NAME as table_name, " +
-			"ALL_TAB_COMMENTS.COMMENTS as comment " +
+			"COMMENTS as comments " +
 			"FROM all_tab_comments " +
 			"WHERE OWNER IN " +
 			"(select SYS_CONTEXT('USERENV','CURRENT_SCHEMA') CURRENT_SCHEMA from dual) " +
@@ -54,14 +54,14 @@ func (o OracleOperator) GetTablesUnderDB(ctx context.Context, dbName string) (db
 				SchemaName: row.TableSchema,
 				TableInfoList: []*TableInfo{{
 					TableName: row.TableName,
-					Comment:   row.Comment,
+					Comment:   row.Comments,
 				}},
 			}
 		} else {
 			logicDBInfo.TableInfoList = append(logicDBInfo.TableInfoList,
 				&TableInfo{
 					TableName: row.TableName,
-					Comment:   row.Comment,
+					Comment:   row.Comments,
 				})
 		}
 	}
@@ -83,7 +83,7 @@ func (o OracleOperator) GetColumns(ctx context.Context, dbName string) (dbTableC
 		Raw("SELECT OWNER as table_schema, " +
 			"TABLE_NAME as table_name, " +
 			"Column_Name as column_name, " +
-			"COMMENTS as comment " +
+			"COMMENTS as comments " +
 			"DATA_TYPE as data_type " +
 			"FROM all_col_comments " +
 			"WHERE OWNER IN " +
@@ -101,7 +101,7 @@ func (o OracleOperator) GetColumns(ctx context.Context, dbName string) (dbTableC
 					TableName: row.TableName,
 					ColumnInfoList: []*ColumnInfo{{
 						ColumnName: row.ColumnName,
-						Comment:    row.Comment,
+						Comment:    row.Comments,
 						DataType:   row.DataType,
 					}},
 				},
@@ -111,14 +111,14 @@ func (o OracleOperator) GetColumns(ctx context.Context, dbName string) (dbTableC
 				TableName: row.TableName,
 				ColumnInfoList: []*ColumnInfo{{
 					ColumnName: row.ColumnName,
-					Comment:    row.Comment,
+					Comment:    row.Comments,
 					DataType:   row.DataType,
 				}},
 			}
 		} else {
 			tableColInfo.ColumnInfoList = append(tableColInfo.ColumnInfoList, &ColumnInfo{
 				ColumnName: row.ColumnName,
-				Comment:    row.Comment,
+				Comment:    row.Comments,
 				DataType:   row.DataType,
 			})
 		}
@@ -146,7 +146,7 @@ func (o OracleOperator) GetColumnsUnderTables(ctx context.Context, dbName, logic
 		Raw("SELECT OWNER as table_schema, "+
 			"TABLE_NAME as table_name, "+
 			"Column_Name as column_name, "+
-			"COMMENTS as comment "+
+			"COMMENTS as comments "+
 			"DATA_TYPE as data_type "+
 			"FROM all_col_comments "+
 			"WHERE OWNER = ? "+
@@ -163,14 +163,14 @@ func (o OracleOperator) GetColumnsUnderTables(ctx context.Context, dbName, logic
 				TableName: row.TableName,
 				ColumnInfoList: []*ColumnInfo{{
 					ColumnName: row.ColumnName,
-					Comment:    row.Comment,
+					Comment:    row.Comments,
 					DataType:   row.DataType,
 				}},
 			}
 		} else {
 			tableColInfo.ColumnInfoList = append(tableColInfo.ColumnInfoList, &ColumnInfo{
 				ColumnName: row.ColumnName,
-				Comment:    row.Comment,
+				Comment:    row.Comments,
 				DataType:   row.DataType,
 			})
 		}

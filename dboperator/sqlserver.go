@@ -39,7 +39,7 @@ func (s SqlServerOperator) GetTablesUnderDB(ctx context.Context, dbName string) 
 		Raw("select  " +
 			"a.name AS table_name, " +
 			"b.name as table_schema, " +
-			"CONVERT(NVARCHAR(100),isnull(c.[value],'-')) AS comment " +
+			"CONVERT(NVARCHAR(100),isnull(c.[value],'-')) AS comments " +
 			"FROM sys.tables a " +
 			"LEFT JOIN sys.schemas b " +
 			"ON a.schema_id = b.schema_id " +
@@ -56,14 +56,14 @@ func (s SqlServerOperator) GetTablesUnderDB(ctx context.Context, dbName string) 
 				SchemaName: row.TableSchema,
 				TableInfoList: []*TableInfo{{
 					TableName: row.TableName,
-					Comment:   row.Comment,
+					Comment:   row.Comments,
 				}},
 			}
 		} else {
 			logicDBInfo.TableInfoList = append(logicDBInfo.TableInfoList,
 				&TableInfo{
 					TableName: row.TableName,
-					Comment:   row.Comment,
+					Comment:   row.Comments,
 				})
 		}
 	}
@@ -100,7 +100,7 @@ func (s SqlServerOperator) GetColumns(ctx context.Context, dbName string) (dbTab
 					TableName: row.TableName,
 					ColumnInfoList: []*ColumnInfo{{
 						ColumnName: row.ColumnName,
-						Comment:    row.Comment,
+						Comment:    row.Comments,
 						DataType:   row.DataType,
 					}},
 				},
@@ -110,14 +110,14 @@ func (s SqlServerOperator) GetColumns(ctx context.Context, dbName string) (dbTab
 				TableName: row.TableName,
 				ColumnInfoList: []*ColumnInfo{{
 					ColumnName: row.ColumnName,
-					Comment:    row.Comment,
+					Comment:    row.Comments,
 					DataType:   row.DataType,
 				}},
 			}
 		} else {
 			tableColInfo.ColumnInfoList = append(tableColInfo.ColumnInfoList, &ColumnInfo{
 				ColumnName: row.ColumnName,
-				Comment:    row.Comment,
+				Comment:    row.Comments,
 				DataType:   row.DataType,
 			})
 		}
@@ -161,14 +161,14 @@ func (s SqlServerOperator) GetColumnsUnderTables(ctx context.Context, dbName, lo
 				TableName: row.TableName,
 				ColumnInfoList: []*ColumnInfo{{
 					ColumnName: row.ColumnName,
-					Comment:    row.Comment,
+					Comment:    row.Comments,
 					DataType:   row.DataType,
 				}},
 			}
 		} else {
 			tableColInfo.ColumnInfoList = append(tableColInfo.ColumnInfoList, &ColumnInfo{
 				ColumnName: row.ColumnName,
-				Comment:    row.Comment,
+				Comment:    row.Comments,
 				DataType:   row.DataType,
 			})
 		}
