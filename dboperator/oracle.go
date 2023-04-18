@@ -80,15 +80,15 @@ func (o OracleOperator) GetColumns(ctx context.Context, dbName string) (dbTableC
 		return
 	}
 	db.WithContext(ctx).
-		Raw("SELECT OWNER as table_schema, " +
-			"TABLE_NAME as table_name, " +
-			"Column_Name as column_name, " +
-			"COMMENTS as comments " +
-			"DATA_TYPE as data_type " +
-			"FROM all_col_comments " +
-			"WHERE OWNER IN " +
-			"(select SYS_CONTEXT('USERENV','CURRENT_SCHEMA') CURRENT_SCHEMA from dual) " +
-			"ORDER BY OWNER, TABLE_NAME").
+		Raw("SELECT atc.OWNER as table_schema, " +
+			"atc.TABLE_NAME as table_name, " +
+			"atc.Column_Name as column_name," +
+			" acc.COMMENTS as comments," +
+			"atc.Data_TYPE  as data_type " +
+			"FROM ALL_TAB_COLUMNS atc " +
+			"left join all_col_comments acc " +
+			"on acc.TABLE_NAME = atc.TABLE_NAME and acc.COLUMN_NAME = atc.COLUMN_NAME " +
+			"WHERE atc.OWNER IN (select SYS_CONTEXT('USERENV','CURRENT_SCHEMA') CURRENT_SCHEMA from dual) ORDER BY atc.OWNER, atc.TABLE_NAME").
 		Find(&gormTableColumns)
 	if len(gormTableColumns) == 0 {
 		return
@@ -143,15 +143,17 @@ func (o OracleOperator) GetColumnsUnderTables(ctx context.Context, dbName, logic
 		return
 	}
 	db.WithContext(ctx).
-		Raw("SELECT OWNER as table_schema, "+
-			"TABLE_NAME as table_name, "+
-			"Column_Name as column_name, "+
-			"COMMENTS as comments "+
-			"DATA_TYPE as data_type "+
-			"FROM all_col_comments "+
-			"WHERE OWNER = ? "+
-			"AND TABLE_NAME IN ? "+
-			"ORDER BY OWNER, TABLE_NAME", logicDBName, tableNames).
+		Raw("SELECT atc.OWNER as table_schema, "+
+			"atc.TABLE_NAME as table_name, "+
+			"atc.Column_Name as column_name,"+
+			" acc.COMMENTS as comments,"+
+			"atc.Data_TYPE  as data_type "+
+			"FROM ALL_TAB_COLUMNS atc "+
+			"left join all_col_comments acc "+
+			"on acc.TABLE_NAME = atc.TABLE_NAME and acc.COLUMN_NAME = atc.COLUMN_NAME "+
+			"WHERE atc.OWNER = ? "+
+			"AND atc.TABLE_NAME IN ? "+
+			"ORDER BY atc.OWNER, atc.TABLE_NAME", logicDBName, tableNames).
 		Find(&gormTableColumns)
 	if len(gormTableColumns) == 0 {
 		return
