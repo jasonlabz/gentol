@@ -88,7 +88,8 @@ func (o OracleOperator) GetColumns(ctx context.Context, dbName string) (dbTableC
 			"FROM ALL_TAB_COLUMNS atc " +
 			"left join all_col_comments acc " +
 			"on acc.TABLE_NAME = atc.TABLE_NAME and acc.COLUMN_NAME = atc.COLUMN_NAME " +
-			"WHERE atc.OWNER IN (select SYS_CONTEXT('USERENV','CURRENT_SCHEMA') CURRENT_SCHEMA from dual) ORDER BY atc.OWNER, atc.TABLE_NAME").
+			"WHERE atc.OWNER IN (select SYS_CONTEXT('USERENV','CURRENT_SCHEMA') CURRENT_SCHEMA from dual) " +
+			"ORDER BY atc.TABLE_NAME, atc.Column_Name").
 		Find(&gormTableColumns)
 	if len(gormTableColumns) == 0 {
 		return
@@ -153,7 +154,7 @@ func (o OracleOperator) GetColumnsUnderTables(ctx context.Context, dbName, logic
 			"on acc.TABLE_NAME = atc.TABLE_NAME and acc.COLUMN_NAME = atc.COLUMN_NAME "+
 			"WHERE atc.OWNER = ? "+
 			"AND atc.TABLE_NAME IN ? "+
-			"ORDER BY atc.OWNER, atc.TABLE_NAME", logicDBName, tableNames).
+			"ORDER BY atc.TABLE_NAME, atc.Column_Name", logicDBName, tableNames).
 		Find(&gormTableColumns)
 	if len(gormTableColumns) == 0 {
 		return

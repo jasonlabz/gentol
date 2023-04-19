@@ -1,14 +1,14 @@
-config:
-  - database:
-      db_type: "postgres"
-      dsn: "user=postgres password=halojeff host=127.0.0.1 port=8432 dbname=lg_server sslmode=disable TimeZone=Asia/Shanghai"
-      tables:
-        - schema_name: public
-          table_name: user
+configs:
+  - db_name: "postgres"
+    db_type: "postgres"
+    dsn: "user=postgres password=halojeff host=127.0.0.1 port=8432 dbname=lg_server sslmode=disable TimeZone=Asia/Shanghai"
+    tables:
+      - schema_name: public
+        table_name: user
 
-  - database:
-      db_type: "mysql"
-      dsn: "root:halojeff@tcp(127.0.0.1:3306)/lg_server?parseTime=True&loc=Local"
-      tables:
-        - schema_name: lg_server
-          table_name: user
+  - db_type: "mysql"
+    db_name: "mysql"
+    dsn: "root:halojeff@tcp(127.0.0.1:3306)/lg_server?parseTime=True&loc=Local"
+    tables:
+      - schema_name: lg_server
+        table_name: user

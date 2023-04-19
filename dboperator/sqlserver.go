@@ -45,7 +45,8 @@ func (s SqlServerOperator) GetTablesUnderDB(ctx context.Context, dbName string) 
 			"ON a.schema_id = b.schema_id " +
 			"LEFT JOIN sys.extended_properties c " +
 			"ON (a.object_id = c.major_id AND c.minor_id = 0) " +
-			"WHERE b.name not like 'db_%' and  b.name NOT IN ('sys','INFORMATION_SCHEMA')").
+			"WHERE b.name not like 'db_%' and  b.name NOT IN ('sys','INFORMATION_SCHEMA') " +
+			"ORDER BY b.name,a.name").
 		Find(&gormDBTables)
 	if len(gormDBTables) == 0 {
 		return
@@ -87,7 +88,8 @@ func (s SqlServerOperator) GetColumns(ctx context.Context, dbName string) (dbTab
 			"COLUMN_NAME as column_name, " +
 			"DATA_TYPE as data_type " +
 			"FROM INFORMATION_SCHEMA.Columns " +
-			"WHERE TABLE_SCHEMA NOT IN ('sys','INFORMATION_SCHEMA')").
+			"WHERE TABLE_SCHEMA NOT IN ('sys','INFORMATION_SCHEMA') " +
+			"ORDER BY TABLE_NAME, COLUMN_NAME").
 		Find(&gormTableColumns)
 	if len(gormTableColumns) == 0 {
 		return
@@ -149,7 +151,7 @@ func (s SqlServerOperator) GetColumnsUnderTables(ctx context.Context, dbName, lo
 			"FROM INFORMATION_SCHEMA.Columns "+
 			"WHERE TABLE_SCHEMA = ? "+
 			"AND TABLE_NAME IN ? "+
-			"ORDER BY OWNER, TABLE_NAME", logicDBName, tableNames).
+			"ORDER BY TABLE_NAME, COLUMN_NAME", logicDBName, tableNames).
 		Find(&gormTableColumns)
 	if len(gormTableColumns) == 0 {
 		return

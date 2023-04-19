@@ -30,23 +30,54 @@ type DBWrapper struct {
 	Config *Config
 }
 
-// InitWithDB init database instance with db instance
-func InitWithDB(dbName string, dbWrapper *DBWrapper) error {
-	if dbWrapper == nil ||
-		dbWrapper.DB == nil ||
-		dbWrapper.Config == nil {
-		return errors.New("no db")
+// GetGormDB db instance
+func GetGormDB(config *Config) (*gorm.DB, error) {
+	if config == nil {
+		return nil, errors.New("no db config")
 	}
-	if dbName == "" {
-		return errors.New("no db name")
+	if config.DBName == "" {
+		return nil, errors.New("no db name")
 	}
-	_, ok := dbMap.Load(dbName)
-	if ok {
-		return nil
+	if config.DSN == "" &&
+		config.GenDSN() == "" {
+		return nil, errors.New("no db dsn")
 	}
-	// Store database
-	dbMap.Store(dbName, dbWrapper)
-	return nil
+	var dialect gorm.Dialector
+	switch config.DBType {
+	case DBTypeMySQL:
+		dialect = mysql.Open(config.DSN)
+	case DBTypeGreenplum:
+		fallthrough
+	case DBTypePostgres:
+		dialect = postgres.Open(config.DSN)
+	case DBTypeOracle:
+		dialect = oracle.Open(config.DSN)
+	case DBTypeSqlserver:
+		dialect = sqlserver.Open(config.DSN)
+	default:
+		return nil, errors.New(fmt.Sprintf("unsupported dbType: %s", string(config.DBType)))
+	}
+	if config.MaxOpenConn == 0 {
+		config.MaxOpenConn = defaultConfig.MaxOpenConn
+	}
+	if config.MaxIdleConn == 0 {
+		config.MaxIdleConn = defaultConfig.MaxIdleConn
+	}
+	if config.ConnMaxLifeTime == 0 {
+		config.ConnMaxLifeTime = defaultConfig.ConnMaxLifeTime
+	}
+	db, err := gorm.Open(dialect)
+	if err != nil {
+		return nil, err
+	}
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, err
+	}
+	sqlDB.SetMaxOpenConns(config.MaxOpenConn)
+	sqlDB.SetMaxIdleConns(config.MaxIdleConn)
+	sqlDB.SetConnMaxLifetime(config.ConnMaxLifeTime)
+	return db, nil
 }
 
 // InitWithConfig init database instance with db configuration and dialect
