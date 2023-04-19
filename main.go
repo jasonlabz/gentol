@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/onlyzzg/gentol/datasource"
-	"github.com/onlyzzg/gentol/gormx"
 	"github.com/onlyzzg/gentol/src/config"
+	"github.com/onlyzzg/gentol/src/datasource"
+	gormx "github.com/onlyzzg/gentol/src/gormx"
 	"strings"
 )
 

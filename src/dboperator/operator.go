@@ -2,7 +2,7 @@ package dboperator
 
 import (
 	"context"
-	"github.com/onlyzzg/gentol/gormx"
+	"github.com/onlyzzg/gentol/src/gormx"
 	"math"
 )
 

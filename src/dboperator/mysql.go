@@ -3,29 +3,28 @@ package dboperator
 import (
 	"context"
 	"errors"
-	"fmt"
-	"github.com/onlyzzg/gentol/gormx"
+	"github.com/onlyzzg/gentol/src/gormx"
 )
 
-func NewOracleOperator() IOperator {
-	return &OracleOperator{}
+func NewMySQLOperator() IOperator {
+	return &MySQLOperator{}
 }
 
-type OracleOperator struct{}
+type MySQLOperator struct{}
 
-func (o OracleOperator) Open(config *gormx.Config) error {
-	return gormx.InitWithConfig(config)
+func (m MySQLOperator) Open(config *gormx.Config) error {
+	return gormx.InitConfig(config)
 }
 
-func (o OracleOperator) Ping(dbName string) error {
+func (m MySQLOperator) Ping(dbName string) error {
 	return gormx.Ping(dbName)
 }
 
-func (o OracleOperator) Close(dbName string) error {
+func (m MySQLOperator) Close(dbName string) error {
 	return gormx.Close(dbName)
 }
 
-func (o OracleOperator) GetTablesUnderDB(ctx context.Context, dbName string) (dbTableMap map[string]*LogicDBInfo, err error) {
+func (m MySQLOperator) GetTablesUnderDB(ctx context.Context, dbName string) (dbTableMap map[string]*LogicDBInfo, err error) {
 	dbTableMap = make(map[string]*LogicDBInfo)
 	if dbName == "" {
 		err = errors.New("empty dnName")
@@ -37,13 +36,13 @@ func (o OracleOperator) GetTablesUnderDB(ctx context.Context, dbName string) (db
 		return
 	}
 	db.WithContext(ctx).
-		Raw("SELECT OWNER as table_schema, " +
+		Raw("SELECT TABLE_SCHEMA as table_schema, " +
 			"TABLE_NAME as table_name, " +
-			"COMMENTS as comments " +
-			"FROM all_tab_comments " +
-			"WHERE OWNER IN " +
-			"(select SYS_CONTEXT('USERENV','CURRENT_SCHEMA') CURRENT_SCHEMA from dual) " +
-			"ORDER BY OWNER, TABLE_NAME").
+			"TABLE_COMMENT as comments " +
+			"FROM INFORMATION_SCHEMA.TABLES " +
+			"WHERE TABLE_TYPE = 'BASE TABLE' " +
+			"AND TABLE_SCHEMA NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema') " +
+			"ORDER  BY TABLE_SCHEMA, TABLE_NAME").
 		Find(&gormDBTables)
 	if len(gormDBTables) == 0 {
 		return
@@ -68,7 +67,7 @@ func (o OracleOperator) GetTablesUnderDB(ctx context.Context, dbName string) (db
 	return
 }
 
-func (o OracleOperator) GetColumns(ctx context.Context, dbName string) (dbTableColMap map[string]map[string]*TableColInfo, err error) {
+func (m MySQLOperator) GetColumns(ctx context.Context, dbName string) (dbTableColMap map[string]map[string]*TableColInfo, err error) {
 	dbTableColMap = make(map[string]map[string]*TableColInfo, 0)
 	if dbName == "" {
 		err = errors.New("empty dnName")
@@ -80,16 +79,21 @@ func (o OracleOperator) GetColumns(ctx context.Context, dbName string) (dbTableC
 		return
 	}
 	db.WithContext(ctx).
-		Raw("SELECT atc.OWNER as table_schema, " +
-			"atc.TABLE_NAME as table_name, " +
-			"atc.Column_Name as column_name," +
-			" acc.COMMENTS as comments," +
-			"atc.Data_TYPE  as data_type " +
-			"FROM ALL_TAB_COLUMNS atc " +
-			"left join all_col_comments acc " +
-			"on acc.TABLE_NAME = atc.TABLE_NAME and acc.COLUMN_NAME = atc.COLUMN_NAME " +
-			"WHERE atc.OWNER IN (select SYS_CONTEXT('USERENV','CURRENT_SCHEMA') CURRENT_SCHEMA from dual) " +
-			"ORDER BY atc.TABLE_NAME, atc.Column_Name").
+		Raw("select " +
+			"t.TABLE_SCHEMA table_schema, " +
+			"t.TABLE_NAME table_name, " +
+			"c.COLUMN_NAME column_name, " +
+			"c.COLUMN_COMMENT comments, " +
+			"c.COLUMN_TYPE data_type " +
+			"from " +
+			"INFORMATION_SCHEMA.TABLES t " +
+			"inner join INFORMATION_SCHEMA.COLUMNS c on " +
+			"t.TABLE_NAME = c.TABLE_NAME " +
+			"and t.TABLE_SCHEMA = c.TABLE_SCHEMA " +
+			"where " +
+			"t.TABLE_TYPE = 'BASE TABLE' " +
+			"AND t.TABLE_SCHEMA NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema') " +
+			"ORDER BY t.TABLE_NAME, c.COLUMN_NAME").
 		Find(&gormTableColumns)
 	if len(gormTableColumns) == 0 {
 		return
@@ -127,7 +131,7 @@ func (o OracleOperator) GetColumns(ctx context.Context, dbName string) (dbTableC
 	return
 }
 
-func (o OracleOperator) GetColumnsUnderTables(ctx context.Context, dbName, logicDBName string, tableNames []string) (tableColMap map[string]*TableColInfo, err error) {
+func (m MySQLOperator) GetColumnsUnderTables(ctx context.Context, dbName, logicDBName string, tableNames []string) (tableColMap map[string]*TableColInfo, err error) {
 	tableColMap = make(map[string]*TableColInfo, 0)
 	if dbName == "" {
 		err = errors.New("empty dnName")
@@ -144,17 +148,22 @@ func (o OracleOperator) GetColumnsUnderTables(ctx context.Context, dbName, logic
 		return
 	}
 	db.WithContext(ctx).
-		Raw("SELECT atc.OWNER as table_schema, "+
-			"atc.TABLE_NAME as table_name, "+
-			"atc.Column_Name as column_name,"+
-			" acc.COMMENTS as comments,"+
-			"atc.Data_TYPE  as data_type "+
-			"FROM ALL_TAB_COLUMNS atc "+
-			"left join all_col_comments acc "+
-			"on acc.TABLE_NAME = atc.TABLE_NAME and acc.COLUMN_NAME = atc.COLUMN_NAME "+
-			"WHERE atc.OWNER = ? "+
-			"AND atc.TABLE_NAME IN ? "+
-			"ORDER BY atc.TABLE_NAME, atc.Column_Name", logicDBName, tableNames).
+		Raw("select "+
+			"t.TABLE_SCHEMA table_schema, "+
+			"t.TABLE_NAME table_name, "+
+			"c.COLUMN_NAME column_name, "+
+			"c.COLUMN_COMMENT comments, "+
+			"c.COLUMN_TYPE data_type "+
+			"from "+
+			"INFORMATION_SCHEMA.TABLES t "+
+			"inner join INFORMATION_SCHEMA.COLUMNS c on "+
+			"t.TABLE_NAME = c.TABLE_NAME "+
+			"and t.TABLE_SCHEMA = c.TABLE_SCHEMA "+
+			"where "+
+			"t.TABLE_TYPE = 'BASE TABLE' "+
+			"AND t.TABLE_SCHEMA = ? "+
+			"AND t.TABLE_NAME IN ? "+
+			"ORDER BY t.TABLE_NAME, c.COLUMN_NAME", logicDBName, tableNames).
 		Find(&gormTableColumns)
 	if len(gormTableColumns) == 0 {
 		return
@@ -181,7 +190,7 @@ func (o OracleOperator) GetColumnsUnderTables(ctx context.Context, dbName, logic
 	return
 }
 
-func (o OracleOperator) CreateSchema(ctx context.Context, dbName, schemaName, commentInfo string) (err error) {
+func (m MySQLOperator) CreateSchema(ctx context.Context, dbName, schemaName, commentInfo string) (err error) {
 	if dbName == "" {
 		err = errors.New("empty dnName")
 		return
@@ -193,23 +202,14 @@ func (o OracleOperator) CreateSchema(ctx context.Context, dbName, schemaName, co
 	if err != nil {
 		return
 	}
-	config, err := gormx.GetDBConfig(dbName)
-	if err != nil {
-		return
-	}
-	password := config.Password
-	err = db.WithContext(ctx).Exec(fmt.Sprintf("create user %s identified by %s", schemaName, password)).Error
-	if err != nil {
-		return
-	}
-	err = db.WithContext(ctx).Exec(fmt.Sprintf("grant connect, resource to %s", schemaName)).Error
+	err = db.WithContext(ctx).Exec("create schema if not exists " + schemaName).Error
 	if err != nil {
 		return
 	}
 	return
 }
 
-func (o OracleOperator) ExecuteDDL(ctx context.Context, dbName, ddlStatement string) (err error) {
+func (m MySQLOperator) ExecuteDDL(ctx context.Context, dbName, ddlStatement string) (err error) {
 	if dbName == "" {
 		err = errors.New("empty dnName")
 		return

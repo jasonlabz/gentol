@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/onlyzzg/gentol/datasource"
-	"github.com/onlyzzg/gentol/gormx"
+	"github.com/onlyzzg/gentol/src/datasource"
+	"github.com/onlyzzg/gentol/src/gormx"
 	"testing"
 )
 
@@ -18,7 +18,7 @@ func TestNewOperator(t *testing.T) {
 		Password: "halojeff",
 		Database: "lg_server",
 	}
-	err := gormx.InitWithConfig(dbInfo)
+	err := gormx.InitConfig(dbInfo)
 	if err != nil {
 		panic(err)
 	}

@@ -49,13 +49,13 @@ func GetDBByConfig(config *Config) (*gorm.DB, error) {
 		return nil, errors.New(fmt.Sprintf("unsupported dbType: %s", string(config.DBType)))
 	}
 	if config.MaxOpenConn == 0 {
-		config.MaxOpenConn = defaultConfig.MaxOpenConn
+		config.MaxOpenConn = defaultMaxOpenConn
 	}
 	if config.MaxIdleConn == 0 {
-		config.MaxIdleConn = defaultConfig.MaxIdleConn
+		config.MaxIdleConn = defaultMaxIdleConn
 	}
 	if config.ConnMaxLifeTime == 0 {
-		config.ConnMaxLifeTime = defaultConfig.ConnMaxLifeTime
+		config.ConnMaxLifeTime = defaultConnMaxLifeTime
 	}
 	db, err := gorm.Open(dialect)
 	if err != nil {
@@ -110,13 +110,13 @@ func InitConfig(config *Config) error {
 		return err
 	}
 	if config.MaxOpenConn == 0 {
-		config.MaxOpenConn = defaultConfig.MaxOpenConn
+		config.MaxOpenConn = defaultMaxOpenConn
 	}
 	if config.MaxIdleConn == 0 {
-		config.MaxIdleConn = defaultConfig.MaxIdleConn
+		config.MaxIdleConn = defaultMaxIdleConn
 	}
 	if config.ConnMaxLifeTime == 0 {
-		config.ConnMaxLifeTime = defaultConfig.ConnMaxLifeTime
+		config.ConnMaxLifeTime = defaultConnMaxLifeTime
 	}
 	sqlDB.SetMaxOpenConns(config.MaxOpenConn)
 	sqlDB.SetMaxIdleConns(config.MaxIdleConn)

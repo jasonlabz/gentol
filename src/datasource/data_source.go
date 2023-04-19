@@ -3,14 +3,14 @@ package datasource
 import (
 	"context"
 	"errors"
-	"github.com/onlyzzg/gentol/dboperator"
-	"github.com/onlyzzg/gentol/gormx"
+	dboperator2 "github.com/onlyzzg/gentol/src/dboperator"
+	gormx "github.com/onlyzzg/gentol/src/gormx"
 )
 
 var dsMap = make(map[gormx.DBType]*DS)
 
 type DS struct {
-	Operator dboperator.IOperator
+	Operator dboperator2.IOperator
 }
 
 // Open open database by config
@@ -29,17 +29,17 @@ func (ds *DS) Close(dbName string) error {
 }
 
 // GetTablesUnderDB 获取该库下所有逻辑库及表名
-func (ds *DS) GetTablesUnderDB(ctx context.Context, dbName string) (dbTableMap map[string]*dboperator.LogicDBInfo, err error) {
+func (ds *DS) GetTablesUnderDB(ctx context.Context, dbName string) (dbTableMap map[string]*dboperator2.LogicDBInfo, err error) {
 	return ds.Operator.GetTablesUnderDB(ctx, dbName)
 }
 
 // GetColumns 获取指定库所有逻辑库及表下字段列表
-func (ds *DS) GetColumns(ctx context.Context, dbName string) (dbTableColMap map[string]map[string]*dboperator.TableColInfo, err error) {
+func (ds *DS) GetColumns(ctx context.Context, dbName string) (dbTableColMap map[string]map[string]*dboperator2.TableColInfo, err error) {
 	return ds.Operator.GetColumns(ctx, dbName)
 }
 
 // GetColumnsUnderTable 获取指定库表下字段列表
-func (ds *DS) GetColumnsUnderTable(ctx context.Context, dbName, logicDBName string, tableNames []string) (tableColMap map[string]*dboperator.TableColInfo, err error) {
+func (ds *DS) GetColumnsUnderTable(ctx context.Context, dbName, logicDBName string, tableNames []string) (tableColMap map[string]*dboperator2.TableColInfo, err error) {
 	return ds.Operator.GetColumnsUnderTables(ctx, dbName, logicDBName, tableNames)
 }
 
@@ -66,24 +66,24 @@ func GetDS(dataSourceType gormx.DBType) (ds *DS, err error) {
 func init() {
 	// oracle
 	dsMap[gormx.DBTypeOracle] = &DS{
-		Operator: dboperator.NewOracleOperator(),
+		Operator: dboperator2.NewOracleOperator(),
 	}
 	// postgresql
 	dsMap[gormx.DBTypePostgres] = &DS{
-		Operator: dboperator.NewPGOperator(),
+		Operator: dboperator2.NewPGOperator(),
 	}
 	// mysql
 	dsMap[gormx.DBTypeMySQL] = &DS{
-		Operator: dboperator.NewMySQLOperator(),
+		Operator: dboperator2.NewMySQLOperator(),
 	}
 
 	// greenplum
 	dsMap[gormx.DBTypeGreenplum] = &DS{
-		Operator: dboperator.NewGPOperator(),
+		Operator: dboperator2.NewGPOperator(),
 	}
 
 	// sqlserver
 	dsMap[gormx.DBTypeSqlserver] = &DS{
-		Operator: dboperator.NewSqlserverOperator(),
+		Operator: dboperator2.NewSqlserverOperator(),
 	}
 }

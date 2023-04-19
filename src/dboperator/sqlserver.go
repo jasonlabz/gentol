@@ -3,7 +3,7 @@ package dboperator
 import (
 	"context"
 	"errors"
-	"github.com/onlyzzg/gentol/gormx"
+	"github.com/onlyzzg/gentol/src/gormx"
 )
 
 func NewSqlserverOperator() IOperator {
@@ -13,7 +13,7 @@ func NewSqlserverOperator() IOperator {
 type SqlServerOperator struct{}
 
 func (s SqlServerOperator) Open(config *gormx.Config) error {
-	return gormx.InitWithConfig(config)
+	return gormx.InitConfig(config)
 }
 
 func (s SqlServerOperator) Ping(dbName string) error {

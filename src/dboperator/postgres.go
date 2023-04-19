@@ -4,28 +4,28 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/onlyzzg/gentol/gormx"
+	"github.com/onlyzzg/gentol/src/gormx"
 )
 
-func NewGPOperator() IOperator {
-	return &GPOperator{}
+func NewPGOperator() IOperator {
+	return &PGOperator{}
 }
 
-type GPOperator struct{}
+type PGOperator struct{}
 
-func (G GPOperator) Open(config *gormx.Config) error {
-	return gormx.InitWithConfig(config)
+func (P PGOperator) Open(config *gormx.Config) error {
+	return gormx.InitConfig(config)
 }
 
-func (G GPOperator) Ping(dbName string) error {
+func (P PGOperator) Ping(dbName string) error {
 	return gormx.Ping(dbName)
 }
 
-func (G GPOperator) Close(dbName string) error {
+func (P PGOperator) Close(dbName string) error {
 	return gormx.Close(dbName)
 }
 
-func (G GPOperator) GetTablesUnderDB(ctx context.Context, dbName string) (dbTableMap map[string]*LogicDBInfo, err error) {
+func (P PGOperator) GetTablesUnderDB(ctx context.Context, dbName string) (dbTableMap map[string]*LogicDBInfo, err error) {
 	dbTableMap = make(map[string]*LogicDBInfo)
 	if dbName == "" {
 		err = errors.New("empty dnName")
@@ -72,7 +72,7 @@ func (G GPOperator) GetTablesUnderDB(ctx context.Context, dbName string) (dbTabl
 	return
 }
 
-func (G GPOperator) GetColumns(ctx context.Context, dbName string) (dbTableColMap map[string]map[string]*TableColInfo, err error) {
+func (P PGOperator) GetColumns(ctx context.Context, dbName string) (dbTableColMap map[string]map[string]*TableColInfo, err error) {
 	dbTableColMap = make(map[string]map[string]*TableColInfo, 0)
 	if dbName == "" {
 		err = errors.New("empty dnName")
@@ -137,7 +137,7 @@ func (G GPOperator) GetColumns(ctx context.Context, dbName string) (dbTableColMa
 	return
 }
 
-func (G GPOperator) GetColumnsUnderTables(ctx context.Context, dbName, logicDBName string, tableNames []string) (tableColMap map[string]*TableColInfo, err error) {
+func (P PGOperator) GetColumnsUnderTables(ctx context.Context, dbName, logicDBName string, tableNames []string) (tableColMap map[string]*TableColInfo, err error) {
 	tableColMap = make(map[string]*TableColInfo, 0)
 	if dbName == "" {
 		err = errors.New("empty dnName")
@@ -195,7 +195,7 @@ func (G GPOperator) GetColumnsUnderTables(ctx context.Context, dbName, logicDBNa
 	return
 }
 
-func (G GPOperator) CreateSchema(ctx context.Context, dbName, schemaName, commentInfo string) (err error) {
+func (P PGOperator) CreateSchema(ctx context.Context, dbName, schemaName, commentInfo string) (err error) {
 	if dbName == "" {
 		err = errors.New("empty dnName")
 		return
@@ -219,7 +219,7 @@ func (G GPOperator) CreateSchema(ctx context.Context, dbName, schemaName, commen
 	return
 }
 
-func (G GPOperator) ExecuteDDL(ctx context.Context, dbName, ddlStatement string) (err error) {
+func (P PGOperator) ExecuteDDL(ctx context.Context, dbName, ddlStatement string) (err error) {
 	if dbName == "" {
 		err = errors.New("empty dnName")
 		return
