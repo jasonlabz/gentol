@@ -5,7 +5,6 @@ go 1.20
 require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/onlyzzg/oracle v1.1.0
-	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/viper v1.15.0
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/mysql v1.5.0

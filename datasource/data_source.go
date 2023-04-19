@@ -9,31 +9,6 @@ import (
 
 var dsMap = make(map[gormx.DBType]*DS)
 
-func init() {
-	// oracle
-	dsMap[gormx.DBTypeOracle] = &DS{
-		Operator: dboperator.NewOracleOperator(),
-	}
-	// postgresql
-	dsMap[gormx.DBTypePostgres] = &DS{
-		Operator: dboperator.NewPGOperator(),
-	}
-	// mysql
-	dsMap[gormx.DBTypeMySQL] = &DS{
-		Operator: dboperator.NewMySQLOperator(),
-	}
-
-	// greenplum
-	dsMap[gormx.DBTypeGreenplum] = &DS{
-		Operator: dboperator.NewGPOperator(),
-	}
-
-	// sqlserver
-	dsMap[gormx.DBTypeSqlserver] = &DS{
-		Operator: dboperator.NewSqlserverOperator(),
-	}
-}
-
 type DS struct {
 	Operator dboperator.IOperator
 }
@@ -86,4 +61,29 @@ func GetDS(dataSourceType gormx.DBType) (ds *DS, err error) {
 		return
 	}
 	return
+}
+
+func init() {
+	// oracle
+	dsMap[gormx.DBTypeOracle] = &DS{
+		Operator: dboperator.NewOracleOperator(),
+	}
+	// postgresql
+	dsMap[gormx.DBTypePostgres] = &DS{
+		Operator: dboperator.NewPGOperator(),
+	}
+	// mysql
+	dsMap[gormx.DBTypeMySQL] = &DS{
+		Operator: dboperator.NewMySQLOperator(),
+	}
+
+	// greenplum
+	dsMap[gormx.DBTypeGreenplum] = &DS{
+		Operator: dboperator.NewGPOperator(),
+	}
+
+	// sqlserver
+	dsMap[gormx.DBTypeSqlserver] = &DS{
+		Operator: dboperator.NewSqlserverOperator(),
+	}
 }

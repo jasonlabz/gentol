@@ -6,11 +6,11 @@ import (
 	"time"
 )
 
-var defaultConfig = &Config{
-	MaxOpenConn:     500,              // 最大连接数
-	MaxIdleConn:     5,                // 最大空闲连接数
-	ConnMaxLifeTime: 10 * time.Minute, // 连接最大存活时间
-}
+var (
+	defaultMaxOpenConn     = 500              // 最大连接数
+	defaultMaxIdleConn     = 5                // 最大空闲连接数
+	defaultConnMaxLifeTime = 10 * time.Minute // 连接最大存活时间
+)
 
 // Config Database configuration
 type Config struct {
@@ -29,25 +29,6 @@ type Config struct {
 	SSLMode         string        `json:"ssl_mode"`
 	TimeZone        string        `json:"time_zone"`
 	Charset         string        `json:"charset"`
-}
-
-func (c *Config) GenDSN() (dsn string) {
-	if c.DSN != "" {
-		return c.DSN
-	}
-
-	dbName := c.Database
-	if dbName == "" {
-		dbName = c.DBName
-	}
-	dsnTemplate, ok := DatabaseDsnMap[c.DBType]
-	if !ok {
-		return
-	}
-	dsn = fmt.Sprintf(dsnTemplate, c.User, c.Password, c.Host, c.Port, dbName)
-
-	c.DSN = dsn
-	return
 }
 
 func (c *Config) GetDataBase() (database string) {
@@ -75,6 +56,25 @@ func (c *Config) GetDataBase() (database string) {
 	default:
 		return ""
 	}
+	return
+}
+
+func (c *Config) GenDSN() (dsn string) {
+	if c.DSN != "" {
+		return c.DSN
+	}
+
+	dbName := c.Database
+	if dbName == "" {
+		dbName = c.DBName
+	}
+	dsnTemplate, ok := DatabaseDsnMap[c.DBType]
+	if !ok {
+		return
+	}
+	dsn = fmt.Sprintf(dsnTemplate, c.User, c.Password, c.Host, c.Port, dbName)
+
+	c.DSN = dsn
 	return
 }
 

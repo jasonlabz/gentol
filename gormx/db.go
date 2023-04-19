@@ -11,15 +11,7 @@ import (
 	"sync"
 )
 
-var (
-	dbMap    *sync.Map
-	mockMode = false
-
-	ErrDBConfigIsNil   = errors.New("db config is nil")
-	ErrDBInstanceIsNil = errors.New("db instance is nil")
-	ErrSqlDBIsNil      = errors.New("sql db is nil")
-	ErrDBNameIsEmpty   = errors.New("empty db name")
-)
+var dbMap *sync.Map
 
 func init() {
 	dbMap = &sync.Map{}
@@ -30,8 +22,7 @@ type DBWrapper struct {
 	Config *Config
 }
 
-// GetGormDB db instance
-func GetGormDB(config *Config) (*gorm.DB, error) {
+func GetDBByConfig(config *Config) (*gorm.DB, error) {
 	if config == nil {
 		return nil, errors.New("no db config")
 	}
@@ -80,8 +71,7 @@ func GetGormDB(config *Config) (*gorm.DB, error) {
 	return db, nil
 }
 
-// InitWithConfig init database instance with db configuration and dialect
-func InitWithConfig(config *Config) error {
+func InitConfig(config *Config) error {
 	if config == nil {
 		return errors.New("no db config")
 	}
@@ -131,7 +121,6 @@ func InitWithConfig(config *Config) error {
 	sqlDB.SetMaxOpenConns(config.MaxOpenConn)
 	sqlDB.SetMaxIdleConns(config.MaxIdleConn)
 	sqlDB.SetConnMaxLifetime(config.ConnMaxLifeTime)
-	// Store database
 	dbWrapper := &DBWrapper{
 		DB:     db,
 		Config: config,
@@ -148,6 +137,7 @@ func GetDBConfig(name string) (*Config, error) {
 
 	return db.(*DBWrapper).Config, nil
 }
+
 func GetDB(name string) (*gorm.DB, error) {
 	db, ok := dbMap.Load(name)
 	if !ok {
@@ -157,17 +147,9 @@ func GetDB(name string) (*gorm.DB, error) {
 	return db.(*DBWrapper).DB, nil
 }
 
-func GetDBWithPanic(name string) *gorm.DB {
-	db, ok := dbMap.Load(name)
-	if !ok {
-		panic("no db instance")
-	}
-	return db.(*DBWrapper).DB
-}
-
 func Close(dbName string) error {
 	if dbName == "" {
-		return ErrDBNameIsEmpty
+		return errors.New("empty db name")
 	}
 	v, ok := dbMap.LoadAndDelete(dbName)
 	if !ok || v == nil {
@@ -189,14 +171,14 @@ func Ping(dbName string) error {
 		return err
 	}
 	if db == nil {
-		return ErrDBInstanceIsNil
+		return errors.New("db instance is nil")
 	}
 	sqlDB, err := db.DB()
 	if err != nil {
 		return err
 	}
 	if sqlDB == nil {
-		return ErrSqlDBIsNil
+		return errors.New("sql db is nil")
 	}
 	return sqlDB.Ping()
 }

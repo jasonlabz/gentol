@@ -15,7 +15,7 @@ func main() {
 		dbConfig := &gormx.Config{DBName: database.DBName}
 		dbConfig.DSN = database.DSN
 		dbConfig.DBType = gormx.DBType(database.DBType)
-		err := gormx.InitWithConfig(dbConfig)
+		err := gormx.InitConfig(dbConfig)
 		if err != nil {
 			panic(err)
 		}
