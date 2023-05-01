@@ -33,6 +33,10 @@ func GetDBByConfig(config *Config) (*gorm.DB, error) {
 		config.GenDSN() == "" {
 		return nil, errors.New("no db dsn")
 	}
+	_dbWrapper, ok := dbMap.Load(config.DBName)
+	if ok {
+		return _dbWrapper.(*DBWrapper).DB, nil
+	}
 	var dialect gorm.Dialector
 	switch config.DBType {
 	case DBTypeMySQL:
@@ -61,6 +65,7 @@ func GetDBByConfig(config *Config) (*gorm.DB, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	sqlDB, err := db.DB()
 	if err != nil {
 		return nil, err
@@ -68,6 +73,11 @@ func GetDBByConfig(config *Config) (*gorm.DB, error) {
 	sqlDB.SetMaxOpenConns(config.MaxOpenConn)
 	sqlDB.SetMaxIdleConns(config.MaxIdleConn)
 	sqlDB.SetConnMaxLifetime(config.ConnMaxLifeTime)
+	dbWrapper := &DBWrapper{
+		DB:     db,
+		Config: config,
+	}
+	dbMap.Store(config.DBName, dbWrapper)
 	return db, nil
 }
 
@@ -81,6 +91,10 @@ func InitConfig(config *Config) error {
 	if config.DSN == "" &&
 		config.GenDSN() == "" {
 		return errors.New("no db dsn")
+	}
+	_, ok := dbMap.Load(config.DBName)
+	if ok {
+		return nil
 	}
 	var dialect gorm.Dialector
 	switch config.DBType {
@@ -96,10 +110,6 @@ func InitConfig(config *Config) error {
 		dialect = sqlserver.Open(config.DSN)
 	default:
 		return errors.New(fmt.Sprintf("unsupported dbType: %s", string(config.DBType)))
-	}
-	_, ok := dbMap.Load(config.DBName)
-	if ok {
-		return nil
 	}
 	db, err := gorm.Open(dialect)
 	if err != nil {
