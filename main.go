@@ -86,9 +86,7 @@ func main() {
 		for _, modelList := range modelMap {
 			models = append(models, modelList...)
 		}
-		if !database.OnlyModel {
-			g.ApplyBasic(models...)
-		}
+		g.ApplyBasic(models...)
 
 		g.Execute()
 	}
