@@ -53,6 +53,16 @@ func (ds *DS) ExecuteDDL(ctx context.Context, dbName, logicDBName, tableName, dd
 	return ds.Operator.ExecuteDDL(ctx, dbName, ddlStatement)
 }
 
+// GetDataBySQL 执行自定义
+func (ds *DS) GetDataBySQL(ctx context.Context, dbName, sqlStatement string) (rows []map[string]interface{}, err error) {
+	return ds.Operator.GetDataBySQL(ctx, dbName, sqlStatement)
+}
+
+// GetTableData 执行查询表数据, pageInfo为nil时不分页
+func (ds *DS) GetTableData(ctx context.Context, dbName, schemaName, tableName string, pageInfo *dboperator2.Pagination) (rows []map[string]interface{}, err error) {
+	return ds.Operator.GetTableData(ctx, dbName, schemaName, tableName, pageInfo)
+}
+
 func GetDS(dataSourceType gormx.DBType) (ds *DS, err error) {
 	var ok bool
 	ds, ok = dsMap[dataSourceType]

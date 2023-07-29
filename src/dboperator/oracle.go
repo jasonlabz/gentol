@@ -25,6 +25,40 @@ func (o OracleOperator) Close(dbName string) error {
 	return gormx.Close(dbName)
 }
 
+func (o OracleOperator) GetDataBySQL(ctx context.Context, dbName, sqlStatement string) (rows []map[string]interface{}, err error) {
+	rows = make([]map[string]interface{}, 0)
+	db, err := gormx.GetDB(dbName)
+	if err != nil {
+		return
+	}
+	err = db.WithContext(ctx).
+		Raw(sqlStatement).
+		Find(&rows).Error
+	return
+}
+
+func (o OracleOperator) GetTableData(ctx context.Context, dbName, schemaName, tableName string, pageInfo *Pagination) (rows []map[string]interface{}, err error) {
+	rows = make([]map[string]interface{}, 0)
+	db, err := gormx.GetDB(dbName)
+	if err != nil {
+		return
+	}
+	queryTable := fmt.Sprintf("\"%s\"", tableName)
+	if schemaName != "" {
+		queryTable = fmt.Sprintf("\"%s\".\"%s\"", schemaName, tableName)
+	}
+	var count int64
+	err = db.WithContext(ctx).
+		Table(queryTable).
+		Count(&count).
+		Offset(int(pageInfo.GetOffset())).
+		Limit(int(pageInfo.PageSize)).
+		Find(&rows).Error
+	pageInfo.Total = count
+	pageInfo.SetPageCount()
+	return
+}
+
 func (o OracleOperator) GetTablesUnderDB(ctx context.Context, dbName string) (dbTableMap map[string]*LogicDBInfo, err error) {
 	dbTableMap = make(map[string]*LogicDBInfo)
 	if dbName == "" {
@@ -36,7 +70,7 @@ func (o OracleOperator) GetTablesUnderDB(ctx context.Context, dbName string) (db
 	if err != nil {
 		return
 	}
-	db.WithContext(ctx).
+	err = db.WithContext(ctx).
 		Raw("SELECT OWNER as table_schema, " +
 			"TABLE_NAME as table_name, " +
 			"COMMENTS as comments " +
@@ -44,7 +78,10 @@ func (o OracleOperator) GetTablesUnderDB(ctx context.Context, dbName string) (db
 			"WHERE OWNER IN " +
 			"(select SYS_CONTEXT('USERENV','CURRENT_SCHEMA') CURRENT_SCHEMA from dual) " +
 			"ORDER BY OWNER, TABLE_NAME").
-		Find(&gormDBTables)
+		Find(&gormDBTables).Error
+	if err != nil {
+		return
+	}
 	if len(gormDBTables) == 0 {
 		return
 	}
@@ -79,7 +116,7 @@ func (o OracleOperator) GetColumns(ctx context.Context, dbName string) (dbTableC
 	if err != nil {
 		return
 	}
-	db.WithContext(ctx).
+	err = db.WithContext(ctx).
 		Raw("SELECT atc.OWNER as table_schema, " +
 			"atc.TABLE_NAME as table_name, " +
 			"atc.Column_Name as column_name," +
@@ -90,7 +127,10 @@ func (o OracleOperator) GetColumns(ctx context.Context, dbName string) (dbTableC
 			"on acc.TABLE_NAME = atc.TABLE_NAME and acc.COLUMN_NAME = atc.COLUMN_NAME " +
 			"WHERE atc.OWNER IN (select SYS_CONTEXT('USERENV','CURRENT_SCHEMA') CURRENT_SCHEMA from dual) " +
 			"ORDER BY atc.OWNER, atc.TABLE_NAME, atc.Column_Name").
-		Find(&gormTableColumns)
+		Find(&gormTableColumns).Error
+	if err != nil {
+		return
+	}
 	if len(gormTableColumns) == 0 {
 		return
 	}
@@ -143,7 +183,7 @@ func (o OracleOperator) GetColumnsUnderTables(ctx context.Context, dbName, logic
 	if err != nil {
 		return
 	}
-	db.WithContext(ctx).
+	err = db.WithContext(ctx).
 		Raw("SELECT atc.OWNER as table_schema, "+
 			"atc.TABLE_NAME as table_name, "+
 			"atc.Column_Name as column_name,"+
@@ -155,7 +195,10 @@ func (o OracleOperator) GetColumnsUnderTables(ctx context.Context, dbName, logic
 			"WHERE atc.OWNER = ? "+
 			"AND atc.TABLE_NAME IN ? "+
 			"ORDER BY atc.OWNER, atc.TABLE_NAME, atc.Column_Name", logicDBName, tableNames).
-		Find(&gormTableColumns)
+		Find(&gormTableColumns).Error
+	if err != nil {
+		return
+	}
 	if len(gormTableColumns) == 0 {
 		return
 	}

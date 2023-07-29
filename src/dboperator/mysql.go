@@ -3,6 +3,7 @@ package dboperator
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/onlyzzg/gentol/src/gormx"
 )
 
@@ -24,6 +25,40 @@ func (m MySQLOperator) Close(dbName string) error {
 	return gormx.Close(dbName)
 }
 
+func (m MySQLOperator) GetDataBySQL(ctx context.Context, dbName, sqlStatement string) (rows []map[string]interface{}, err error) {
+	rows = make([]map[string]interface{}, 0)
+	db, err := gormx.GetDB(dbName)
+	if err != nil {
+		return
+	}
+	err = db.WithContext(ctx).
+		Raw(sqlStatement).
+		Find(&rows).Error
+	return
+}
+
+func (m MySQLOperator) GetTableData(ctx context.Context, dbName, schemaName, tableName string, pageInfo *Pagination) (rows []map[string]interface{}, err error) {
+	rows = make([]map[string]interface{}, 0)
+	db, err := gormx.GetDB(dbName)
+	if err != nil {
+		return
+	}
+	queryTable := fmt.Sprintf("\"%s\"", tableName)
+	if schemaName != "" {
+		queryTable = fmt.Sprintf("\"%s\".\"%s\"", schemaName, tableName)
+	}
+	var count int64
+	err = db.WithContext(ctx).
+		Table(queryTable).
+		Count(&count).
+		Offset(int(pageInfo.GetOffset())).
+		Limit(int(pageInfo.PageSize)).
+		Find(&rows).Error
+	pageInfo.Total = count
+	pageInfo.SetPageCount()
+	return
+}
+
 func (m MySQLOperator) GetTablesUnderDB(ctx context.Context, dbName string) (dbTableMap map[string]*LogicDBInfo, err error) {
 	dbTableMap = make(map[string]*LogicDBInfo)
 	if dbName == "" {
@@ -35,7 +70,7 @@ func (m MySQLOperator) GetTablesUnderDB(ctx context.Context, dbName string) (dbT
 	if err != nil {
 		return
 	}
-	db.WithContext(ctx).
+	err = db.WithContext(ctx).
 		Raw("SELECT TABLE_SCHEMA as table_schema, " +
 			"TABLE_NAME as table_name, " +
 			"TABLE_COMMENT as comments " +
@@ -43,7 +78,10 @@ func (m MySQLOperator) GetTablesUnderDB(ctx context.Context, dbName string) (dbT
 			"WHERE TABLE_TYPE = 'BASE TABLE' " +
 			"AND TABLE_SCHEMA NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema') " +
 			"ORDER  BY TABLE_SCHEMA, TABLE_NAME").
-		Find(&gormDBTables)
+		Find(&gormDBTables).Error
+	if err != nil {
+		return
+	}
 	if len(gormDBTables) == 0 {
 		return
 	}
@@ -78,7 +116,7 @@ func (m MySQLOperator) GetColumns(ctx context.Context, dbName string) (dbTableCo
 	if err != nil {
 		return
 	}
-	db.WithContext(ctx).
+	err = db.WithContext(ctx).
 		Raw("select " +
 			"t.TABLE_SCHEMA table_schema, " +
 			"t.TABLE_NAME table_name, " +
@@ -94,7 +132,10 @@ func (m MySQLOperator) GetColumns(ctx context.Context, dbName string) (dbTableCo
 			"t.TABLE_TYPE = 'BASE TABLE' " +
 			"AND t.TABLE_SCHEMA NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema') " +
 			"ORDER BY t.TABLE_NAME, c.COLUMN_NAME").
-		Find(&gormTableColumns)
+		Find(&gormTableColumns).Error
+	if err != nil {
+		return
+	}
 	if len(gormTableColumns) == 0 {
 		return
 	}

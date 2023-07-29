@@ -25,6 +25,40 @@ func (G GPOperator) Close(dbName string) error {
 	return gormx.Close(dbName)
 }
 
+func (G GPOperator) GetDataBySQL(ctx context.Context, dbName, sqlStatement string) (rows []map[string]interface{}, err error) {
+	rows = make([]map[string]interface{}, 0)
+	db, err := gormx.GetDB(dbName)
+	if err != nil {
+		return
+	}
+	err = db.WithContext(ctx).
+		Raw(sqlStatement).
+		Find(&rows).Error
+	return
+}
+
+func (G GPOperator) GetTableData(ctx context.Context, dbName, schemaName, tableName string, pageInfo *Pagination) (rows []map[string]interface{}, err error) {
+	rows = make([]map[string]interface{}, 0)
+	db, err := gormx.GetDB(dbName)
+	if err != nil {
+		return
+	}
+	queryTable := fmt.Sprintf("\"%s\"", tableName)
+	if schemaName != "" {
+		queryTable = fmt.Sprintf("\"%s\".\"%s\"", schemaName, tableName)
+	}
+	var count int64
+	err = db.WithContext(ctx).
+		Table(queryTable).
+		Count(&count).
+		Offset(int(pageInfo.GetOffset())).
+		Limit(int(pageInfo.PageSize)).
+		Find(&rows).Error
+	pageInfo.Total = count
+	pageInfo.SetPageCount()
+	return
+}
+
 func (G GPOperator) GetTablesUnderDB(ctx context.Context, dbName string) (dbTableMap map[string]*LogicDBInfo, err error) {
 	dbTableMap = make(map[string]*LogicDBInfo)
 	if dbName == "" {
@@ -36,7 +70,7 @@ func (G GPOperator) GetTablesUnderDB(ctx context.Context, dbName string) (dbTabl
 	if err != nil {
 		return
 	}
-	db.WithContext(ctx).
+	err = db.WithContext(ctx).
 		Raw("SELECT tb.schemaname as table_schema, " +
 			"tb.tablename as table_name, " +
 			"d.description as comments " +
@@ -48,7 +82,7 @@ func (G GPOperator) GetTablesUnderDB(ctx context.Context, dbName string) (dbTabl
 			"AND tablename NOT LIKE 'gp%' " +
 			"AND tablename NOT LIKE 'sql_%' " +
 			"ORDER BY tb.schemaname, tb.tablename").
-		Find(&gormDBTables)
+		Find(&gormDBTables).Error
 	if len(gormDBTables) == 0 {
 		return
 	}
@@ -83,12 +117,12 @@ func (G GPOperator) GetColumns(ctx context.Context, dbName string) (dbTableColMa
 	if err != nil {
 		return
 	}
-	db.WithContext(ctx).
+	err = db.WithContext(ctx).
 		Raw("select " +
 			"ic.table_schema table_schema, " +
 			"ic.table_name table_name, " +
 			"ic.column_name as column_name, " +
-			"ic.data_type as data_type, " +
+			"ic.udt_name as data_type, " +
 			"d.description as comments " +
 			"from " +
 			"information_schema.columns ic " +
@@ -99,8 +133,11 @@ func (G GPOperator) GetColumns(ctx context.Context, dbName string) (dbTableColMa
 			"AND ic.table_name NOT LIKE 'gp%' " +
 			"AND ic.table_name NOT LIKE 'sql_%' " +
 			"AND ic.table_schema <> 'information_schema' " +
-			"ORDER BY ic.table_name, ic.column_name").
-		Find(&gormTableColumns)
+			"ORDER BY ic.table_name, ic.ordinal_position").
+		Find(&gormTableColumns).Error
+	if err != nil {
+		return
+	}
 	if len(gormTableColumns) == 0 {
 		return
 	}
@@ -153,12 +190,12 @@ func (G GPOperator) GetColumnsUnderTables(ctx context.Context, dbName, logicDBNa
 	if err != nil {
 		return
 	}
-	db.WithContext(ctx).
+	err = db.WithContext(ctx).
 		Raw("select "+
 			"ic.table_schema table_schema, "+
 			"ic.table_name table_name, "+
 			"ic.column_name as column_name, "+
-			"ic.data_type as data_type, "+
+			"ic.udt_name as data_type, "+
 			"d.description as comments "+
 			"from "+
 			"information_schema.columns ic "+
@@ -168,8 +205,11 @@ func (G GPOperator) GetColumnsUnderTables(ctx context.Context, dbName, logicDBNa
 			"where "+
 			"ic.table_schema = ? "+
 			"and ic.table_name in ? "+
-			"ORDER BY ic.table_name, ic.column_name", logicDBName, tableNames).
-		Find(&gormTableColumns)
+			"ORDER BY ic.table_name, ic.ordinal_position", logicDBName, tableNames).
+		Find(&gormTableColumns).Error
+	if err != nil {
+		return
+	}
 	if len(gormTableColumns) == 0 {
 		return
 	}

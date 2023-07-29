@@ -3,6 +3,7 @@ package dboperator
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/onlyzzg/gentol/src/gormx"
 )
 
@@ -22,6 +23,40 @@ func (s SqlServerOperator) Ping(dbName string) error {
 
 func (s SqlServerOperator) Close(dbName string) error {
 	return gormx.Close(dbName)
+}
+
+func (s SqlServerOperator) GetDataBySQL(ctx context.Context, dbName, sqlStatement string) (rows []map[string]interface{}, err error) {
+	rows = make([]map[string]interface{}, 0)
+	db, err := gormx.GetDB(dbName)
+	if err != nil {
+		return
+	}
+	err = db.WithContext(ctx).
+		Raw(sqlStatement).
+		Find(&rows).Error
+	return
+}
+
+func (s SqlServerOperator) GetTableData(ctx context.Context, dbName, schemaName, tableName string, pageInfo *Pagination) (rows []map[string]interface{}, err error) {
+	rows = make([]map[string]interface{}, 0)
+	db, err := gormx.GetDB(dbName)
+	if err != nil {
+		return
+	}
+	queryTable := fmt.Sprintf("\"%s\"", tableName)
+	if schemaName != "" {
+		queryTable = fmt.Sprintf("\"%s\".\"%s\"", schemaName, tableName)
+	}
+	var count int64
+	err = db.WithContext(ctx).
+		Table(queryTable).
+		Count(&count).
+		Offset(int(pageInfo.GetOffset())).
+		Limit(int(pageInfo.PageSize)).
+		Find(&rows).Error
+	pageInfo.Total = count
+	pageInfo.SetPageCount()
+	return
 }
 
 func (s SqlServerOperator) GetTablesUnderDB(ctx context.Context, dbName string) (dbTableMap map[string]*LogicDBInfo, err error) {

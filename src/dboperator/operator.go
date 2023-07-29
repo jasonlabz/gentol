@@ -25,6 +25,10 @@ type IDataExplorer interface {
 	CreateSchema(ctx context.Context, dbName, schemaName, commentInfo string) (err error)
 	// ExecuteDDL 执行DDL
 	ExecuteDDL(ctx context.Context, dbName, ddlStatement string) (err error)
+	// GetDataBySQL 执行自定义
+	GetDataBySQL(ctx context.Context, dbName, sqlStatement string) (rows []map[string]interface{}, err error)
+	// GetTableData 执行查询表数据, pageInfo为nil时不分页
+	GetTableData(ctx context.Context, dbName, schemaName, tableName string, pageInfo *Pagination) (rows []map[string]interface{}, err error)
 }
 
 type IOperator interface {
@@ -62,6 +66,8 @@ type ColumnInfo struct {
 	ColumnName string // 列名
 	Comment    string // 注释
 	DataType   string // 数据类型
+	//IsNullable      bool   // 可否为null
+	//OrdinalPosition int    // 字段序号
 }
 
 // Pagination 分页结构体（该分页只适合数据量很少的情况）
