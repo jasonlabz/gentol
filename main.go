@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
+	"github.com/onlyzzg/dbutil/datasource"
+	"github.com/onlyzzg/dbutil/gormx"
 	"github.com/onlyzzg/gentol/src/config"
-	"github.com/onlyzzg/gentol/src/datasource"
 	"github.com/onlyzzg/gentol/src/gen"
-	"github.com/onlyzzg/gentol/src/gormx"
 	"log"
 )
 
