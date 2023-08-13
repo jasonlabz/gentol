@@ -1,4 +1,4 @@
-package config
+package configx
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 
 var DefaultPath = "conf/table.yaml"
 
-func init() {
+func Init() {
 	LoadConfigFromYaml(DefaultPath)
 }
 
@@ -25,6 +25,13 @@ type Database struct {
 	ModelPath string       `json:"model_path" yaml:"model_path"`
 	DaoPath   string       `json:"dao_path" yaml:"dao_path"`
 	Tables    []*TableInfo `json:"tables" yaml:"tables"`
+
+	// DSN 可选
+	Host     string `json:"host" yaml:"host"`
+	Port     int    `json:"port" yaml:"port"`
+	User     string `json:"user" yaml:"user"`
+	Password string `json:"password" yaml:"password"`
+	Database string `json:"database" yaml:"database"`
 }
 
 // TableInfo 连接配置
@@ -34,7 +41,13 @@ type TableInfo struct {
 }
 
 type config struct {
-	Configs []*Database `json:"configs" yaml:"configs"`
+	Configs               []*Database `json:"configs" yaml:"configs"`
+	JsonFormat            string      `json:"json_format" yaml:"json_format"`
+	XMLFormat             string      `json:"xml_format" yaml:"xml_format"`
+	ProtobufFormat        string      `json:"protobuf_format" yaml:"protobuf_format"`
+	RunGoFmt              bool        `json:"rungofmt" yaml:"rungofmt"`
+	AddGormAnnotation     bool        `json:"addGormAnnotation" yaml:"addGormAnnotation"`
+	AddProtobufAnnotation bool        `json:"addProtobufAnnotation" yaml:"addProtobufAnnotation"`
 }
 
 var TableConfigs = new(config)

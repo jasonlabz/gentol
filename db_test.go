@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/onlyzzg/dbutil/datasource"
 	"github.com/onlyzzg/dbutil/gormx"
+	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -29,4 +31,23 @@ func TestNewOperator(t *testing.T) {
 	fmt.Print(tableMap)
 	fmt.Print(colMap)
 	fmt.Print(tableColMap)
+}
+
+func TestDemo(t *testing.T) {
+	baseName := filepath.Base("./hello.go")
+	t1, filename, t2, ok := runtime.Caller(0)
+	fmt.Print(t1)
+	fmt.Print(t2)
+	fmt.Print(ok)
+	//fmt.Print(ok)
+	fmt.Print(baseName)
+	fmt.Print(filename)
+	s := test()
+	fmt.Print(s)
+}
+
+func test() string {
+	_, filename, _, _ := runtime.Caller(2)
+	fmt.Print(filename)
+	return filename
 }

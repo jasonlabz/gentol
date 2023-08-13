@@ -1,3 +1,9 @@
+json_format: snake
+xml_format: snake
+protobuf_format: snake
+runGoFmt: true
+addGormAnnotation: true
+addProtobufAnnotation: true
 configs:
 #  - db_name: "postgres"
 #    db_type: "postgres"
@@ -14,4 +20,6 @@ configs:
     dao_path: dao
     only_model: false
     tables:
+      - schema_name: public
+        table_name: test
 
