@@ -1,9 +1,15 @@
 package main
 
 import (
-	"github.com/onlyzzg/gentol/configx"
+	"context"
+	"github.com/jasonlabz/dbutil/datasource"
+	"github.com/jasonlabz/dbutil/gormx"
+	"github.com/jasonlabz/gentol/configx"
 	"github.com/pborman/getopt/v2"
+	"sync"
 )
+
+var once sync.Once
 
 var (
 	dbType = getopt.StringLong("db_type", 0, "mysql", "database type such as [mysql, sqlserver, postgres, oracle, greenplum etc. ]")
@@ -39,79 +45,105 @@ var (
 )
 
 func init() {
-	//getopt.Lookup("db_type").SetGroup("check")
-	//getopt.Lookup("database").SetGroup("check")
-	//getopt.Lookup("table").SetGroup("check")
-	getopt.Lookup("dsn").SetOptional()
-	getopt.Lookup("host").SetOptional()
-	getopt.Lookup("port").SetOptional()
-	getopt.Lookup("username").SetOptional()
-	getopt.Lookup("password").SetOptional()
-	getopt.Lookup("database").SetOptional()
-	//getopt.RequiredGroup("check")
-
-	getopt.ParseV2()
-
-	// 转用配置文件的方式，配置文件支持多个table
-	if *dsn == "" &&
-		*host == "" &&
-		*port == 0 {
+	exist := IsExist("./conf/table.yaml")
+	if !exist {
+		exist = IsExist("./table.yaml")
+	}
+	if exist {
 		configx.Init()
 	} else {
+		// check args
+		getopt.Lookup("db_type").SetGroup("check")
+		getopt.Lookup("database").SetGroup("check")
+		getopt.Lookup("table").SetGroup("check")
+		getopt.Lookup("dsn").SetOptional()
+		getopt.Lookup("host").SetOptional()
+		getopt.Lookup("port").SetOptional()
+		getopt.Lookup("username").SetOptional()
+		getopt.Lookup("password").SetOptional()
+		getopt.Lookup("database").SetOptional()
+		getopt.RequiredGroup("check")
+		getopt.ParseV2()
+
+		// fill args
 		configx.TableConfigs.AddGormAnnotation = *addGormAnnotation
 		configx.TableConfigs.AddProtobufAnnotation = *addProtobufAnnotation
 		configx.TableConfigs.RunGoFmt = *runGoFmt
 		configx.TableConfigs.JsonFormat = *jsonNameFormat
 		configx.TableConfigs.XMLFormat = *xmlNameFormat
 		configx.TableConfigs.ProtobufFormat = *protoNameFormat
+		configx.TableConfigs.Configs = []*configx.Database{
+			{
+				DBName:      DefaultDBName,
+				DBType:      *dbType,
+				DSN:         *dsn,
+				OnlyModel:   *onlyModel,
+				ModelPath:   *modelPath,
+				DaoPath:     *daoPath,
+				ServicePath: *servicePath,
+				Host:        *host,
+				Port:        *port,
+				User:        *username,
+				Password:    *password,
+				Tables: []*configx.TableInfo{
+					{
+						SchemaName: *schema,
+						TableName:  *table,
+					},
+				},
+			},
+		}
 	}
 }
 
 func main() {
-	//tableConfigs := configx.TableConfigs
-	//for _, database := range tableConfigs.Configs {
-	//	dbConfig := &gormx.Config{DBName: database.DBName}
-	//	dbConfig.DSN = database.DSN
-	//	dbConfig.DBType = gormx.DBType(database.DBType)
-	//	db, err := gormx.GetDBByConfig(dbConfig)
-	//	if err != nil {
-	//		panic(err)
-	//	}
-	//	ds, err := datasource.GetDS(gormx.DBType(database.DBType))
-	//	if err != nil {
-	//		panic(err)
-	//	}
-	//	tableMap := make(map[string][]string, 0)
-	//	genConfig := gen.Config{
-	//		OutPath:      database.DaoPath,
-	//		ModelPkgPath: database.ModelPath,
-	//	}
-	//	for _, tableInfo := range database.Tables {
-	//		tableList, ok := tableMap[tableInfo.SchemaName]
-	//		if !ok {
-	//			tableList = tableInfo.TableName}
-	//		} else {
-	//			tableList = append(tableList, tableInfo.TableName)
-	//		}
-	//		tableMap[tableInfo.SchemaName] = tableList
-	//	}
-	//	if len(tableMap) == 0 {
-	//		dbTableMap, err := ds.GetTablesUnderDB(context.Background(), dbConfig.DBName)
-	//		if err != nil {
-	//			panic(err)
-	//		}
-	//		for schema, tables := range dbTableMap {
-	//			for _, tableInfo := range tables.TableInfoList {
-	//				tableList, ok := tableMap[schema]
-	//				if !ok {
-	//					tableList = tableInfo.TableName}
-	//				} else {
-	//					tableList = append(tableList, tableInfo.TableName)
-	//				}
-	//				tableMap[schema] = tableList
-	//			}
-	//		}
-	//	}
+	tableConfigs := configx.TableConfigs
+	for _, dbInfo := range tableConfigs.Configs {
+		dbConfig := &gormx.Config{DBName: dbInfo.DBName}
+		dbConfig.DSN = dbInfo.DSN
+		dbConfig.DBType = gormx.DBType(dbInfo.DBType)
+		db, err := gormx.GetDBByConfig(dbConfig)
+		if err != nil {
+			panic(err)
+		}
+
+		ds, err := datasource.GetDS(gormx.DBType(dbInfo.DBType))
+		if err != nil {
+			panic(err)
+		}
+		tableMap := make(map[string][]string, 0)
+		//genConfig := gen.Config{
+		//	OutPath:      database.DaoPath,
+		//	ModelPkgPath: database.ModelPath,
+		//}
+		//for _, tableInfo := range database.Tables {
+		//	tableList, ok := tableMap[tableInfo.SchemaName]
+		//	if !ok {
+		//		tableList = tableInfo.TableName}
+		//	} else {
+		//		tableList = append(tableList, tableInfo.TableName)
+		//	}
+		//	tableMap[tableInfo.SchemaName] = tableList
+		//}
+		if len(tableMap) == 0 {
+			dbTableMap, err := ds.GetTablesUnderDB(context.TODO(), dbConfig.DBName)
+			if err != nil {
+				panic(err)
+			}
+			for schemaName, tables := range dbTableMap {
+				for _, tableInfo := range tables.TableInfoList {
+					tableList, ok := tableMap[schemaName]
+					if !ok {
+						tableList = []string{tableInfo.TableName}
+					} else {
+						tableList = append(tableList, tableInfo.TableName)
+					}
+					tableMap[schemaName] = tableList
+				}
+			}
+		}
+		db.WithContext(context.TODO())
+	}
 	//
 	//	g := gen.NewGenerator(genConfig)
 	//
@@ -129,8 +161,5 @@ func main() {
 	//
 	//	g.Execute()
 	//}
-}
 
-//func main_() {
-//	box := packr.New("test", "")
-//}
+}

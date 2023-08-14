@@ -18,13 +18,14 @@ func Init() {
 
 // Database 连接配置
 type Database struct {
-	DBName    string       `json:"db_name" yaml:"db_name"`
-	DBType    string       `json:"db_type" yaml:"db_type"`
-	DSN       string       `json:"dsn" yaml:"dsn"`
-	OnlyModel bool         `json:"only_model" yaml:"only_model"`
-	ModelPath string       `json:"model_path" yaml:"model_path"`
-	DaoPath   string       `json:"dao_path" yaml:"dao_path"`
-	Tables    []*TableInfo `json:"tables" yaml:"tables"`
+	DBName      string       `json:"db_name" yaml:"db_name"`
+	DBType      string       `json:"db_type" yaml:"db_type"`
+	DSN         string       `json:"dsn" yaml:"dsn"`
+	OnlyModel   bool         `json:"only_model" yaml:"only_model"`
+	ServicePath string       `json:"service_path" yaml:"service_path"`
+	ModelPath   string       `json:"model_path" yaml:"model_path"`
+	DaoPath     string       `json:"dao_path" yaml:"dao_path"`
+	Tables      []*TableInfo `json:"tables" yaml:"tables"`
 
 	// DSN 可选
 	Host     string `json:"host" yaml:"host"`

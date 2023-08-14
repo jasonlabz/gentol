@@ -1,4 +1,4 @@
-module github.com/onlyzzg/gentol
+module github.com/jasonlabz/gentol
 
 go 1.20
 

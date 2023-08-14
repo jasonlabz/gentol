@@ -18,6 +18,35 @@ type Template struct {
 	Content string
 }
 
+// IsExist check file or directory
+func IsExist(path string) bool {
+	_, err := os.Stat(path)
+	if err != nil {
+		return os.IsExist(err)
+	}
+	return true
+}
+
+// IsFile checks whether the path is a file,
+// it returns false when it's a directory or does not exist.
+func IsFile(f string) bool {
+	fi, e := os.Stat(f)
+	if e != nil {
+		return false
+	}
+	return !fi.IsDir()
+}
+
+// IsDir checks whether the path is a directory,
+// it returns false when it's a file or does not exist.
+func IsDir(f string) bool {
+	fi, e := os.Stat(f)
+	if e != nil {
+		return false
+	}
+	return fi.IsDir()
+}
+
 // LoadTemplate return template from template dir, falling back to the embedded templates
 func LoadTemplate(filename string) (tpl *Template, err error) {
 	baseName := filepath.Base(filename)
