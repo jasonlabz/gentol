@@ -2,24 +2,31 @@ json_format: snake
 xml_format: snake
 protobuf_format: snake
 runGoFmt: true
+modelPkgName: model
+daoPkgName: dao
+servicePkgName: service
 addGormAnnotation: true
 addProtobufAnnotation: true
 configs:
-#  - db_name: "postgres"
-#    db_type: "postgres"
-#    dsn: "user=postgres password=halojeff host=127.0.0.1 port=8432 dbname=postgres sslmode=disable TimeZone=Asia/Shanghai"
-#    only_model: true
-#    model_path: model
-#    dao_path: dao
-#    tables:
-
-  - db_type: "mysql"
-    db_name: "mysql"
-    dsn: "root:halojeff@tcp(127.0.0.1:3306)/lg_server?parseTime=True&loc=Local"
+  - db_name: "postgres"
+    db_type: "postgres"
+    dsn: "user=postgres password=halojeff host=127.0.0.1 port=8432 dbname=lg_server sslmode=disable TimeZone=Asia/Shanghai"
     model_path: model
     dao_path: dao
     only_model: false
     tables:
       - schema_name: public
-        table_name: test
+        table_list:
+          - user
+
+#  - db_type: "mysql"
+#    db_name: "mysql"
+#    dsn: "root:halojeff@tcp(127.0.0.1:3306)/lg_server?parseTime=True&loc=Local"
+#    model_path: model
+#    dao_path: dao
+#    only_model: false
+#    tables:
+#      - schema_name: public
+#        table_list:
+#          - user
 

@@ -2,6 +2,7 @@ package configx
 
 import (
 	"fmt"
+	"github.com/jasonlabz/gentol/gormx"
 	"log"
 	"os"
 
@@ -35,10 +36,29 @@ type Database struct {
 	Database string `json:"database" yaml:"database"`
 }
 
+func (c *Database) GenDSN() (dsn string) {
+	if c.DSN != "" {
+		return c.DSN
+	}
+
+	dbName := c.Database
+	if dbName == "" {
+		dbName = c.DBName
+	}
+	dsnTemplate, ok := gormx.DatabaseDsnMap[gormx.DBType(c.DBType)]
+	if !ok {
+		return
+	}
+	dsn = fmt.Sprintf(dsnTemplate, c.User, c.Password, c.Host, c.Port, dbName)
+
+	c.DSN = dsn
+	return
+}
+
 // TableInfo 连接配置
 type TableInfo struct {
-	SchemaName string `json:"schema_name" yaml:"schema_name"`
-	TableName  string `json:"table_name" yaml:"table_name"`
+	SchemaName string   `json:"schema_name" yaml:"schema_name"`
+	TableList  []string `json:"table_list" yaml:"table_list"`
 }
 
 type config struct {

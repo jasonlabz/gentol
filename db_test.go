@@ -32,6 +32,30 @@ func TestNewOperator(t *testing.T) {
 	fmt.Print(colMap)
 	fmt.Print(tableColMap)
 }
+func TestPostgresOperator(t *testing.T) {
+	dbInfo := &gormx.Config{
+		DBName:   "master",
+		DBType:   gormx.DBTypeGreenplum,
+		Host:     "127.0.0.1",
+		Port:     8432,
+		User:     "postgres",
+		Password: "halojeff",
+		Database: "lg_server",
+	}
+	err := gormx.InitConfig(dbInfo)
+	if err != nil {
+		panic(err)
+	}
+	db, err := gormx.GetDB(dbInfo.DBName)
+	if err != nil {
+		panic(err)
+	}
+	columnTypes, err := db.Migrator().ColumnTypes("public.user")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(columnTypes)
+}
 
 func TestDemo(t *testing.T) {
 	baseName := filepath.Base("./hello.go")

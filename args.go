@@ -37,7 +37,7 @@ var (
 	onlyModel             = getopt.BoolLong("only_model", 0, "overwrite existing files (default)", "disable overwriting files")
 	addGormAnnotation     = getopt.BoolLong("gorm", 0, "add gorm annotations (tags)", "")
 	addProtobufAnnotation = getopt.BoolLong("proto", 0, "add protobuf annotations (tags)", "")
-	runGoFmt              = getopt.BoolLong("gofmt", 0, "run gofmt on output dir", "")
+	runGoFmt              = getopt.BoolLong("rungofmt", 0, "run gofmt on output dir", "")
 	DefaultDBName         = "_default_db_"
 )
 
@@ -69,26 +69,28 @@ func init() {
 		configx.TableConfigs.JsonFormat = *jsonNameFormat
 		configx.TableConfigs.XMLFormat = *xmlNameFormat
 		configx.TableConfigs.ProtobufFormat = *protoNameFormat
-		configx.TableConfigs.Configs = []*configx.Database{
-			{
-				DBName:      DefaultDBName,
-				DBType:      *dbType,
-				DSN:         *dsn,
-				OnlyModel:   *onlyModel,
-				ModelPath:   *modelPath,
-				DaoPath:     *daoPath,
-				ServicePath: *servicePath,
-				Host:        *host,
-				Port:        *port,
-				User:        *username,
-				Password:    *password,
-				Tables: []*configx.TableInfo{
-					{
-						SchemaName: *schema,
-						TableName:  *table,
-					},
+		databaseConfig := &configx.Database{
+			DBName:      DefaultDBName,
+			DBType:      *dbType,
+			DSN:         *dsn,
+			OnlyModel:   *onlyModel,
+			ModelPath:   *modelPath,
+			DaoPath:     *daoPath,
+			ServicePath: *servicePath,
+			Host:        *host,
+			Port:        *port,
+			User:        *username,
+			Password:    *password,
+			Tables: []*configx.TableInfo{
+				{
+					SchemaName: *schema,
+					TableList:  []string{*table},
 				},
 			},
+		}
+		databaseConfig.GenDSN()
+		configx.TableConfigs.Configs = []*configx.Database{
+			databaseConfig,
 		}
 	}
 }
