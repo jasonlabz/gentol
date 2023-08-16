@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/jasonlabz/gentol/configx"
 	"github.com/pborman/getopt/v2"
+	"strings"
 	"sync"
 )
 
@@ -10,7 +11,8 @@ var once sync.Once
 
 var (
 	dbType = getopt.StringLong("db_type", 0, "mysql", "database type such as [mysql, sqlserver, postgres, oracle, greenplum etc. ]")
-	dsn    = getopt.StringLong("dsn", 0, "", "option database connection string, or provide host and port ...")
+
+	dsn = getopt.StringLong("dsn", 0, "", "option database connection string, or provide host and port ...")
 
 	host     = getopt.StringLong("host", 'h', "", "db host, if there is a dsn, ignore it")
 	port     = getopt.IntLong("port", 'p', 0, "db port, if there is a dsn, ignore it")
@@ -84,7 +86,7 @@ func init() {
 			Tables: []*configx.TableInfo{
 				{
 					SchemaName: *schema,
-					TableList:  []string{*table},
+					TableList:  strings.Split(*table, ","),
 				},
 			},
 		}
