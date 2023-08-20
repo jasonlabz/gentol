@@ -64,10 +64,9 @@ type TableInfo struct {
 type config struct {
 	Configs               []*Database `json:"configs" yaml:"configs"`
 	JsonFormat            string      `json:"json_format" yaml:"json_format"`
-	XMLFormat             string      `json:"xml_format" yaml:"xml_format"`
 	ProtobufFormat        string      `json:"protobuf_format" yaml:"protobuf_format"`
+	UseSQLNullable        bool        `json:"use_sql_nullable" yaml:"use_sql_nullable"`
 	RunGoFmt              bool        `json:"rungofmt" yaml:"rungofmt"`
-	AddGormAnnotation     bool        `json:"addGormAnnotation" yaml:"addGormAnnotation"`
 	AddProtobufAnnotation bool        `json:"addProtobufAnnotation" yaml:"addProtobufAnnotation"`
 }
 

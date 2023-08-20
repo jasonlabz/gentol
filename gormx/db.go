@@ -22,7 +22,7 @@ type DBWrapper struct {
 	Config *Config
 }
 
-func GetDBByConfig(config *Config) (*gorm.DB, error) {
+func LoadDBInstance(config *Config) (*gorm.DB, error) {
 	if config == nil {
 		return nil, errors.New("no db config")
 	}

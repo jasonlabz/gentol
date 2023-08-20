@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"github.com/jasonlabz/gentol/metadata"
 	"go/format"
 	"html/template"
 	"io"
@@ -11,19 +12,24 @@ import (
 )
 
 // RenderingTemplate rendering a template with data
-func RenderingTemplate(templateInfo *Template, data map[string]any, outFilePath string, overwrite bool) (err error) {
+func RenderingTemplate(templateInfo *Template, dataGen metadata.IBaseData, outFilePath string, overwrite bool) (err error) {
 	var file *os.File
+	data := dataGen.GenRenderData()
 	if !IsExist(outFilePath) && !overwrite {
-		file, err = os.OpenFile(outFilePath, os.O_CREATE|os.O_RDWR, 0666)
+		file, err = os.OpenFile(outFilePath, os.O_CREATE|os.O_RDWR, os.ModePerm)
 		if err != nil {
 			fmt.Printf("open file error %s\n", err.Error())
 			return
 		}
-	}
-	if overwrite {
-		file, err = os.OpenFile(outFilePath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
-		if err != nil {
-			fmt.Printf("overwrite true: open file error %s\n", err.Error())
+	} else {
+		if overwrite {
+			file, err = os.OpenFile(outFilePath, os.O_TRUNC|os.O_CREATE|os.O_RDWR, 0666)
+			if err != nil {
+				fmt.Printf("overwrite true: open file error %s\n", err.Error())
+				return
+			}
+		} else {
+			// skip
 			return
 		}
 	}
@@ -33,9 +39,7 @@ func RenderingTemplate(templateInfo *Template, data map[string]any, outFilePath 
 	if err != nil {
 		return
 	}
-	//if err != nil {
-	//	return fmt.Errorf("error in loading %s template, error: %v", genTemplate.Name, err)
-	//}
+
 	var buf bytes.Buffer
 	err = tmpl.Execute(&buf, data)
 	if err != nil {

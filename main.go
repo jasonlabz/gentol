@@ -23,7 +23,7 @@ func main() {
 		dbConfig := &gormx.Config{DBName: dbInfo.DBName}
 		dbConfig.DSN = dbInfo.DSN
 		dbConfig.DBType = gormx.DBType(dbInfo.DBType)
-		db, err := gormx.GetDBByConfig(dbConfig)
+		db, err := gormx.LoadDBInstance(dbConfig)
 		if err != nil {
 			panic(err)
 		}
@@ -76,7 +76,6 @@ func main() {
 			if len(checkDupTableMap) == 0 {
 				continue
 			}
-
 			for schemaHandle, tableMap := range checkDupTableMap {
 				for tableName := range tableMap {
 					joinTableName := func() string {

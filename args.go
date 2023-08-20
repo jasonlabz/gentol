@@ -20,10 +20,9 @@ var (
 	password = getopt.StringLong("password", 'P', "", "db password, if there is a dsn, ignore it")
 	database = getopt.StringLong("database", 'd', "", "database to for db table")
 
-	schema          = getopt.StringLong("schema", 's', "public", "schema to for db table")
-	table           = getopt.StringLong("table", 't', "", "table name to build struct from")
-	templateDir     = getopt.StringLong("template_dir", 0, "./template", "Template Dir")
-	saveTemplateDir = getopt.StringLong("save", 0, "", "save templates to dir")
+	schema      = getopt.StringLong("schema", 's', "public", "schema to for db table")
+	table       = getopt.StringLong("table", 't', "", "table name to build struct from")
+	templateDir = getopt.StringLong("template_dir", 0, "./template", "Template Dir")
 
 	modelPath   = getopt.StringLong("model", 0, "./model", "name to set for model package")
 	daoPath     = getopt.StringLong("dao", 0, "./dao", "name to set for dao package")
@@ -32,12 +31,11 @@ var (
 	outDir      = getopt.StringLong("out", 0, ".", "output dir")
 
 	jsonNameFormat  = getopt.StringLong("json_format", 0, "snake", "json name format [snake | camel | lower_camel | none]")
-	xmlNameFormat   = getopt.StringLong("xml_format", 0, "snake", "xml name format [snake | camel | lower_camel | none]")
 	protoNameFormat = getopt.StringLong("protobuf_format", 0, "snake", "proto name format [snake | camel | lower_camel | none]")
 	gogoProtoImport = getopt.StringLong("gogoproto", 0, "", "location of gogo import ")
 
 	onlyModel             = getopt.BoolLong("only_model", 0, "overwrite existing files (default)", "disable overwriting files")
-	addGormAnnotation     = getopt.BoolLong("gorm", 0, "add gorm annotations (tags)", "")
+	useSQLNullable        = getopt.BoolLong("use_sql_nullable", 0, "use sql.Null if use_sql_nullable true, default use guregu")
 	addProtobufAnnotation = getopt.BoolLong("proto", 0, "add protobuf annotations (tags)", "")
 	runGoFmt              = getopt.BoolLong("rungofmt", 0, "run gofmt on output dir", "")
 	DefaultDBName         = "_default_db_"
@@ -65,11 +63,9 @@ func init() {
 		getopt.ParseV2()
 
 		// fill args
-		configx.TableConfigs.AddGormAnnotation = *addGormAnnotation
 		configx.TableConfigs.AddProtobufAnnotation = *addProtobufAnnotation
 		configx.TableConfigs.RunGoFmt = *runGoFmt
 		configx.TableConfigs.JsonFormat = *jsonNameFormat
-		configx.TableConfigs.XMLFormat = *xmlNameFormat
 		configx.TableConfigs.ProtobufFormat = *protoNameFormat
 		databaseConfig := &configx.Database{
 			DBName:      DefaultDBName,
