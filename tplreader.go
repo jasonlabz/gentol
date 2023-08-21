@@ -3,20 +3,12 @@ package main
 import (
 	"fmt"
 	"github.com/gobuffalo/packr/v2"
-
+	"github.com/jasonlabz/gentol/metadata"
 	"os"
 	"path/filepath"
-	"sync"
 )
 
-var tplMap sync.Map
 var innerBox *packr.Box
-
-// Template template info struct
-type Template struct {
-	Name    string
-	Content string
-}
 
 // IsExist check file or directory
 func IsExist(path string) bool {
@@ -48,9 +40,9 @@ func IsDir(f string) bool {
 }
 
 // LoadTemplate return template from template dir, falling back to the embedded templates
-func LoadTemplate(filename string) (tpl *Template, err error) {
+func LoadTemplate(filename string, templateDir string) (tpl *metadata.Template, err error) {
 	baseName := filepath.Base(filename)
-	if *templateDir != "" {
+	if templateDir != "" {
 		fpath := filepath.Join("", filename)
 		var b []byte
 		b, err = os.ReadFile(fpath)
@@ -59,7 +51,7 @@ func LoadTemplate(filename string) (tpl *Template, err error) {
 			if err != nil {
 				absPath = fpath
 			}
-			tpl = &Template{Name: "file://" + absPath, Content: string(b)}
+			tpl = &metadata.Template{Name: "file://" + absPath, Content: string(b)}
 			return tpl, nil
 		}
 	}
@@ -68,10 +60,26 @@ func LoadTemplate(filename string) (tpl *Template, err error) {
 		return nil, fmt.Errorf("%s not found internally", baseName)
 	}
 
-	tpl = &Template{Name: "internal://" + filename, Content: content}
+	tpl = &metadata.Template{Name: "internal://" + filename, Content: content}
 	return tpl, nil
 }
 
 func init() {
-	innerBox = packr.New("gentol", "./template")
+	//innerBox = packr.New("gentol", "./template")
+	//_, filename, _, ok := runtime.Caller(1)
+	//if ok {
+	//	fmt.Println(filename)
+	//}
+	files, err := metadata.ListDir("./template", "")
+	if err != nil {
+		panic(err)
+	}
+	for _, file := range files {
+		baseName := filepath.Base(file)
+		var b []byte
+		b, err = os.ReadFile(file)
+		if err == nil {
+			metadata.StoreTpl(baseName, string(b))
+		}
+	}
 }

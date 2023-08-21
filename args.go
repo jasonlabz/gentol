@@ -30,8 +30,8 @@ var (
 	grpcPath    = getopt.StringLong("grpc", 0, "./grpc", "name to set for grpc package")
 	outDir      = getopt.StringLong("out", 0, ".", "output dir")
 
-	jsonNameFormat  = getopt.StringLong("json_format", 0, "snake", "json name format [snake | camel | lower_camel | none]")
-	protoNameFormat = getopt.StringLong("protobuf_format", 0, "snake", "proto name format [snake | camel | lower_camel | none]")
+	jsonNameFormat  = getopt.StringLong("json_format", 0, "snake", "json name format [snake | upper_camel | lower_camel]")
+	protoNameFormat = getopt.StringLong("protobuf_format", 0, "snake", "proto name format [snake | upper_camel | lower_camel]")
 	gogoProtoImport = getopt.StringLong("gogoproto", 0, "", "location of gogo import ")
 
 	onlyModel             = getopt.BoolLong("only_model", 0, "overwrite existing files (default)", "disable overwriting files")

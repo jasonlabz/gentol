@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/onlyzzg/dbutil/datasource"
-	"github.com/onlyzzg/dbutil/gormx"
+	"github.com/jasonlabz/gentol/datasource"
+	"github.com/jasonlabz/gentol/gormx"
 	"path/filepath"
 	"runtime"
 	"testing"

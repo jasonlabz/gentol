@@ -6,7 +6,11 @@ import (
 	"github.com/jasonlabz/gentol/configx"
 	"github.com/jasonlabz/gentol/datasource"
 	"github.com/jasonlabz/gentol/gormx"
+	"github.com/jasonlabz/gentol/metadata"
+	"gorm.io/gorm"
 	"log"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -82,7 +86,7 @@ func main() {
 						if schemaHandle == "" {
 							return fmt.Sprintf("%s", tableName)
 						}
-						return fmt.Sprintf("%s.%s", schemaName, tableName)
+						return fmt.Sprintf("%s.%s", schemaHandle, tableName)
 					}()
 
 					columnTypes, getColumnErr := db.Migrator().ColumnTypes(joinTableName)
@@ -90,10 +94,88 @@ func main() {
 						log.Printf(getColumnErr.Error())
 						continue
 					}
+					WriteModel(dbInfo, schemaHandle, tableName, columnTypes)
 					fmt.Printf("%+v", columnTypes)
 				}
 			}
 
 		}
 	}
+}
+
+func WriteModel(dbInfo *configx.Database, schemaName, tableName string, columnTypes []gorm.ColumnType) {
+	modelData := &metadata.ModelMeta{
+		ModelPackageName: func() string {
+			if dbInfo.ModelPath == "" {
+				dbInfo.ModelPath = "model"
+			}
+			return metadata.ToLower(filepath.Base(dbInfo.ModelPath))
+		}(),
+		ModelStructName: metadata.UnderscoreToUpperCamelCase(tableName),
+	}
+
+	for _, columnType := range columnTypes {
+		modelData.ColumnList = append(modelData.ColumnList, &metadata.ColumnInfo{
+			ColumnName: columnType.Name(),
+			ColumnType: func() string {
+				columnTypeName, ok := columnType.ColumnType()
+				if ok {
+					return columnTypeName
+				}
+				return ""
+			}(),
+			DataBaseType: columnType.DatabaseTypeName(),
+			IsPrimaryKey: func() bool {
+				if prime, ok := columnType.PrimaryKey(); ok {
+					return prime
+				}
+				return false
+			}(),
+			Length: func() int64 {
+				if length, ok := columnType.Length(); ok {
+					return length
+				}
+				return 0
+			}(),
+			Nullable: func() bool {
+				null, ok := columnType.Nullable()
+				if ok {
+					return null
+				}
+				return false
+			}(),
+			Comment: func() string {
+				comment, ok := columnType.Comment()
+				if ok {
+					return comment
+				}
+				return ""
+			}(),
+			DefaultValue: func() string {
+				defaultVal, ok := columnType.DefaultValue()
+				if ok {
+					return defaultVal
+				}
+				return ""
+			}(),
+		})
+	}
+	modelData.DBType = dbInfo.DBType
+	modelData.SchemaName = schemaName
+	modelData.TableName = tableName
+	modelData.ModelPath = dbInfo.ModelPath
+	tpl, ok := metadata.LoadTpl("model")
+	if !ok {
+		panic("undefined template" + "model")
+	}
+	exist := IsExist(modelData.ModelPath)
+	if !exist {
+		_ = os.MkdirAll(modelData.ModelPath, 0666)
+	}
+	ff, _ := filepath.Abs(fmt.Sprintf("%s/%s.go", modelData.ModelPath, metadata.CamelCaseToUnderscore(modelData.TableName)))
+	err := RenderingTemplate(tpl, modelData, ff, true)
+	if err != nil {
+		panic(err)
+	}
+	return
 }

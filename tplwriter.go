@@ -5,25 +5,25 @@ import (
 	"fmt"
 	"github.com/jasonlabz/gentol/metadata"
 	"go/format"
-	"html/template"
 	"io"
 	"os"
 	"path/filepath"
+	"text/template"
 )
 
 // RenderingTemplate rendering a template with data
-func RenderingTemplate(templateInfo *Template, dataGen metadata.IBaseData, outFilePath string, overwrite bool) (err error) {
+func RenderingTemplate(templateInfo *metadata.Template, dataGen metadata.IBaseData, outFilePath string, overwrite bool) (err error) {
 	var file *os.File
 	data := dataGen.GenRenderData()
 	if !IsExist(outFilePath) && !overwrite {
-		file, err = os.OpenFile(outFilePath, os.O_CREATE|os.O_RDWR, os.ModePerm)
+		file, err = os.OpenFile(outFilePath, os.O_CREATE|os.O_RDWR, 0666)
 		if err != nil {
 			fmt.Printf("open file error %s\n", err.Error())
 			return
 		}
 	} else {
 		if overwrite {
-			file, err = os.OpenFile(outFilePath, os.O_TRUNC|os.O_CREATE|os.O_RDWR, 0666)
+			file, err = os.OpenFile(outFilePath, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
 			if err != nil {
 				fmt.Printf("overwrite true: open file error %s\n", err.Error())
 				return
@@ -61,7 +61,7 @@ func RenderingTemplate(templateInfo *Template, dataGen metadata.IBaseData, outFi
 	return nil
 }
 
-func Format(templateInfo *Template, content []byte, outputFile string) ([]byte, error) {
+func Format(templateInfo *metadata.Template, content []byte, outputFile string) ([]byte, error) {
 	extension := filepath.Ext(outputFile)
 	if extension == ".go" {
 		formattedSource, err := format.Source([]byte(content))

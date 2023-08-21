@@ -3,7 +3,9 @@ package metadata
 import (
 	"fmt"
 	"github.com/jasonlabz/gentol/gormx"
+	"os"
 	"strings"
+	"unicode"
 )
 
 func GetMetaType(dbType gormx.DBType, columnType string) (metaType MetaType) {
@@ -257,4 +259,82 @@ func OracleTrans(columnType string) (metaType MetaType) {
 		}
 	}
 	return
+}
+
+// ToUpper 单词全部转化为大写
+func ToUpper(s string) string {
+	return strings.ToUpper(s)
+}
+
+// ToLower 单词全部转化为小写
+func ToLower(s string) string {
+	return strings.ToLower(s)
+}
+
+// UnderscoreToUpperCamelCase 下划线单词转为大写驼峰单词
+func UnderscoreToUpperCamelCase(s string) string {
+	splitList := strings.Split(s, "_")
+	for index, item := range splitList {
+		_, ok := abbreviationMap[ToUpper(item)]
+		if ok {
+			splitList[index] = ToUpper(item)
+		} else {
+			splitList[index] = strings.Title(item)
+		}
+	}
+	s = strings.Join(splitList, "")
+	return s
+}
+
+// UnderscoreToLowerCamelCase 下划线单词转为小写驼峰单词
+func UnderscoreToLowerCamelCase(s string) string {
+	s = UnderscoreToUpperCamelCase(s)
+	return string(unicode.ToLower(rune(s[0]))) + s[1:]
+}
+
+// CamelCaseToUnderscore 驼峰单词转下划线单词
+func CamelCaseToUnderscore(s string) string {
+	var output []rune
+	var next int
+	for i, r := range s {
+		if i == 0 {
+			output = append(output, unicode.ToLower(r))
+		} else {
+			if i > next && unicode.IsUpper(r) {
+				next = i + 1
+				output = append(output, '_')
+			}
+
+			output = append(output, unicode.ToLower(r))
+		}
+	}
+	return string(output)
+}
+
+// ListDir 获取指定目录下文件
+func ListDir(dirPth string, suffix string) (files []string, err error) {
+	files = make([]string, 0)
+
+	dir, err := os.ReadDir(dirPth)
+	if err != nil {
+		return nil, err
+	}
+
+	PthSep := string(os.PathSeparator)
+	suffix = strings.ToUpper(suffix) //忽略后缀匹配的大小写
+
+	for _, fi := range dir {
+		if fi.IsDir() { // 忽略目录
+			continue
+		}
+		if suffix == "" {
+			files = append(files, dirPth+PthSep+fi.Name())
+			continue
+		}
+		if strings.HasSuffix(strings.ToUpper(fi.Name()), suffix) { //匹配文件
+			files = append(files, dirPth+PthSep+fi.Name())
+		}
+	}
+
+	return files, nil
 }

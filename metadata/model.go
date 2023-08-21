@@ -1,6 +1,10 @@
 package metadata
 
-import "github.com/jasonlabz/gentol/gormx"
+import (
+	"fmt"
+
+	"github.com/jasonlabz/gentol/gormx"
+)
 
 type ModelMeta struct {
 	BaseConfig
@@ -11,6 +15,7 @@ type ModelMeta struct {
 }
 
 type ColumnInfo struct {
+	Index              int
 	GoColumnName       string
 	GoColumnType       string // string
 	Tags               string
@@ -31,11 +36,59 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 	if m == nil {
 		return map[string]any{}
 	}
-	for _, columnInfo := range m.ColumnList {
+	useSQLNullable := m.UseSQLNullable
+	for index, columnInfo := range m.ColumnList {
+		columnInfo.Index = index + 1
 		metaType := GetMetaType(gormx.DBType(m.DBType), columnInfo.DataBaseType)
 		columnInfo.GoColumnType = metaType.GoType
 		columnInfo.GureguNullableType = metaType.GureguNullableType
 		columnInfo.SQLNullableType = metaType.SQLNullableType
+
+		columnInfo.GoColumnName = UnderscoreToUpperCamelCase(columnInfo.ColumnName)
+
+		if columnInfo.Nullable {
+			columnInfo.GoColumnType = func() string {
+				if useSQLNullable {
+					return columnInfo.SQLNullableType
+				}
+				return columnInfo.GureguNullableType
+			}()
+		}
+		gormTag := fmt.Sprintf("gorm:\"%s%s%s%s%s\"", func() string {
+			if columnInfo.IsPrimaryKey {
+				return "primary_key;"
+			}
+			return ""
+		}(), func() string {
+			return fmt.Sprintf("column:%s;", columnInfo.ColumnName)
+		}(), func() string {
+			return fmt.Sprintf("type:%s;", columnInfo.DataBaseType)
+		}(), func() string {
+			if columnInfo.Length != 0 {
+				return fmt.Sprintf("size:%d;", columnInfo.Length)
+			}
+			return ""
+		}(), func() string {
+			if columnInfo.DefaultValue != "" {
+				return fmt.Sprintf("default:%s;", columnInfo.DefaultValue)
+			}
+			return ""
+		}())
+
+		jsonTag := fmt.Sprintf("json:\"%s\"", func() string {
+			switch m.JsonFormat {
+			case "snake":
+				return CamelCaseToUnderscore(columnInfo.ColumnName)
+			case "upper_camel":
+				return UnderscoreToUpperCamelCase(columnInfo.ColumnName)
+			case "lower_camel":
+				return UnderscoreToLowerCamelCase(columnInfo.ColumnName)
+			default:
+				return CamelCaseToUnderscore(columnInfo.ColumnName)
+			}
+		}())
+
+		columnInfo.Tags = fmt.Sprintf("%s %s", gormTag, jsonTag)
 	}
 	result := map[string]any{
 		"ModelPackageName": m.ModelPackageName,
@@ -43,6 +96,7 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 		"ColumnList":       m.ColumnList,
 		"SchemaName":       m.SchemaName,
 		"TableName":        m.TableName,
+		"ImportPkgList":    []string{},
 	}
 	return result
 }
@@ -77,15 +131,15 @@ const TableName{{.ModelStructName}} = "{{.TableName}}"
 
 // {{.ModelStructName}} struct is mapping to the {{.TableName}} table
 type {{.ModelStructName}} struct {
-    {{range .FieldList}}
-    {{if .MultilineComment -}}
-	/*
-{{.ColumnComment}}
-    */
-	{{end -}}
+    {{range .ColumnList}}
+ 
     {{.GoColumnName}} {{.GoColumnType}} ` + "`{{.Tags}}` " +
-	"{{if not .MultilineComment}}{{if .ColumnComment}}// {{.ColumnComment}}{{end}}{{end}}" +
+	"// Comment: {{if .Comment}}{{.Comment}}{{else}}no comment{{end}} " +
 	`{{end}}
 }
 
 `
+
+func init() {
+	StoreTpl("model", Model)
+}
