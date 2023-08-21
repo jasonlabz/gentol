@@ -131,6 +131,12 @@ func WriteModel(dbInfo *configx.Database, schemaName, tableName string, columnTy
 				}
 				return false
 			}(),
+			AutoIncrement: func() bool {
+				if increment, ok := columnType.AutoIncrement(); ok {
+					return increment
+				}
+				return false
+			}(),
 			Length: func() int64 {
 				if length, ok := columnType.Length(); ok {
 					return length

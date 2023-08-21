@@ -5,10 +5,11 @@ go 1.20
 require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/gobuffalo/packr/v2 v2.8.3
+	github.com/guregu/null v4.0.0+incompatible
 	github.com/onlyzzg/oracle v1.1.0
 	github.com/pborman/getopt/v2 v2.1.0
+	github.com/satori/go.uuid v1.2.0
 	github.com/spf13/viper v1.15.0
-	golang.org/x/text v0.9.0
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/mysql v1.5.1
 	gorm.io/driver/postgres v1.5.2
@@ -53,6 +54,7 @@ require (
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/sys v0.11.0 // indirect
 	golang.org/x/term v0.11.0 // indirect
+	golang.org/x/text v0.9.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

@@ -3,12 +3,13 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/jasonlabz/gentol/metadata"
 	"go/format"
 	"io"
 	"os"
 	"path/filepath"
 	"text/template"
+
+	"github.com/jasonlabz/gentol/metadata"
 )
 
 // RenderingTemplate rendering a template with data

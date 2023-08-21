@@ -2,6 +2,7 @@ package metadata
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/jasonlabz/gentol/gormx"
 )
@@ -54,26 +55,40 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 				return columnInfo.GureguNullableType
 			}()
 		}
-		gormTag := fmt.Sprintf("gorm:\"%s%s%s%s%s\"", func() string {
-			if columnInfo.IsPrimaryKey {
-				return "primary_key;"
-			}
-			return ""
-		}(), func() string {
-			return fmt.Sprintf("column:%s;", columnInfo.ColumnName)
-		}(), func() string {
-			return fmt.Sprintf("type:%s;", columnInfo.DataBaseType)
-		}(), func() string {
-			if columnInfo.Length != 0 {
-				return fmt.Sprintf("size:%d;", columnInfo.Length)
-			}
-			return ""
-		}(), func() string {
-			if columnInfo.DefaultValue != "" {
-				return fmt.Sprintf("default:%s;", columnInfo.DefaultValue)
-			}
-			return ""
-		}())
+		gormTag := fmt.Sprintf("gorm:\"%s%s%s%s%s%s\"",
+			func() string {
+				if columnInfo.IsPrimaryKey {
+					return "primary_key;"
+				}
+				return ""
+			}(),
+			func() string {
+				if columnInfo.AutoIncrement {
+					return "auto_increment;"
+				}
+				return ""
+			}(),
+			func() string {
+				return fmt.Sprintf("column:%s;", columnInfo.ColumnName)
+			}(),
+			func() string {
+				return fmt.Sprintf("type:%s;", columnInfo.DataBaseType)
+			}(),
+			func() string {
+				if columnInfo.Length != 0 {
+					return fmt.Sprintf("size:%d;", columnInfo.Length)
+				}
+				return ""
+			}(),
+			func() string {
+				if strings.Contains(columnInfo.DefaultValue, "::") {
+					return fmt.Sprintf("default:%s;", columnInfo.DefaultValue[:strings.Index(columnInfo.DefaultValue, "::")])
+				}
+				if columnInfo.DefaultValue != "" {
+					return fmt.Sprintf("default:%s;", columnInfo.DefaultValue)
+				}
+				return ""
+			}())
 
 		jsonTag := fmt.Sprintf("json:\"%s\"", func() string {
 			switch m.JsonFormat {

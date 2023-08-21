@@ -60,7 +60,7 @@ func PostgresTrans(columnType string) (metaType MetaType) {
 	case "date", "time", "timetz", "timestamp", "timestamptz":
 		metaType.GoType = "time.Time"
 		metaType.GureguNullableType = "null.Time"
-		metaType.SQLNullableType = "time.Time"
+		metaType.SQLNullableType = "sql.NullTime"
 	default:
 		if strings.Contains(columnType, "numeric") ||
 			strings.Contains(columnType, "decimal") {
@@ -75,7 +75,7 @@ func PostgresTrans(columnType string) (metaType MetaType) {
 			strings.Contains(columnType, "time") {
 			metaType.GoType = "time.Time"
 			metaType.GureguNullableType = "null.Time"
-			metaType.SQLNullableType = "time.Time"
+			metaType.SQLNullableType = "sql.NullTime"
 		} else {
 			fmt.Printf("unknow column type : %s, replace it with \"string\"", columnType)
 			metaType.GoType = "string"
@@ -125,7 +125,7 @@ func MySQLTrans(columnType string) (metaType MetaType) {
 	case "year", "date", "time", "timestamp", "datetime":
 		metaType.GoType = "time.Time"
 		metaType.GureguNullableType = "null.Time"
-		metaType.SQLNullableType = "time.Time"
+		metaType.SQLNullableType = "sql.NullTime"
 	default:
 		if strings.Contains(columnType, "numeric") ||
 			strings.Contains(columnType, "decimal") {
@@ -140,7 +140,7 @@ func MySQLTrans(columnType string) (metaType MetaType) {
 			strings.Contains(columnType, "time") {
 			metaType.GoType = "time.Time"
 			metaType.GureguNullableType = "null.Time"
-			metaType.SQLNullableType = "time.Time"
+			metaType.SQLNullableType = "sql.NullTime"
 		} else {
 			fmt.Printf("unknow column type : %s, replace it with \"string\"", columnType)
 			metaType.GoType = "string"
@@ -185,7 +185,7 @@ func SQLServerTrans(columnType string) (metaType MetaType) {
 	case "datetime", "datetime2", "smalldatetime", "date", "time", "datetimeoffset", "timestamp":
 		metaType.GoType = "time.Time"
 		metaType.GureguNullableType = "null.Time"
-		metaType.SQLNullableType = "time.Time"
+		metaType.SQLNullableType = "sql.NullTime"
 	default:
 		if strings.Contains(columnType, "numeric") ||
 			strings.Contains(columnType, "decimal") ||
@@ -234,7 +234,7 @@ func OracleTrans(columnType string) (metaType MetaType) {
 	case "date", "timestamp":
 		metaType.GoType = "time.Time"
 		metaType.GureguNullableType = "null.Time"
-		metaType.SQLNullableType = "time.Time"
+		metaType.SQLNullableType = "sql.NullTime"
 	default:
 		if strings.Contains(columnType, "number") ||
 			strings.Contains(columnType, "decimal") {
@@ -250,7 +250,7 @@ func OracleTrans(columnType string) (metaType MetaType) {
 			strings.Contains(columnType, "interval") {
 			metaType.GoType = "time.Time"
 			metaType.GureguNullableType = "null.Time"
-			metaType.SQLNullableType = "time.Time"
+			metaType.SQLNullableType = "sql.NullTime"
 		} else {
 			fmt.Printf("unknow column type : %s, replace it with \"string\"", columnType)
 			metaType.GoType = "string"
