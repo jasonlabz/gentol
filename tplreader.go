@@ -55,13 +55,12 @@ func LoadTemplate(filename string, templateDir string) (tpl *metadata.Template, 
 			return tpl, nil
 		}
 	}
-	content, err := innerBox.FindString(baseName)
-	if err != nil {
+	template, ok := metadata.LoadTpl(baseName)
+	if !ok {
 		return nil, fmt.Errorf("%s not found internally", baseName)
 	}
 
-	tpl = &metadata.Template{Name: "internal://" + filename, Content: content}
-	return tpl, nil
+	return template, nil
 }
 
 func init() {

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/jasonlabz/gentol/gormx"
 	"os"
+	"reflect"
+	"runtime"
 	"strings"
 	"unicode"
 )
@@ -337,4 +339,12 @@ func ListDir(dirPth string, suffix string) (files []string, err error) {
 	}
 
 	return files, nil
+}
+
+// GetFuncNamePath 获取函数所在模块路劲
+func GetFuncNamePath(fn interface{}) string {
+	value := reflect.ValueOf(fn)
+	ptr := value.Pointer()
+	ffp := runtime.FuncForPC(ptr)
+	return ffp.Name()
 }

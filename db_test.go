@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"github.com/jasonlabz/gentol/datasource"
 	"github.com/jasonlabz/gentol/gormx"
-	"path/filepath"
+	"github.com/jasonlabz/gentol/metadata"
+	"github.com/jasonlabz/gentol/model"
+	"reflect"
 	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -58,7 +61,7 @@ func TestPostgresOperator(t *testing.T) {
 }
 
 func TestDemo(t *testing.T) {
-	baseName := filepath.Base("./hello.go")
+	baseName := metadata.GetFuncNamePath(metadata.LoadTpl)
 	t1, filename, t2, ok := runtime.Caller(0)
 	fmt.Print(t1)
 	fmt.Print(t2)
@@ -68,6 +71,24 @@ func TestDemo(t *testing.T) {
 	fmt.Print(filename)
 	s := test()
 	fmt.Print(s)
+}
+func TestStruct(t *testing.T) {
+	user := &model.User{}
+	val := reflect.ValueOf(user)
+
+	fmt.Println(val.Type().PkgPath())
+	for i := 0; i < val.Type().NumField(); i++ {
+		fmt.Println("gorm:" + val.Type().Field(i).Tag.Get("gorm"))
+		column := ""
+		gormValList := strings.Split(val.Type().Field(i).Tag.Get("gorm"), ";")
+		for _, item := range gormValList {
+			if strings.Contains(item, "column") {
+				column = strings.Split(item, ":")[1]
+			}
+		}
+		fmt.Println("column:" + column)
+		fmt.Println("json:" + val.Type().Field(i).Tag.Get("json"))
+	}
 }
 
 func test() string {
