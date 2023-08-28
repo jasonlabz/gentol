@@ -107,7 +107,7 @@ func WriteModel(dbInfo *configx.Database, schemaName, tableName string, columnTy
 	modelData := &metadata.ModelMeta{
 		ModelPackageName: func() string {
 			if dbInfo.ModelPath == "" {
-				dbInfo.ModelPath = "model"
+				dbInfo.ModelPath = "dal/db/model"
 			}
 			return metadata.ToLower(filepath.Base(dbInfo.ModelPath))
 		}(),
@@ -170,7 +170,7 @@ func WriteModel(dbInfo *configx.Database, schemaName, tableName string, columnTy
 	modelData.SchemaName = schemaName
 	modelData.TableName = tableName
 	modelData.ModelPath = dbInfo.ModelPath
-	tpl, ok := metadata.LoadTpl("model")
+	modelTpl, ok := metadata.LoadTpl("model")
 	if !ok {
 		panic("undefined template" + "model")
 	}
@@ -179,9 +179,36 @@ func WriteModel(dbInfo *configx.Database, schemaName, tableName string, columnTy
 		_ = os.MkdirAll(modelData.ModelPath, 0666)
 	}
 	ff, _ := filepath.Abs(fmt.Sprintf("%s/%s.go", modelData.ModelPath, metadata.CamelCaseToUnderscore(modelData.TableName)))
-	err := RenderingTemplate(tpl, modelData, ff, true)
+	err := RenderingTemplate(modelTpl, modelData, ff, true)
 	if err != nil {
 		panic(err)
+	}
+
+	hookFile := filepath.Join(modelData.ModelPath, metadata.ToLower(tableName)+"_hook.go")
+	exist = IsExist(hookFile)
+	if !exist {
+		ff, _ = filepath.Abs(hookFile)
+		modelHookTpl, ok := metadata.LoadTpl("model_hook")
+		if !ok {
+			panic("undefined template" + "model_hook")
+		}
+		err = RenderingTemplate(modelHookTpl, modelData, ff, true)
+		if err != nil {
+			panic(err)
+		}
+	}
+	baseFile := filepath.Join(modelData.ModelPath, "base.go")
+	exist = IsExist(baseFile)
+	if !exist {
+		ff, _ = filepath.Abs(baseFile)
+		modelBaseTpl, ok := metadata.LoadTpl("model_base")
+		if !ok {
+			panic("undefined template" + "model_hook")
+		}
+		err = RenderingTemplate(modelBaseTpl, modelData, ff, true)
+		if err != nil {
+			panic(err)
+		}
 	}
 	return
 }

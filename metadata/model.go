@@ -17,7 +17,10 @@ type ModelMeta struct {
 
 type ColumnInfo struct {
 	Index              int
+	UpperTableName     string
+	TitleTableName     string
 	GoColumnName       string
+	GoUpperColumnName  string
 	GoColumnType       string // string
 	Tags               string
 	ColumnName         string
@@ -46,6 +49,9 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 		columnInfo.SQLNullableType = metaType.SQLNullableType
 
 		columnInfo.GoColumnName = UnderscoreToUpperCamelCase(columnInfo.ColumnName)
+		columnInfo.TitleTableName = m.ModelStructName
+		columnInfo.GoUpperColumnName = ToUpper(columnInfo.ColumnName)
+		columnInfo.UpperTableName = ToUpper(m.ModelStructName)
 
 		if columnInfo.Nullable {
 			columnInfo.GoColumnType = func() string {
@@ -108,9 +114,11 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 	result := map[string]any{
 		"ModelPackageName": m.ModelPackageName,
 		"ModelStructName":  m.ModelStructName,
+		"ModelShortName":   ToLower(strings.Split(m.ModelStructName, "")[0]),
 		"ColumnList":       m.ColumnList,
 		"SchemaName":       m.SchemaName,
 		"TableName":        m.TableName,
+		"TitleTableName":   m.ModelStructName,
 		"ImportPkgList":    []string{},
 	}
 	return result
@@ -144,6 +152,14 @@ const TableName{{.ModelStructName}} = "{{.TableName}}"
 	{{- end}}
 {{- end}}
 
+type {{.TitleTableName}}Field string
+
+const (
+	{{range .ColumnList}}
+	{{.UpperTableName}}_{{.GoUpperColumnName}}  {{.TitleTableName}}Field = "{{.ColumnName}}"
+	{{end}}
+)
+
 // {{.ModelStructName}} struct is mapping to the {{.TableName}} table
 type {{.ModelStructName}} struct {
     {{range .ColumnList}}
@@ -155,6 +171,113 @@ type {{.ModelStructName}} struct {
 
 `
 
+// ModelHook hook file (no overwrite if file is existed), provide func BeforeCreate、AfterUpdate、BeforeDelete etc.
+const ModelHook = NotEditMark + `
+package {{.ModelPackageName}}
+
+import (
+	"gorm.io/gorm"
+)
+
+// BeforeSave invoked before saving, return an error.
+func ({{.ModelShortName}} *{{.ModelStructName}}) BeforeSave() error {
+	// TODO: something
+	return nil
+}
+
+// AfterSave invoked after saving, return an error if field is not populated.
+func ({{.ModelShortName}} *{{.ModelStructName}}) AfterSave() error {
+	// TODO: something
+	return nil
+}
+
+// BeforeCreate invoked before create, return an error.
+func ({{.ModelShortName}} *{{.ModelStructName}}) BeforeCreate(tx *gorm.DB) (err error) {
+	// TODO: something
+	return
+}
+
+// AfterCreate invoked after create, return an error.
+func ({{.ModelShortName}} *{{.ModelStructName}}) AfterCreate(tx *gorm.DB) (err error) {
+	// TODO: something
+	return
+}
+
+// BeforeUpdate invoked before update, return an error.
+func ({{.ModelShortName}} *{{.ModelStructName}}) BeforeUpdate() error {
+	// TODO: something
+	return nil
+}
+
+// AfterUpdate invoked after update, return an error.
+func ({{.ModelShortName}} *{{.ModelStructName}}) AfterUpdate(tx *gorm.DB) (err error) {
+	// TODO: something
+	return
+}
+
+// BeforeDelete invoked before delete, return an error.
+func ({{.ModelShortName}} *{{.ModelStructName}}) BeforeDelete() error {
+	// TODO: something
+	return nil
+}
+
+// AfterDelete invoked after delete, return an error.
+func ({{.ModelShortName}} *{{.ModelStructName}}) AfterDelete(tx *gorm.DB) (err error) {
+	// TODO: something
+	return
+}
+
+// AfterFind invoked after find, return an error.
+func ({{.ModelShortName}} *{{.ModelStructName}}) AfterFind(tx *gorm.DB) (err error) {
+	// TODO: something
+	return
+}
+
+`
+
+// ModelBase base file (no overwrite if file is existed)
+const ModelBase = NotEditMark + `
+package {{.ModelPackageName}}
+
+import "math"
+
+type Condition struct {
+	MapCondition    map[string]any
+	StringCondition []string
+}
+
+type UpdateField map[string]any
+
+type OrderByClause []string
+
+// Pagination 分页结构体（该分页只适合数据量很少的情况）
+type Pagination struct {
+	Page      int64 ` + "`json:\"page\"`       // 当前页\n" +
+	"PageSize  int64 " + "`json:\"page_size\"`  // 每页多少条记录\n" +
+	"PageCount int64 " + "`json:\"page_count\"` // 一共多少页\n" +
+	"Total     int64 " + "`json:\"total\"`      // 一共多少条记录" + `
+}
+
+func (p *Pagination) CalculatePageCount() {
+	if p.Page == 0 || p.PageSize == 0 {
+		panic("error pagination param")
+	}
+	p.PageCount = int64(math.Ceil(float64(p.Total) / float64(p.PageSize)))
+	return
+}
+
+func (p *Pagination) CalculateOffset() (offset int64) {
+	if p.Page == 0 || p.PageSize == 0 {
+		panic("error pagination param")
+	}
+	offset = (p.Page - 1) * p.PageSize
+	return
+}
+
+`
+
 func init() {
 	StoreTpl("model", Model)
+	StoreTpl("model_base", ModelBase)
+	StoreTpl("model_hook", ModelHook)
 }
