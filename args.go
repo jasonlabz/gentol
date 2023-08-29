@@ -9,6 +9,10 @@ import (
 
 var once sync.Once
 
+type Gentol struct {
+	CurrentPkg string
+}
+
 var (
 	dbType = getopt.StringLong("db_type", 0, "mysql", "database type such as [mysql, sqlserver, postgres, oracle, greenplum etc. ]")
 

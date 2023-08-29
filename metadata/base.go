@@ -97,3 +97,12 @@ var abbreviationMap = map[string]bool{
 	"XML":   true,
 	"ACL":   true,
 }
+
+func init() {
+	StoreTpl("model", Model)
+	StoreTpl("model_base", ModelBase)
+	StoreTpl("model_hook", ModelHook)
+	StoreTpl("dao", Dao)
+	StoreTpl("dao_impl", DaoImpl)
+	StoreTpl("database", Database)
+}

@@ -3,10 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/jasonlabz/gentol/dal/db/model"
 	"github.com/jasonlabz/gentol/datasource"
 	"github.com/jasonlabz/gentol/gormx"
 	"github.com/jasonlabz/gentol/metadata"
-	"github.com/jasonlabz/gentol/model"
 	"reflect"
 	"runtime"
 	"strings"
@@ -73,7 +73,7 @@ func TestDemo(t *testing.T) {
 	fmt.Print(s)
 }
 func TestStruct(t *testing.T) {
-	user := &model.User{}
+	user := model.User{}
 	val := reflect.ValueOf(user)
 
 	fmt.Println(val.Type().PkgPath())

@@ -275,9 +275,3 @@ func (p *Pagination) CalculateOffset() (offset int64) {
 }
 
 `
-
-func init() {
-	StoreTpl("model", Model)
-	StoreTpl("model_base", ModelBase)
-	StoreTpl("model_hook", ModelHook)
-}
