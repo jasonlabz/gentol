@@ -11,7 +11,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 )
 
@@ -168,8 +167,6 @@ func WriteModel(dbInfo *configx.Database, schemaName, tableName string, columnTy
 }
 
 func WriteDao(dbInfo *configx.Database, schemaName, tableName string, columnTypes []gorm.ColumnType) {
-	gentol := Gentol{}
-	val := reflect.ValueOf(gentol)
 	daoData := &metadata.DaoMeta{
 		ModelPackageName: func() string {
 			if dbInfo.ModelPath == "" {
@@ -183,8 +180,8 @@ func WriteDao(dbInfo *configx.Database, schemaName, tableName string, columnType
 			}
 			return metadata.ToLower(filepath.Base(dbInfo.DaoPath))
 		}(),
-		ModelModulePath: strings.TrimRight(val.Type().PkgPath(), "/") + "/" + strings.TrimLeft(dbInfo.ModelPath, "/"),
-		DaoModulePath:   strings.TrimRight(val.Type().PkgPath(), "/") + "/" + strings.TrimLeft(dbInfo.DaoPath, "/"),
+		ModelModulePath: "TODO:" + "/" + strings.TrimLeft(dbInfo.ModelPath, "/"),
+		DaoModulePath:   "TODO:" + "/" + strings.TrimLeft(dbInfo.DaoPath, "/"),
 		ModelStructName: metadata.UnderscoreToUpperCamelCase(tableName),
 	}
 	columnTempList := make([]*metadata.ColumnInfo, 0)
@@ -210,7 +207,7 @@ func WriteDao(dbInfo *configx.Database, schemaName, tableName string, columnType
 		panic(err)
 	}
 
-	daoImplFile := filepath.Join(daoData.DaoPath, metadata.CamelCaseToUnderscore(daoData.TableName)+"_impl.go")
+	daoImplFile := filepath.Join(daoData.DaoPath, metadata.CamelCaseToUnderscore(daoData.TableName)+"_dao_impl.go")
 	ff, _ = filepath.Abs(daoImplFile)
 	daoImplTpl, ok := metadata.LoadTpl("dao_impl")
 	if !ok {

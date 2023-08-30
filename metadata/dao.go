@@ -49,7 +49,7 @@ func (m *DaoMeta) GenRenderData() map[string]any {
 		}
 		if columnInfo.IsPrimaryKey {
 			m.PrimaryKeyList = append(m.PrimaryKeyList, &PrimaryKeyInfo{
-				GoFieldName:  columnInfo.GoColumnName,
+				GoFieldName:  columnInfo.ColumnName,
 				GoColumnName: UnderscoreToLowerCamelCase(columnInfo.ColumnName),
 				GoColumnType: columnInfo.GoColumnType,
 			})
@@ -142,8 +142,9 @@ package {{.DaoPackageName}}
 
 import (
 	"context"
-	"gorm.io/gorm/clause"
 	"strings"
+
+	"gorm.io/gorm/clause"
 
 	"{{.DaoModulePath}}/interfaces"
 	"{{.ModelModulePath}}"
@@ -163,7 +164,12 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) SelectOneByPrimaryKey(ctx
 		}
 		tx = tx.Select(strings.Join(columns, ","))
 	}
-	err = tx.Where("record_id", recordID).First(&record).Error
+	whereCondition := map[string]any{
+ 		{{ range .PrimaryKeyList -}}
+		"{{- .GoFieldName -}}": {{- .GoColumnName }},
+		{{ end }}
+	}
+	err = tx.Where(whereCondition).First(&record).Error
 	return
 }
 
@@ -388,9 +394,12 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) DeleteByCondition(ctx con
 }
 
 func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) DeleteByPrimaryKey(ctx context.Context{{range .PrimaryKeyList}}, {{.GoColumnName}} {{.GoColumnType}}{{end}}) (affect int64, err error) {
-	tx := DB().WithContext(ctx).Delete(&model.{{.ModelStructName}}{
-			{{range .PrimaryKeyList}}{{.GoFieldName}}: {{.GoColumnName}}, {{end}}
-		})
+	whereCondition := map[string]any{
+ 		{{ range .PrimaryKeyList -}}
+		"{{- .GoFieldName -}}": {{- .GoColumnName }},
+		{{ end }}
+	}	
+	tx := DB().WithContext(ctx).Where(whereCondition).Delete(&model.{{.ModelStructName}}{})
 	affect = tx.RowsAffected
 	err = tx.Error
 	return
@@ -414,9 +423,14 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) UpdateByCondition(ctx con
 }
 
 func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) UpdateByPrimaryKey(ctx context.Context, {{range .PrimaryKeyList}}{{.GoColumnName}} {{.GoColumnType}}, {{end}}updateField *model.UpdateField) (affect int64, err error) {
+	whereCondition := map[string]any{
+ 		{{ range .PrimaryKeyList -}}
+		"{{- .GoFieldName -}}": {{- .GoColumnName }},
+		{{ end }}
+	}
 	tx := DB().WithContext(ctx).
 		Table(model.TableName{{.ModelStructName}}).
-		Where("record_id = ?", recordID)
+		Where(whereCondition)
 	tx = tx.Updates(updateField)
 	affect = tx.RowsAffected
 	err = tx.Error
