@@ -47,7 +47,7 @@ func (m *DaoMeta) GenRenderData() map[string]any {
 				return columnInfo.GureguNullableType
 			}()
 		}
-		if columnInfo.IsPrimaryKey {
+		if columnInfo.IsPrimaryKey && len(m.PrimaryKeyList) == 0 {
 			m.PrimaryKeyList = append(m.PrimaryKeyList, &PrimaryKeyInfo{
 				GoFieldName:  columnInfo.ColumnName,
 				GoColumnName: UnderscoreToLowerCamelCase(columnInfo.ColumnName),

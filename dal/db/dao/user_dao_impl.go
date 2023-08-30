@@ -16,7 +16,7 @@ var _ interfaces.UserDao = &UserDaoImpl{}
 
 type UserDaoImpl struct{}
 
-func (u UserDaoImpl) SelectOneByPrimaryKey(ctx context.Context, userID int32, userID int32, selectFields ...model.UserField) (record *model.User, err error) {
+func (u UserDaoImpl) SelectOneByPrimaryKey(ctx context.Context, userID int32, selectFields ...model.UserField) (record *model.User, err error) {
 	tx := DB().WithContext(ctx).
 		Table(model.TableNameUser)
 	if len(selectFields) > 0 {
@@ -27,7 +27,6 @@ func (u UserDaoImpl) SelectOneByPrimaryKey(ctx context.Context, userID int32, us
 		tx = tx.Select(strings.Join(columns, ","))
 	}
 	whereCondition := map[string]any{
-		"user_id": userID,
 		"user_id": userID,
 	}
 	err = tx.Where(whereCondition).First(&record).Error
@@ -254,9 +253,8 @@ func (u UserDaoImpl) DeleteByCondition(ctx context.Context, condition *model.Con
 	return
 }
 
-func (u UserDaoImpl) DeleteByPrimaryKey(ctx context.Context, userID int32, userID int32) (affect int64, err error) {
+func (u UserDaoImpl) DeleteByPrimaryKey(ctx context.Context, userID int32) (affect int64, err error) {
 	whereCondition := map[string]any{
-		"user_id": userID,
 		"user_id": userID,
 	}
 	tx := DB().WithContext(ctx).Where(whereCondition).Delete(&model.User{})
@@ -282,9 +280,8 @@ func (u UserDaoImpl) UpdateByCondition(ctx context.Context, condition *model.Con
 	return
 }
 
-func (u UserDaoImpl) UpdateByPrimaryKey(ctx context.Context, userID int32, userID int32, updateField *model.UpdateField) (affect int64, err error) {
+func (u UserDaoImpl) UpdateByPrimaryKey(ctx context.Context, userID int32, updateField *model.UpdateField) (affect int64, err error) {
 	whereCondition := map[string]any{
-		"user_id": userID,
 		"user_id": userID,
 	}
 	tx := DB().WithContext(ctx).
