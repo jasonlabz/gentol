@@ -28,9 +28,9 @@ var (
 	table       = getopt.StringLong("table", 't', "user", "table name to build struct from")
 	templateDir = getopt.StringLong("template_dir", 0, "./template", "Template Dir")
 
-	modelPath   = getopt.StringLong("model", 0, "./model", "name to set for model package")
-	daoPath     = getopt.StringLong("dao", 0, "./dao", "name to set for dao package")
-	servicePath = getopt.StringLong("service", 0, "./service", "name to set for service package")
+	modelPath   = getopt.StringLong("model", 0, "dal/db/model", "name to set for model package")
+	daoPath     = getopt.StringLong("dao", 0, "dal/db/dao", "name to set for dao package")
+	servicePath = getopt.StringLong("service", 0, "server/service", "name to set for service package")
 	grpcPath    = getopt.StringLong("grpc", 0, "./grpc", "name to set for grpc package")
 	outDir      = getopt.StringLong("out", 0, ".", "output dir")
 
