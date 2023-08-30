@@ -69,16 +69,16 @@ func init() {
 	//if ok {
 	//	fmt.Println(filename)
 	//}
-	files, err := metadata.ListDir("./template", "")
-	if err != nil {
-		panic(err)
-	}
-	for _, file := range files {
-		baseName := filepath.Base(file)
-		var b []byte
-		b, err = os.ReadFile(file)
-		if err == nil {
-			metadata.StoreTpl(baseName, string(b))
-		}
-	}
+	//files, err := metadata.ListDir("./template", "")
+	//if err != nil {
+	//	panic(err)
+	//}
+	//for _, file := range files {
+	//	baseName := filepath.Base(file)
+	//	var b []byte
+	//	b, err = os.ReadFile(file)
+	//	if err == nil {
+	//		metadata.StoreTpl(baseName, string(b))
+	//	}
+	//}
 }

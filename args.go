@@ -25,7 +25,7 @@ var (
 	database = getopt.StringLong("database", 'd', "", "database to for db table")
 
 	schema      = getopt.StringLong("schema", 's', "public", "schema to for db table")
-	table       = getopt.StringLong("table", 't', "", "table name to build struct from")
+	table       = getopt.StringLong("table", 't', "user", "table name to build struct from")
 	templateDir = getopt.StringLong("template_dir", 0, "./template", "Template Dir")
 
 	modelPath   = getopt.StringLong("model", 0, "./model", "name to set for model package")
@@ -57,12 +57,6 @@ func init() {
 		getopt.Lookup("db_type").SetGroup("check")
 		getopt.Lookup("database").SetGroup("check")
 		getopt.Lookup("table").SetGroup("check")
-		getopt.Lookup("dsn").SetOptional()
-		getopt.Lookup("host").SetOptional()
-		getopt.Lookup("port").SetOptional()
-		getopt.Lookup("username").SetOptional()
-		getopt.Lookup("password").SetOptional()
-		getopt.Lookup("database").SetOptional()
 		getopt.RequiredGroup("check")
 		getopt.ParseV2()
 
