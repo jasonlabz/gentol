@@ -2,14 +2,14 @@ json_format: snake
 xml_format: snake
 protobuf_format: snake
 runGoFmt: true
-servicePkgName: service
 addProtobufAnnotation: true
+module: lg_server
 configs:
   - db_name: "postgres"
     db_type: "postgres"
     dsn: "user=postgres password=halojeff host=127.0.0.1 port=8432 dbname=test sslmode=disable TimeZone=Asia/Shanghai"
-    model_path: dal/db/model
-    dao_path: dal/db/dao
+    model_path: F:\baidu\aiib-go\lg_server\dal\db\model
+    dao_path: F:\baidu\aiib-go\lg_server\dal\db\dao
     only_model: false
     tables:
       - schema_name: public

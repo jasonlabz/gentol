@@ -9,7 +9,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"text/template"
 
 	"github.com/jasonlabz/gentol/metadata"
@@ -100,7 +99,7 @@ func CRLFNewlines(d []byte) []byte {
 	return d
 }
 
-func WriteModel(dbInfo *configx.Database, schemaName, tableName string, columnTypes []gorm.ColumnType) {
+func WriteModel(dbInfo *configx.DBTableInfo, schemaName, tableName string, columnTypes []gorm.ColumnType) {
 	modelData := &metadata.ModelMeta{
 		ModelPackageName: func() string {
 			if dbInfo.ModelPath == "" {
@@ -160,23 +159,13 @@ func WriteModel(dbInfo *configx.Database, schemaName, tableName string, columnTy
 	return
 }
 
-func WriteDao(dbInfo *configx.Database, schemaName, tableName string, columnTypes []gorm.ColumnType) {
+func WriteDao(dbInfo *configx.DBTableInfo, schemaName, tableName string, columnTypes []gorm.ColumnType) {
 	daoData := &metadata.DaoMeta{
-		ModelPackageName: func() string {
-			if dbInfo.ModelPath == "" {
-				dbInfo.ModelPath = "dal/db/model"
-			}
-			return metadata.ToLower(filepath.Base(dbInfo.ModelPath))
-		}(),
-		DaoPackageName: func() string {
-			if dbInfo.ModelPath == "" {
-				dbInfo.ModelPath = "dal/db/dao"
-			}
-			return metadata.ToLower(filepath.Base(dbInfo.DaoPath))
-		}(),
-		ModelModulePath: "TODO:" + "/" + strings.TrimLeft(dbInfo.ModelPath, "/"),
-		DaoModulePath:   "TODO:" + "/" + strings.TrimLeft(dbInfo.DaoPath, "/"),
-		ModelStructName: metadata.UnderscoreToUpperCamelCase(tableName),
+		ModelPackageName: metadata.ToLower(filepath.Base(dbInfo.ModelPath)),
+		DaoPackageName:   metadata.ToLower(filepath.Base(dbInfo.DaoPath)),
+		ModelModulePath:  dbInfo.ModelModule,
+		DaoModulePath:    dbInfo.DaoModule,
+		ModelStructName:  metadata.UnderscoreToUpperCamelCase(tableName),
 	}
 	columnTempList := make([]*metadata.ColumnInfo, 0)
 	getColumnInfo(columnTypes, &columnTempList)

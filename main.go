@@ -1,13 +1,17 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+	"strings"
+
 	"github.com/jasonlabz/gentol/configx"
 	"github.com/jasonlabz/gentol/datasource"
 	"github.com/jasonlabz/gentol/gormx"
-	"log"
-	"strings"
 )
 
 func main() {
@@ -20,6 +24,41 @@ func main() {
 	//protobufFormat := tableConfigs.ProtobufFormat
 
 	for _, dbInfo := range tableConfigs.Configs {
+		dbInfo.ModelModule = "//TODO: fix path/"
+		dbInfo.DaoModule = "//TODO: fix path/"
+		modPath := fmt.Sprintf(".%sgo.mod", string(os.PathSeparator))
+		relationModelPath := dbInfo.ModelPath
+		relationDaoPath := dbInfo.DaoPath
+		if filepath.IsAbs(dbInfo.ModelPath) && tableConfigs.GoModule != "" {
+			lastIndex := strings.LastIndex(dbInfo.ModelPath, tableConfigs.GoModule)
+			if lastIndex != -1 {
+				modPath = dbInfo.ModelPath[:lastIndex+len(tableConfigs.GoModule)] + fmt.Sprintf("%sgo.mod", string(os.PathSeparator))
+				relationModelPath = strings.ReplaceAll(dbInfo.ModelPath[lastIndex+len(tableConfigs.GoModule)+1:], string(os.PathSeparator), "/")
+			}
+		}
+		if filepath.IsAbs(dbInfo.ModelPath) && tableConfigs.GoModule != "" {
+			lastIndex := strings.LastIndex(dbInfo.DaoPath, tableConfigs.GoModule)
+			if lastIndex != -1 {
+				relationDaoPath = strings.ReplaceAll(dbInfo.DaoPath[lastIndex+len(tableConfigs.GoModule)+1:], string(os.PathSeparator), "/")
+			}
+		}
+		if IsExist(modPath) {
+			modFile, err := os.Open(modPath)
+			if err != nil {
+				goto process
+			}
+			defer modFile.Close()
+			scanner := bufio.NewScanner(modFile)
+			for scanner.Scan() {
+				lineText := scanner.Text()
+				if strings.Contains(lineText, "module ") {
+					dbInfo.ModelModule = strings.TrimSpace(strings.ReplaceAll(lineText, "module ", "")) + "/" + relationModelPath
+					dbInfo.DaoModule = strings.TrimSpace(strings.ReplaceAll(lineText, "module ", "")) + "/" + relationDaoPath
+					break
+				}
+			}
+		}
+	process:
 		dbConfig := &gormx.Config{DBName: dbInfo.DBName}
 		dbConfig.DSN = dbInfo.DSN
 		dbConfig.DBType = gormx.DBType(dbInfo.DBType)

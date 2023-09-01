@@ -24,6 +24,7 @@ var (
 	password = getopt.StringLong("password", 'P', "", "db password, if there is a dsn, ignore it")
 	database = getopt.StringLong("database", 'd', "", "database to for db table")
 
+	module      = getopt.StringLong("module", 'm', "gentol", "module name for go project")
 	schema      = getopt.StringLong("schema", 's', "public", "schema to for db table")
 	table       = getopt.StringLong("table", 't', "user", "table name to build struct from")
 	templateDir = getopt.StringLong("template_dir", 0, "./template", "Template Dir")
@@ -65,7 +66,8 @@ func init() {
 		configx.TableConfigs.RunGoFmt = *runGoFmt
 		configx.TableConfigs.JsonFormat = *jsonNameFormat
 		configx.TableConfigs.ProtobufFormat = *protoNameFormat
-		databaseConfig := &configx.Database{
+		configx.TableConfigs.GoModule = *module
+		databaseConfig := &configx.DBTableInfo{
 			DBName:      DefaultDBName,
 			DBType:      *dbType,
 			DSN:         *dsn,
@@ -85,7 +87,7 @@ func init() {
 			},
 		}
 		databaseConfig.GenDSN()
-		configx.TableConfigs.Configs = []*configx.Database{
+		configx.TableConfigs.Configs = []*configx.DBTableInfo{
 			databaseConfig,
 		}
 	}

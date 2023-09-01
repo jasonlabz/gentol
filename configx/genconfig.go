@@ -17,8 +17,8 @@ func Init() {
 	LoadConfigFromYaml(DefaultPath)
 }
 
-// Database 连接配置
-type Database struct {
+// DBTableInfo 连接配置
+type DBTableInfo struct {
 	DBName      string       `json:"db_name" yaml:"db_name"`
 	DBType      string       `json:"db_type" yaml:"db_type"`
 	DSN         string       `json:"dsn" yaml:"dsn"`
@@ -28,6 +28,8 @@ type Database struct {
 	DaoPath     string       `json:"dao_path" yaml:"dao_path"`
 	Tables      []*TableInfo `json:"tables" yaml:"tables"`
 
+	ModelModule string
+	DaoModule   string
 	// DSN 可选
 	Host     string `json:"host" yaml:"host"`
 	Port     int    `json:"port" yaml:"port"`
@@ -36,7 +38,7 @@ type Database struct {
 	Database string `json:"database" yaml:"database"`
 }
 
-func (c *Database) GenDSN() (dsn string) {
+func (c *DBTableInfo) GenDSN() (dsn string) {
 	if c.DSN != "" {
 		return c.DSN
 	}
@@ -62,12 +64,13 @@ type TableInfo struct {
 }
 
 type config struct {
-	Configs               []*Database `json:"configs" yaml:"configs"`
-	JsonFormat            string      `json:"json_format" yaml:"json_format"`
-	ProtobufFormat        string      `json:"protobuf_format" yaml:"protobuf_format"`
-	UseSQLNullable        bool        `json:"use_sql_nullable" yaml:"use_sql_nullable"`
-	RunGoFmt              bool        `json:"rungofmt" yaml:"rungofmt"`
-	AddProtobufAnnotation bool        `json:"addProtobufAnnotation" yaml:"addProtobufAnnotation"`
+	Configs               []*DBTableInfo `json:"configs" yaml:"configs"`
+	JsonFormat            string         `json:"json_format" yaml:"json_format"`
+	ProtobufFormat        string         `json:"protobuf_format" yaml:"protobuf_format"`
+	GoModule              string         `json:"module" yaml:"module"`
+	UseSQLNullable        bool           `json:"use_sql_nullable" yaml:"use_sql_nullable"`
+	RunGoFmt              bool           `json:"rungofmt" yaml:"rungofmt"`
+	AddProtobufAnnotation bool           `json:"addProtobufAnnotation" yaml:"addProtobufAnnotation"`
 }
 
 var TableConfigs = new(config)
