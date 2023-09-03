@@ -5,8 +5,10 @@ go 1.20
 require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/gobuffalo/packr/v2 v2.8.3
+	github.com/guregu/null v4.0.0+incompatible
 	github.com/onlyzzg/oracle v1.1.0
 	github.com/pborman/getopt/v2 v2.1.0
+	github.com/satori/go.uuid v1.2.0
 	github.com/spf13/viper v1.15.0
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/mysql v1.5.1

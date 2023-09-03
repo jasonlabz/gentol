@@ -16,13 +16,20 @@ type ModelMeta struct {
 }
 
 type ColumnInfo struct {
-	Index              int
-	UpperTableName     string
-	TitleTableName     string
-	GoColumnName       string
-	GoUpperColumnName  string
-	GoColumnType       string // string
-	Tags               string
+	Index             int
+	UpperTableName    string
+	TitleTableName    string
+	GoColumnName      string
+	GoUpperColumnName string
+	GoColumnType      string // string
+	ValueFormat       string // string
+	Tags              string
+	ModelPackageName  string
+	ModelStructName   string
+	ModelShortName    string
+	SchemaName        string
+	TableName         string
+
 	ColumnName         string
 	SQLNullableType    string
 	GureguNullableType string
@@ -52,6 +59,11 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 		columnInfo.TitleTableName = m.ModelStructName
 		columnInfo.GoUpperColumnName = ToUpper(columnInfo.ColumnName)
 		columnInfo.UpperTableName = ToUpper(m.ModelStructName)
+		columnInfo.ModelPackageName = m.ModelPackageName
+		columnInfo.ModelStructName = m.ModelStructName
+		columnInfo.ModelShortName = ToLower(strings.Split(m.ModelStructName, "")[0])
+		columnInfo.TableName = m.TableName
+		columnInfo.SchemaName = m.SchemaName
 
 		if columnInfo.Nullable {
 			columnInfo.GoColumnType = func() string {
@@ -61,6 +73,7 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 				return columnInfo.GureguNullableType
 			}()
 		}
+		columnInfo.ValueFormat = metaType.ValueFormat
 		gormTag := fmt.Sprintf("gorm:\"%s%s%s%s%s%s\"",
 			func() string {
 				if columnInfo.IsPrimaryKey {
@@ -130,6 +143,9 @@ package {{.ModelPackageName}}
 
 import (
 	"database/sql"
+	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/guregu/null"
@@ -154,12 +170,6 @@ const TableName{{.ModelStructName}} = "{{.TableName}}"
 
 type {{.TitleTableName}}Field string
 
-const (
-	{{range .ColumnList}}
-	{{.UpperTableName}}_{{.GoUpperColumnName}}  {{.TitleTableName}}Field = "{{.ColumnName}}"
-	{{end}}
-)
-
 // {{.ModelStructName}} struct is mapping to the {{.TableName}} table
 type {{.ModelStructName}} struct {
     {{range .ColumnList}}
@@ -169,10 +179,124 @@ type {{.ModelStructName}} struct {
 	`{{end}}
 }
 
+type {{.ModelStructName}}TableColumn struct {
+	{{range .ColumnList}}
+	{{- .GoColumnName}} {{.TitleTableName}}Field
+	{{end}}
+}
+
+func ({{.ModelShortName}} *{{.ModelStructName}}) GetTableName() string {
+	return "{{.TableName}}"
+}
+
+func ({{.ModelShortName}} *{{.ModelStructName}}) GetColumnInfo() {{.ModelStructName}}TableColumn {
+	return {{.ModelStructName}}TableColumn{
+		{{range .ColumnList}}
+		{{- .GoColumnName}}: "{{.ColumnName}}",
+		{{end}}		
+	}
+}
+
+type {{.ModelStructName}}Condition struct {
+	Condition
+}
+
+func ({{.ModelShortName}} *{{.ModelStructName}}Condition) addCondition(condition string, args ...any) *{{.ModelStructName}}Condition {
+	if len(args)> 0 {
+		{{.ModelShortName}}.StringCondition = append({{.ModelShortName}}.StringCondition, fmt.Sprintf(condition, args))
+		return {{.ModelShortName}}
+	}
+	{{.ModelShortName}}.StringCondition = append({{.ModelShortName}}.StringCondition, condition)
+	return {{.ModelShortName}}
+}
+
+{{range .ColumnList}}
+{{if eq .GoColumnType "string"}}
+func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}IsLike(value string) *{{.ModelStructName}}Condition {
+	return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" like %q", value)
+}
+{{end}}
+func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}IsNull() *{{.ModelStructName}}Condition {
+	return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" is null")
+}
+
+func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}IsNotNull() *{{.ModelStructName}}Condition {
+	return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" is not null")
+}
+
+func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}EqualTo(value {{.GoColumnType}}) *{{.ModelStructName}}Condition {
+	return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" = {{.ValueFormat}}", value)
+}
+
+func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}NotEqualTo(value {{.GoColumnType}}) *{{.ModelStructName}}Condition {
+	return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" <> {{.ValueFormat}}", value)
+}
+
+func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}GreaterThan(value {{.GoColumnType}}) *{{.ModelStructName}}Condition {
+	return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" > {{.ValueFormat}}", value)
+}
+
+func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}GreaterThanOrEqualTo(value {{.GoColumnType}}) *{{.ModelStructName}}Condition {
+	return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" >= {{.ValueFormat}}", value)
+}
+
+func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}LessThan(value {{.GoColumnType}}) *{{.ModelStructName}}Condition {
+	return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" < {{.ValueFormat}}", value)
+}
+
+func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}LessThanOrEqualTo(value {{.GoColumnType}}) *{{.ModelStructName}}Condition {
+	return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" <= {{.ValueFormat}}", value)
+}
+
+func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}Between(startValue, endValue  {{.GoColumnType}}) *{{.ModelStructName}}Condition {
+	return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" between {{.ValueFormat}} and {{.ValueFormat}}", startValue, endValue)
+}
+
+func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}NotBetween(startValue, endValue  {{.GoColumnType}}) *{{.ModelStructName}}Condition {
+	return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" not between {{.ValueFormat}} and {{.ValueFormat}}", startValue, endValue)
+}
+
+func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}In(inValues []{{.GoColumnType}}) *{{.ModelStructName}}Condition {
+	if len(inValues) == 0 {
+		return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" in ()")
+	}
+	bytes, _ := json.Marshal(inValues)
+	return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" in %s", "(" + strings.TrimRight(strings.TrimLeft(string(bytes), "["), "]") + ")")
+}
+
+func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}NotIn(inValues []{{.GoColumnType}}) *{{.ModelStructName}}Condition {
+	if len(inValues) == 0 {
+		return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" not in ()")
+	}
+	bytes, _ := json.Marshal(inValues)
+	return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" not in %s", "(" + strings.TrimRight(strings.TrimLeft(string(bytes), "["), "]") + ")")
+}
+{{end}}	
+
+func ({{.ModelShortName}} *{{.ModelStructName}}Condition) AddMapCondition(mapCondition map[string]any) *{{.ModelStructName}}Condition {
+	if len( {{.ModelShortName}}.MapCondition) == 0 {
+		{{.ModelShortName}}.MapCondition = mapCondition
+	} else  {
+		for key, val := range {{.ModelShortName}}.MapCondition {
+			{{.ModelShortName}}.MapCondition[key] = val
+		}
+	}
+	return {{.ModelShortName}}
+}
+
+func ({{.ModelShortName}} *{{.ModelStructName}}Condition) AddOrderByClause(orderByClause ...string) *{{.ModelStructName}}Condition {
+	{{.ModelShortName}}.OrderByClause = append({{.ModelShortName}}.OrderByClause, orderByClause...)
+	return u
+}
+
+func ({{.ModelShortName}} *{{.ModelStructName}}Condition) Build() *Condition {
+	return &{{.ModelShortName}}.Condition
+}
+
 `
 
 // ModelHook hook file (no overwrite if file is existed), provide func BeforeCreate、AfterUpdate、BeforeDelete etc.
-const ModelHook = NotEditMark + `
+const ModelHook = EditMark + `
 package {{.ModelPackageName}}
 
 import (
@@ -241,14 +365,17 @@ package {{.ModelPackageName}}
 
 import "math"
 
+type ConditionBuilder interface {
+	Build() *Condition
+}
+
 type Condition struct {
 	MapCondition    map[string]any
 	StringCondition []string
+	OrderByClause []string
 }
 
 type UpdateField map[string]any
-
-type OrderByClause []string
 
 // Pagination 分页结构体（该分页只适合数据量很少的情况）
 type Pagination struct {

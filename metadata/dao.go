@@ -33,7 +33,7 @@ func (m *DaoMeta) GenRenderData() map[string]any {
 		columnInfo.GoColumnType = metaType.GoType
 		columnInfo.GureguNullableType = metaType.GureguNullableType
 		columnInfo.SQLNullableType = metaType.SQLNullableType
-
+		columnInfo.ValueFormat = metaType.ValueFormat
 		columnInfo.GoColumnName = UnderscoreToUpperCamelCase(columnInfo.ColumnName)
 		columnInfo.TitleTableName = m.ModelStructName
 		columnInfo.GoUpperColumnName = ToUpper(columnInfo.ColumnName)
@@ -81,31 +81,18 @@ import (
 )
 
 type {{.ModelStructName}}Dao interface {
+	// SelectAll 查询所有记录
+	SelectAll(ctx context.Context, selectFields ...model.{{.ModelStructName}}Field) (records []*model.{{.ModelStructName}}, err error)
+	
 	// SelectOneByPrimaryKey 通过主键查询记录
 	SelectOneByPrimaryKey(ctx context.Context, {{range .PrimaryKeyList}}{{.GoColumnName}} {{.GoColumnType}}, {{end}}selectFields ...model.{{.ModelStructName}}Field) (record *model.{{.ModelStructName}}, err error)
 	
 	// SelectRecordByCondition 通过指定条件查询记录
 	SelectRecordByCondition(ctx context.Context, condition *model.Condition, selectFields ...model.{{.ModelStructName}}Field) (records []*model.{{.ModelStructName}}, err error)
-	
-	// SelectRecordASCByCondition 通过指定条件查询记录,升序排序
-	SelectRecordASCByCondition(ctx context.Context, condition *model.Condition, clause model.OrderByClause,
-		selectFields ...model.{{.ModelStructName}}Field) (records []*model.{{.ModelStructName}}, err error)
-	
-	// SelectRecordDESCByCondition 通过指定条件查询记录,降序排序
-	SelectRecordDESCByCondition(ctx context.Context, condition *model.Condition, clause model.OrderByClause,
-		selectFields ...model.{{.ModelStructName}}Field) (records []*model.{{.ModelStructName}}, err error)
-	
+
 	// SelectPageRecordByCondition 通过指定条件查询分页记录
 	SelectPageRecordByCondition(ctx context.Context, condition *model.Condition, pageParam *model.Pagination,
 		selectFields ...model.{{.ModelStructName}}Field) (records []*model.{{.ModelStructName}}, err error)
-	
-	// SelectPageRecordASCByCondition 通过指定条件查询分页记录,升序排序
-	SelectPageRecordASCByCondition(ctx context.Context, condition *model.Condition, clause model.OrderByClause,
-		pageParam *model.Pagination, selectFields ...model.{{.ModelStructName}}Field) (records []*model.{{.ModelStructName}}, err error)
-	
-	// SelectPageRecordDESCByCondition 通过指定条件查询分页记录,降序排序
-	SelectPageRecordDESCByCondition(ctx context.Context, condition *model.Condition, clause model.OrderByClause,
-		pageParam *model.Pagination, selectFields ...model.{{.ModelStructName}}Field) (records []*model.{{.ModelStructName}}, err error)
 	
 	// CountByCondition 通过指定条件查询记录数量
 	CountByCondition(ctx context.Context, condition *model.Condition) (count int64, err error)
@@ -115,7 +102,13 @@ type {{.ModelStructName}}Dao interface {
 	
 	// DeleteByPrimaryKey 通过主键删除记录，返回删除记录数量
 	DeleteByPrimaryKey(ctx context.Context{{range .PrimaryKeyList}}, {{.GoColumnName}} {{.GoColumnType}}{{end}}) (affect int64, err error)
-	
+
+	// UpdateRecord 更新记录
+	UpdateRecord(ctx context.Context, record *model.{{.ModelStructName}}) (affect int64, err error)
+
+	// UpdateRecords 批量更新记录
+	UpdateRecords(ctx context.Context, records []*model.{{.ModelStructName}}) (affect int64, err error)
+
 	// UpdateByCondition 更新指定条件下的记录
 	UpdateByCondition(ctx context.Context, condition *model.Condition, updateField *model.UpdateField) (affect int64, err error)
 	
@@ -129,10 +122,10 @@ type {{.ModelStructName}}Dao interface {
 	BatchInsert(ctx context.Context, records []*model.{{.ModelStructName}}) (affect int64, err error)
 	
 	// InsertOrUpdateOnDuplicateKey 插入记录，假如唯一键冲突则更新
-	InsertOrUpdateOnDuplicateKey(ctx context.Context, record *model.{{.ModelStructName}}, updateFields ...model.{{.ModelStructName}}Field) (affect int64, err error)
+	InsertOrUpdateOnDuplicateKey(ctx context.Context, record *model.{{.ModelStructName}}) (affect int64, err error)
 	
 	// BatchInsertOrUpdateOnDuplicateKey 批量插入记录，假如唯一键冲突则更新
-	BatchInsertOrUpdateOnDuplicateKey(ctx context.Context, records []*model.{{.ModelStructName}}, updateFields ...model.{{.ModelStructName}}Field) (affect int64, err error)
+	BatchInsertOrUpdateOnDuplicateKey(ctx context.Context, records []*model.{{.ModelStructName}}) (affect int64, err error)
 }
 
 `
@@ -154,6 +147,20 @@ var _ interfaces.{{.ModelStructName}}Dao = &{{.ModelStructName}}DaoImpl{}
 
 type {{.ModelStructName}}DaoImpl struct{}
 
+func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) SelectAll(ctx context.Context, selectFields ...model.{{.ModelStructName}}Field) (records []*model.{{.ModelStructName}}, err error) {
+	tx := DB().WithContext(ctx).
+		Table(model.TableName{{.ModelStructName}})
+	if len(selectFields) > 0 {
+		columns := make([]string, 0)
+		for _, field := range selectFields {
+			columns = append(columns, string(field))
+		}
+		tx = tx.Select(strings.Join(columns, ","))
+	}
+	err = tx.Find(&records).Error
+	return
+}
+
 func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) SelectOneByPrimaryKey(ctx context.Context, {{range .PrimaryKeyList}}{{.GoColumnName}} {{.GoColumnType}}, {{end}}selectFields ...model.{{.ModelStructName}}Field) (record *model.{{.ModelStructName}}, err error) {
 	tx := DB().WithContext(ctx).
 		Table(model.TableName{{.ModelStructName}})
@@ -174,6 +181,9 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) SelectOneByPrimaryKey(ctx
 }
 
 func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) SelectRecordByCondition(ctx context.Context, condition *model.Condition, selectFields ...model.{{.ModelStructName}}Field) (records []*model.{{.ModelStructName}}, err error) {
+	if condition == nil {
+		return u.SelectAll(ctx, selectFields...)
+	}
 	tx := DB().WithContext(ctx).
 		Table(model.TableName{{.ModelStructName}})
 	if len(selectFields) > 0 {
@@ -183,73 +193,14 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) SelectRecordByCondition(c
 		}
 		tx = tx.Select(strings.Join(columns, ","))
 	}
-	if condition != nil && len(condition.MapCondition) > 0 {
+	for _, strCondition := range condition.StringCondition {
+		tx = tx.Where(strCondition)
+	}
+	if len(condition.MapCondition) > 0 {
 		tx = tx.Where(condition.MapCondition)
 	}
-	if condition != nil && len(condition.StringCondition) > 0 {
-		for _, strCondition := range condition.StringCondition {
-			tx = tx.Where(strCondition)
-		}
-	}
-	err = tx.Find(&records).Error
-	return
-}
-
-func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) SelectRecordASCByCondition(ctx context.Context, condition *model.Condition, clause model.OrderByClause,
-	selectFields ...model.{{.ModelStructName}}Field) (records []*model.{{.ModelStructName}}, err error) {
-	tx := DB().WithContext(ctx).
-		Table(model.TableName{{.ModelStructName}})
-	if len(selectFields) > 0 {
-		columns := make([]string, 0)
-		for _, field := range selectFields {
-			columns = append(columns, string(field))
-		}
-		tx = tx.Select(strings.Join(columns, ","))
-	}
-	if condition != nil && len(condition.MapCondition) > 0 {
-		tx = tx.Where(condition.MapCondition)
-	}
-	if condition != nil && len(condition.StringCondition) > 0 {
-		for _, strCondition := range condition.StringCondition {
-			tx = tx.Where(strCondition)
-		}
-	}
-	if len(clause) > 0 {
-		columns := make([]string, 0)
-		for _, field := range clause {
-			columns = append(columns, field)
-		}
-		tx = tx.Order(strings.Join(columns, ",") + " asc")
-	}
-	err = tx.Find(&records).Error
-	return
-}
-
-func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) SelectRecordDESCByCondition(ctx context.Context, condition *model.Condition, clause model.OrderByClause,
-	selectFields ...model.{{.ModelStructName}}Field) (records []*model.{{.ModelStructName}}, err error) {
-	tx := DB().WithContext(ctx).
-		Table(model.TableName{{.ModelStructName}})
-	if len(selectFields) > 0 {
-		columns := make([]string, 0)
-		for _, field := range selectFields {
-			columns = append(columns, string(field))
-		}
-		tx = tx.Select(strings.Join(columns, ","))
-	}
-	if condition != nil && len(condition.MapCondition) > 0 {
-		tx = tx.Where(condition.MapCondition)
-	}
-	if condition != nil && len(condition.StringCondition) > 0 {
-		for _, strCondition := range condition.StringCondition {
-			tx = tx.Where(strCondition)
-		}
-	}
-	if len(clause) > 0 {
-		columns := make([]string, 0)
-		for _, field := range clause {
-			columns = append(columns, field)
-		}
-		tx = tx.Order(strings.Join(columns, ",") + " desc")
+	for _, order := range condition.OrderByClause {
+		tx = tx.Order(order)
 	}
 	err = tx.Find(&records).Error
 	return
@@ -266,89 +217,17 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) SelectPageRecordByConditi
 		}
 		tx = tx.Select(strings.Join(columns, ","))
 	}
-	if condition != nil && len(condition.MapCondition) > 0 {
-		tx = tx.Where(condition.MapCondition)
-	}
-	if condition != nil && len(condition.StringCondition) > 0 {
-		for _, strCondition := range condition.StringCondition {
-			tx = tx.Where(strCondition)
-		}
-	}
-	var count int64
-	if pageParam != nil {
-		tx = tx.Count(&count).Offset(int(pageParam.CalculateOffset())).Limit(int(pageParam.PageSize))
-	}
-	err = tx.Find(&records).Error
-	if pageParam != nil {
-		pageParam.Total = count
-		pageParam.CalculatePageCount()
-	}
-	return
-}
 
-func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) SelectPageRecordASCByCondition(ctx context.Context, condition *model.Condition, clause model.OrderByClause,
-	pageParam *model.Pagination, selectFields ...model.{{.ModelStructName}}Field) (records []*model.{{.ModelStructName}}, err error) {
-	tx := DB().WithContext(ctx).
-		Table(model.TableName{{.ModelStructName}})
-	if len(selectFields) > 0 {
-		columns := make([]string, 0)
-		for _, field := range selectFields {
-			columns = append(columns, string(field))
-		}
-		tx = tx.Select(strings.Join(columns, ","))
-	}
-	if condition != nil && len(condition.MapCondition) > 0 {
-		tx = tx.Where(condition.MapCondition)
-	}
-	if condition != nil && len(condition.StringCondition) > 0 {
+	if condition != nil {
 		for _, strCondition := range condition.StringCondition {
 			tx = tx.Where(strCondition)
 		}
-	}
-	if len(clause) > 0 {
-		columns := make([]string, 0)
-		for _, field := range clause {
-			columns = append(columns, field)
+		if len(condition.MapCondition) > 0 {
+			tx = tx.Where(condition.MapCondition)
 		}
-		tx = tx.Order(strings.Join(columns, ",") + " asc")
-	}
-	var count int64
-	if pageParam != nil {
-		tx = tx.Count(&count).Offset(int(pageParam.CalculateOffset())).Limit(int(pageParam.PageSize))
-	}
-	err = tx.Find(&records).Error
-	if pageParam != nil {
-		pageParam.Total = count
-		pageParam.CalculatePageCount()
-	}
-	return
-}
-
-func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) SelectPageRecordDESCByCondition(ctx context.Context, condition *model.Condition, clause model.OrderByClause,
-	pageParam *model.Pagination, selectFields ...model.{{.ModelStructName}}Field) (records []*model.{{.ModelStructName}}, err error) {
-	tx := DB().WithContext(ctx).
-		Table(model.TableName{{.ModelStructName}})
-	if len(selectFields) > 0 {
-		columns := make([]string, 0)
-		for _, field := range selectFields {
-			columns = append(columns, string(field))
+		for _, order := range condition.OrderByClause {
+			tx = tx.Order(order)
 		}
-		tx = tx.Select(strings.Join(columns, ","))
-	}
-	if condition != nil && len(condition.MapCondition) > 0 {
-		tx = tx.Where(condition.MapCondition)
-	}
-	if condition != nil && len(condition.StringCondition) > 0 {
-		for _, strCondition := range condition.StringCondition {
-			tx = tx.Where(strCondition)
-		}
-	}
-	if len(clause) > 0 {
-		columns := make([]string, 0)
-		for _, field := range clause {
-			columns = append(columns, field)
-		}
-		tx = tx.Order(strings.Join(columns, ",") + " desc")
 	}
 	var count int64
 	if pageParam != nil {
@@ -365,12 +244,12 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) SelectPageRecordDESCByCon
 func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) CountByCondition(ctx context.Context, condition *model.Condition) (count int64, err error) {
 	tx := DB().WithContext(ctx).
 		Table(model.TableName{{.ModelStructName}})
-	if condition != nil && len(condition.MapCondition) > 0 {
-		tx = tx.Where(condition.MapCondition)
-	}
-	if condition != nil && len(condition.StringCondition) > 0 {
+	if condition != nil {
 		for _, strCondition := range condition.StringCondition {
 			tx = tx.Where(strCondition)
+		}
+		if len(condition.MapCondition) > 0 {
+			tx = tx.Where(condition.MapCondition)
 		}
 	}
 	err = tx.Count(&count).Error
@@ -379,12 +258,12 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) CountByCondition(ctx cont
 
 func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) DeleteByCondition(ctx context.Context, condition *model.Condition) (affect int64, err error) {
 	tx := DB().WithContext(ctx)
-	if condition != nil && len(condition.MapCondition) > 0 {
-		tx = tx.Where(condition.MapCondition)
-	}
-	if condition != nil && len(condition.StringCondition) > 0 {
+	if condition != nil {
 		for _, strCondition := range condition.StringCondition {
 			tx = tx.Where(strCondition)
+		}
+		if len(condition.MapCondition) > 0 {
+			tx = tx.Where(condition.MapCondition)
 		}
 	}
 	tx = tx.Delete(&model.{{.ModelStructName}}{})
@@ -405,18 +284,36 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) DeleteByPrimaryKey(ctx co
 	return
 }
 
+func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) UpdateRecord(ctx context.Context, record *model.{{.ModelStructName}}) (affect int64, err error) {
+	tx := DB().WithContext(ctx).
+		Table(model.TableName{{.ModelStructName}}).
+		Save(record)
+	affect = tx.RowsAffected
+	err = tx.Error
+	return
+}
+
+func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) UpdateRecords(ctx context.Context, records []*model.{{.ModelStructName}}) (affect int64, err error) {
+	tx := DB().WithContext(ctx).
+		Table(model.TableName{{.ModelStructName}}).
+		Save(records)
+	affect = tx.RowsAffected
+	err = tx.Error
+	return
+}
+
 func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) UpdateByCondition(ctx context.Context, condition *model.Condition, updateField *model.UpdateField) (affect int64, err error) {
 	tx := DB().WithContext(ctx).
 		Table(model.TableName{{.ModelStructName}})
-	if condition != nil && len(condition.MapCondition) > 0 {
-		tx = tx.Where(condition.MapCondition)
-	}
-	if condition != nil && len(condition.StringCondition) > 0 {
+		if condition != nil {
 		for _, strCondition := range condition.StringCondition {
 			tx = tx.Where(strCondition)
 		}
+		if len(condition.MapCondition) > 0 {
+			tx = tx.Where(condition.MapCondition)
+		}
 	}
-	tx = tx.Updates({{.ModelShortName}}pdateField)
+	tx = tx.Updates(updateField)
 	affect = tx.RowsAffected
 	err = tx.Error
 	return
@@ -455,7 +352,7 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) BatchInsert(ctx context.C
 	return
 }
 
-func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) InsertOrUpdateOnDuplicateKey(ctx context.Context, record *model.{{.ModelStructName}}, updateFields ...model.{{.ModelStructName}}Field) (affect int64, err error) {
+func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) InsertOrUpdateOnDuplicateKey(ctx context.Context, record *model.{{.ModelStructName}}) (affect int64, err error) {
 	tx := DB().WithContext(ctx).
 		Table(model.TableName{{.ModelStructName}}).
 		Clauses(clause.OnConflict{
@@ -466,7 +363,7 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) InsertOrUpdateOnDuplicate
 	return
 }
 
-func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) BatchInsertOrUpdateOnDuplicateKey(ctx context.Context, records []*model.{{.ModelStructName}}, updateFields ...model.{{.ModelStructName}}Field) (affect int64, err error) {
+func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) BatchInsertOrUpdateOnDuplicateKey(ctx context.Context, records []*model.{{.ModelStructName}}) (affect int64, err error) {
 	tx := DB().WithContext(ctx).
 		Table(model.TableName{{.ModelStructName}}).
 		Clauses(clause.OnConflict{

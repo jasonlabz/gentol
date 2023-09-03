@@ -180,10 +180,11 @@ func WriteDao(dbInfo *configx.DBTableInfo, schemaName, tableName string, columnT
 		panic("undefined template" + "dao")
 	}
 	daoInterfacePath := filepath.Join(daoData.DaoPath, "interfaces")
-	exist := IsExist(daoInterfacePath)
-	if !exist {
-		_ = os.MkdirAll(daoInterfacePath, 0666)
+	interfaceExist := IsExist(daoInterfacePath)
+	if !interfaceExist {
+		_ = os.MkdirAll(daoInterfacePath, 0777)
 	}
+
 	ff, _ := filepath.Abs(filepath.Join(daoInterfacePath, metadata.CamelCaseToUnderscore(daoData.TableName)+"_dao.go"))
 	err := RenderingTemplate(daoTpl, daoData, ff, true)
 	if err != nil {
@@ -201,7 +202,7 @@ func WriteDao(dbInfo *configx.DBTableInfo, schemaName, tableName string, columnT
 		panic(err)
 	}
 	baseFile := filepath.Join(daoData.DaoPath, "db.go")
-	exist = IsExist(baseFile)
+	//baseFileExist := IsExist(baseFile)
 	ff, _ = filepath.Abs(baseFile)
 	daoBaseTpl, ok := metadata.LoadTpl("database")
 	if !ok {
@@ -210,6 +211,11 @@ func WriteDao(dbInfo *configx.DBTableInfo, schemaName, tableName string, columnT
 	err = RenderingTemplate(daoBaseTpl, daoData, ff, true)
 	if err != nil {
 		panic(err)
+	}
+	daoCustomInterfacePath := filepath.Join(daoData.DaoPath, "custom")
+	customExist := IsExist(daoCustomInterfacePath)
+	if !customExist {
+		_ = os.MkdirAll(daoCustomInterfacePath, 0777)
 	}
 	return
 }

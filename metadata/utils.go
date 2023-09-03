@@ -35,54 +35,66 @@ func PostgresTrans(columnType string) (metaType MetaType) {
 		metaType.GoType = "bool"
 		metaType.SQLNullableType = "sql.NullBool"
 		metaType.GureguNullableType = "null.Int"
+		metaType.ValueFormat = "%v"
 	case "smallint", "int2":
 		metaType.GoType = "int16"
 		metaType.SQLNullableType = "sql.NullInt32"
 		metaType.GureguNullableType = "null.Int"
+		metaType.ValueFormat = "%v"
 	case "integer", "int", "int4", "serial":
 		metaType.GoType = "int32"
 		metaType.SQLNullableType = "sql.NullInt32"
 		metaType.GureguNullableType = "null.Int"
+		metaType.ValueFormat = "%v"
 	case "int8", "bigint", "bigserial":
 		metaType.GoType = "int64"
 		metaType.SQLNullableType = "sql.NullInt64"
 		metaType.GureguNullableType = "null.Int"
+		metaType.ValueFormat = "%v"
 	case "real", "float4":
 		metaType.GoType = "float32"
 		metaType.SQLNullableType = "sql.NullFloat32"
 		metaType.GureguNullableType = "null.Float"
+		metaType.ValueFormat = "%v"
 	case "double precision", "float8", "numeric", "money", "decimal":
 		metaType.GoType = "float64"
 		metaType.SQLNullableType = "sql.NullFloat64"
 		metaType.GureguNullableType = "null.Float"
+		metaType.ValueFormat = "%v"
 	case "bytea", "char", "varchar", "character", "text", "json", "xml", "jsonb":
 		metaType.GoType = "string"
 		metaType.SQLNullableType = "sql.NullString"
 		metaType.GureguNullableType = "null.String"
+		metaType.ValueFormat = "'%v'"
 	case "date", "time", "timetz", "timestamp", "timestamptz":
 		metaType.GoType = "time.Time"
 		metaType.GureguNullableType = "null.Time"
 		metaType.SQLNullableType = "sql.NullTime"
+		metaType.ValueFormat = "'%v'"
 	default:
 		if strings.Contains(columnType, "numeric") ||
 			strings.Contains(columnType, "decimal") {
 			metaType.GoType = "float64"
 			metaType.SQLNullableType = "sql.NullFloat64"
 			metaType.GureguNullableType = "null.Float"
+			metaType.ValueFormat = "%v"
 		} else if strings.Contains(columnType, "character") {
 			metaType.GoType = "string"
 			metaType.SQLNullableType = "sql.NullString"
 			metaType.GureguNullableType = "null.String"
+			metaType.ValueFormat = "'%v'"
 		} else if strings.Contains(columnType, "timestamp") ||
 			strings.Contains(columnType, "time") {
 			metaType.GoType = "time.Time"
 			metaType.GureguNullableType = "null.Time"
 			metaType.SQLNullableType = "sql.NullTime"
+			metaType.ValueFormat = "'%v'"
 		} else {
 			fmt.Printf("unknow column type : %s, replace it with \"string\"", columnType)
 			metaType.GoType = "string"
 			metaType.SQLNullableType = "sql.NullString"
 			metaType.GureguNullableType = "null.String"
+			metaType.ValueFormat = "'%v'"
 		}
 	}
 	return
@@ -95,59 +107,72 @@ func MySQLTrans(columnType string) (metaType MetaType) {
 		metaType.GoType = "bool"
 		metaType.SQLNullableType = "sql.NullBool"
 		metaType.GureguNullableType = "null.Int"
+		metaType.ValueFormat = "%v"
 	case "int1":
 		metaType.GoType = "int8"
 		metaType.SQLNullableType = "sql.NullInt32"
 		metaType.GureguNullableType = "null.Int"
+		metaType.ValueFormat = "%v"
 	case "smallint", "int2", "tinyint":
 		metaType.GoType = "int16"
 		metaType.SQLNullableType = "sql.NullInt32"
 		metaType.GureguNullableType = "null.Int"
+		metaType.ValueFormat = "%v"
 	case "mediumint", "middleint", "serial", "integer", "int", "int3", "int4":
 		metaType.GoType = "int32"
 		metaType.SQLNullableType = "sql.NullInt32"
 		metaType.GureguNullableType = "null.Int"
+		metaType.ValueFormat = "%v"
 	case "int8", "bigint":
 		metaType.GoType = "int64"
 		metaType.SQLNullableType = "sql.NullInt64"
 		metaType.GureguNullableType = "null.Int"
+		metaType.ValueFormat = "%v"
 	case "float", "float4":
 		metaType.GoType = "float32"
 		metaType.SQLNullableType = "sql.NullFloat32"
 		metaType.GureguNullableType = "null.Float"
+		metaType.ValueFormat = "%v"
 	case "float8", "numeric", "double", "decimal":
 		metaType.GoType = "float64"
 		metaType.SQLNullableType = "sql.NullFloat64"
 		metaType.GureguNullableType = "null.Float"
+		metaType.ValueFormat = "%v"
 	case "set", "enum", "json", "binary", "varbinary", "tinytext", "mediumtext", "longtext",
 		"char", "nchar", "varchar", "character", "text", "blob":
 		metaType.GoType = "string"
 		metaType.SQLNullableType = "sql.NullString"
 		metaType.GureguNullableType = "null.String"
+		metaType.ValueFormat = "'%v'"
 	case "year", "date", "time", "timestamp", "datetime":
 		metaType.GoType = "time.Time"
 		metaType.GureguNullableType = "null.Time"
 		metaType.SQLNullableType = "sql.NullTime"
+		metaType.ValueFormat = "'%v'"
 	default:
 		if strings.Contains(columnType, "numeric") ||
 			strings.Contains(columnType, "decimal") {
 			metaType.GoType = "float64"
 			metaType.SQLNullableType = "sql.NullFloat64"
 			metaType.GureguNullableType = "null.Float"
+			metaType.ValueFormat = "%v"
 		} else if strings.Contains(columnType, "char") {
 			metaType.GoType = "string"
 			metaType.SQLNullableType = "sql.NullString"
 			metaType.GureguNullableType = "null.String"
+			metaType.ValueFormat = "'%v'"
 		} else if strings.Contains(columnType, "timestamp") ||
 			strings.Contains(columnType, "time") {
 			metaType.GoType = "time.Time"
 			metaType.GureguNullableType = "null.Time"
 			metaType.SQLNullableType = "sql.NullTime"
+			metaType.ValueFormat = "'%v'"
 		} else {
 			fmt.Printf("unknow column type : %s, replace it with \"string\"", columnType)
 			metaType.GoType = "string"
 			metaType.SQLNullableType = "sql.NullString"
 			metaType.GureguNullableType = "null.String"
+			metaType.ValueFormat = "'%v'"
 		}
 	}
 	return
@@ -160,34 +185,42 @@ func SQLServerTrans(columnType string) (metaType MetaType) {
 		metaType.GoType = "bool"
 		metaType.SQLNullableType = "sql.NullBool"
 		metaType.GureguNullableType = "null.Int"
+		metaType.ValueFormat = "%v"
 	case "tinyint", "smallint":
 		metaType.GoType = "int16"
 		metaType.SQLNullableType = "sql.NullInt32"
 		metaType.GureguNullableType = "null.Int"
+		metaType.ValueFormat = "%v"
 	case "int":
 		metaType.GoType = "int32"
 		metaType.SQLNullableType = "sql.NullInt32"
 		metaType.GureguNullableType = "null.Int"
+		metaType.ValueFormat = "%v"
 	case "bigint":
 		metaType.GoType = "int64"
 		metaType.SQLNullableType = "sql.NullInt64"
 		metaType.GureguNullableType = "null.Int"
+		metaType.ValueFormat = "%v"
 	case "smallmoney":
 		metaType.GoType = "float32"
 		metaType.SQLNullableType = "sql.NullFloat32"
 		metaType.GureguNullableType = "null.Float"
+		metaType.ValueFormat = "%v"
 	case "money", "real", "float", "numeric", "decimal":
 		metaType.GoType = "float64"
 		metaType.SQLNullableType = "sql.NullFloat64"
 		metaType.GureguNullableType = "null.Float"
+		metaType.ValueFormat = "%v"
 	case "ntext", "text", "xml", "table", "char", "varchar", "nchar", "nvarchar", "varbinary", "binary", "image":
 		metaType.GoType = "string"
 		metaType.SQLNullableType = "sql.NullString"
 		metaType.GureguNullableType = "null.String"
+		metaType.ValueFormat = "'%v'"
 	case "datetime", "datetime2", "smalldatetime", "date", "time", "datetimeoffset", "timestamp":
 		metaType.GoType = "time.Time"
 		metaType.GureguNullableType = "null.Time"
 		metaType.SQLNullableType = "sql.NullTime"
+		metaType.ValueFormat = "'%v'"
 	default:
 		if strings.Contains(columnType, "numeric") ||
 			strings.Contains(columnType, "decimal") ||
@@ -195,11 +228,13 @@ func SQLServerTrans(columnType string) (metaType MetaType) {
 			metaType.GoType = "float64"
 			metaType.SQLNullableType = "sql.NullFloat64"
 			metaType.GureguNullableType = "null.Float"
+			metaType.ValueFormat = "%v"
 		} else {
 			fmt.Printf("unknow column type : %s, replace it with \"string\"", columnType)
 			metaType.GoType = "string"
 			metaType.SQLNullableType = "sql.NullString"
 			metaType.GureguNullableType = "null.String"
+			metaType.ValueFormat = "'%v'"
 		}
 	}
 	return
@@ -212,52 +247,63 @@ func OracleTrans(columnType string) (metaType MetaType) {
 		metaType.GoType = "bool"
 		metaType.SQLNullableType = "sql.NullBool"
 		metaType.GureguNullableType = "null.Int"
+		metaType.ValueFormat = "%v"
 	case "smallint", "int2":
 		metaType.GoType = "int16"
 		metaType.SQLNullableType = "sql.NullInt32"
 		metaType.GureguNullableType = "null.Int"
+		metaType.ValueFormat = "%v"
 	case "integer":
 		metaType.GoType = "int32"
 		metaType.SQLNullableType = "sql.NullInt32"
 		metaType.GureguNullableType = "null.Int"
+		metaType.ValueFormat = "%v"
 	case "real", "binary float":
 		metaType.GoType = "float32"
 		metaType.SQLNullableType = "sql.NullFloat32"
 		metaType.GureguNullableType = "null.Float"
+		metaType.ValueFormat = "%v"
 	case "float", "binary double", "number", "decimal":
 		metaType.GoType = "float64"
 		metaType.SQLNullableType = "sql.NullFloat64"
 		metaType.GureguNullableType = "null.Float"
+		metaType.ValueFormat = "%v"
 	case "char", "long", "nchar", "varchar", "varchar2", "nvarchar2", "rowid", "nrowid",
 		"clob", "nclob", "blob", "raw", "long raw", "bfile":
 		metaType.GoType = "string"
 		metaType.SQLNullableType = "sql.NullString"
 		metaType.GureguNullableType = "null.String"
+		metaType.ValueFormat = "'%v'"
 	case "date", "timestamp":
 		metaType.GoType = "time.Time"
 		metaType.GureguNullableType = "null.Time"
 		metaType.SQLNullableType = "sql.NullTime"
+		metaType.ValueFormat = "'%v'"
 	default:
 		if strings.Contains(columnType, "number") ||
 			strings.Contains(columnType, "decimal") {
 			metaType.GoType = "float64"
 			metaType.SQLNullableType = "sql.NullFloat64"
 			metaType.GureguNullableType = "null.Float"
+			metaType.ValueFormat = "%v"
 		} else if strings.Contains(columnType, "character") {
 			metaType.GoType = "string"
 			metaType.SQLNullableType = "sql.NullString"
 			metaType.GureguNullableType = "null.String"
+			metaType.ValueFormat = "'%v'"
 		} else if strings.Contains(columnType, "timestamp") ||
 			strings.Contains(columnType, "time") ||
 			strings.Contains(columnType, "interval") {
 			metaType.GoType = "time.Time"
 			metaType.GureguNullableType = "null.Time"
 			metaType.SQLNullableType = "sql.NullTime"
+			metaType.ValueFormat = "'%v'"
 		} else {
 			fmt.Printf("unknow column type : %s, replace it with \"string\"", columnType)
 			metaType.GoType = "string"
 			metaType.SQLNullableType = "sql.NullString"
 			metaType.GureguNullableType = "null.String"
+			metaType.ValueFormat = "'%v'"
 		}
 	}
 	return
