@@ -118,7 +118,8 @@ func WriteModel(dbInfo *configx.DBTableInfo, schemaName, tableName string, colum
 	modelData.ModelPath = dbInfo.ModelPath
 	modelTpl, ok := metadata.LoadTpl("model")
 	if !ok {
-		panic("undefined template" + "model")
+		fmt.Println("undefined template" + "model")
+		return
 	}
 	exist := IsExist(modelData.ModelPath)
 	if !exist {
@@ -127,7 +128,8 @@ func WriteModel(dbInfo *configx.DBTableInfo, schemaName, tableName string, colum
 	ff, _ := filepath.Abs(filepath.Join(modelData.ModelPath, metadata.CamelCaseToUnderscore(modelData.TableName)+".go"))
 	err := RenderingTemplate(modelTpl, modelData, ff, true)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
 	}
 
 	hookFile := filepath.Join(modelData.ModelPath, metadata.CamelCaseToUnderscore(modelData.TableName)+"_hook.go")
@@ -136,11 +138,13 @@ func WriteModel(dbInfo *configx.DBTableInfo, schemaName, tableName string, colum
 		ff, _ = filepath.Abs(hookFile)
 		modelHookTpl, ok := metadata.LoadTpl("model_hook")
 		if !ok {
-			panic("undefined template" + "model_hook")
+			fmt.Println("undefined template" + "model_hook")
+			return
 		}
 		err = RenderingTemplate(modelHookTpl, modelData, ff, true)
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
+			return
 		}
 	}
 	baseFile := filepath.Join(modelData.ModelPath, "base.go")
@@ -149,7 +153,8 @@ func WriteModel(dbInfo *configx.DBTableInfo, schemaName, tableName string, colum
 		ff, _ = filepath.Abs(baseFile)
 		modelBaseTpl, ok := metadata.LoadTpl("model_base")
 		if !ok {
-			panic("undefined template" + "model_hook")
+			fmt.Println("undefined template" + "model_hook")
+			return
 		}
 		err = RenderingTemplate(modelBaseTpl, modelData, ff, true)
 		if err != nil {
@@ -177,7 +182,8 @@ func WriteDao(dbInfo *configx.DBTableInfo, schemaName, tableName string, columnT
 	daoData.DaoPath = dbInfo.DaoPath
 	daoTpl, ok := metadata.LoadTpl("dao")
 	if !ok {
-		panic("undefined template" + "dao")
+		fmt.Println("undefined template" + "dao")
+		return
 	}
 	daoInterfacePath := filepath.Join(daoData.DaoPath, "interfaces")
 	interfaceExist := IsExist(daoInterfacePath)
@@ -188,29 +194,34 @@ func WriteDao(dbInfo *configx.DBTableInfo, schemaName, tableName string, columnT
 	ff, _ := filepath.Abs(filepath.Join(daoInterfacePath, metadata.CamelCaseToUnderscore(daoData.TableName)+"_dao.go"))
 	err := RenderingTemplate(daoTpl, daoData, ff, true)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
 	}
 
 	daoImplFile := filepath.Join(daoData.DaoPath, metadata.CamelCaseToUnderscore(daoData.TableName)+"_dao_impl.go")
 	ff, _ = filepath.Abs(daoImplFile)
 	daoImplTpl, ok := metadata.LoadTpl("dao_impl")
 	if !ok {
-		panic("undefined template" + "dao_impl")
+		fmt.Println("undefined template" + "dao_impl")
+		return
 	}
 	err = RenderingTemplate(daoImplTpl, daoData, ff, true)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
 	}
 	baseFile := filepath.Join(daoData.DaoPath, "db.go")
 	//baseFileExist := IsExist(baseFile)
 	ff, _ = filepath.Abs(baseFile)
 	daoBaseTpl, ok := metadata.LoadTpl("database")
 	if !ok {
-		panic("undefined template" + "database")
+		fmt.Println("undefined template" + "database")
+		return
 	}
 	err = RenderingTemplate(daoBaseTpl, daoData, ff, true)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
 	}
 	daoCustomInterfacePath := filepath.Join(daoData.DaoPath, "custom")
 	customExist := IsExist(daoCustomInterfacePath)

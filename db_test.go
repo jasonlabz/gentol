@@ -68,8 +68,6 @@ func TestDemo(t *testing.T) {
 	//fmt.Print(ok)
 	fmt.Print(baseName)
 	fmt.Print(filename)
-	s := test()
-	fmt.Print(s)
 }
 func TestStruct(t *testing.T) {
 	user := struct{}{}
@@ -90,8 +88,10 @@ func TestStruct(t *testing.T) {
 	}
 }
 
-func test() string {
-	_, filename, _, _ := runtime.Caller(2)
-	fmt.Print(filename)
-	return filename
+func TestListDir(t *testing.T) {
+	files, err := metadata.ListDir("C:\\", ".mod")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Print(files)
 }

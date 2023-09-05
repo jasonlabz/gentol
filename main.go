@@ -26,9 +26,9 @@ func main() {
 	for _, dbInfo := range tableConfigs.Configs {
 		dbInfo.ModelModule = "//TODO: fix path/"
 		dbInfo.DaoModule = "//TODO: fix path/"
-		modPath := fmt.Sprintf(".%sgo.mod", string(os.PathSeparator))
-		relationModelPath := dbInfo.ModelPath
-		relationDaoPath := dbInfo.DaoPath
+		modPath, _ := filepath.Abs(fmt.Sprintf(".%sgo1.mod", string(os.PathSeparator)))
+		var relationModelPath = dbInfo.ModelPath
+		var relationDaoPath = dbInfo.DaoPath
 		if filepath.IsAbs(dbInfo.ModelPath) && tableConfigs.GoModule != "" {
 			lastIndex := strings.LastIndex(dbInfo.ModelPath, tableConfigs.GoModule)
 			if lastIndex != -1 {
@@ -36,9 +36,10 @@ func main() {
 				relationModelPath = strings.ReplaceAll(dbInfo.ModelPath[lastIndex+len(tableConfigs.GoModule)+1:], string(os.PathSeparator), "/")
 			}
 		}
-		if filepath.IsAbs(dbInfo.ModelPath) && tableConfigs.GoModule != "" {
+		if filepath.IsAbs(dbInfo.DaoPath) && tableConfigs.GoModule != "" {
 			lastIndex := strings.LastIndex(dbInfo.DaoPath, tableConfigs.GoModule)
 			if lastIndex != -1 {
+				modPath = dbInfo.DaoPath[:lastIndex+len(tableConfigs.GoModule)] + fmt.Sprintf("%sgo.mod", string(os.PathSeparator))
 				relationDaoPath = strings.ReplaceAll(dbInfo.DaoPath[lastIndex+len(tableConfigs.GoModule)+1:], string(os.PathSeparator), "/")
 			}
 		}
@@ -52,10 +53,46 @@ func main() {
 			for scanner.Scan() {
 				lineText := scanner.Text()
 				if strings.Contains(lineText, "module ") {
-					dbInfo.ModelModule = strings.TrimSpace(strings.ReplaceAll(lineText, "module ", "")) + "/" + relationModelPath
-					dbInfo.DaoModule = strings.TrimSpace(strings.ReplaceAll(lineText, "module ", "")) + "/" + relationDaoPath
+					relationModelPath = strings.ReplaceAll(relationModelPath, modPath[:strings.LastIndex(modPath, string(os.PathSeparator))], "")
+					relationDaoPath = strings.ReplaceAll(relationDaoPath, modPath[:strings.LastIndex(modPath, string(os.PathSeparator))], "")
+					dbInfo.ModelModule = strings.TrimSpace(strings.ReplaceAll(lineText, "module ", "")) +
+						"/" + strings.TrimLeft(strings.ReplaceAll(relationModelPath, string(os.PathSeparator), "/"), "/")
+					dbInfo.DaoModule = strings.TrimSpace(strings.ReplaceAll(lineText, "module ", "")) +
+						"/" + strings.TrimLeft(strings.ReplaceAll(relationDaoPath, string(os.PathSeparator), "/"), "/")
 					break
 				}
+			}
+		} else {
+			modelAbsPath, err := filepath.Abs(dbInfo.ModelPath)
+			daoAbsPath, err := filepath.Abs(dbInfo.DaoPath)
+			if err != nil {
+				goto process
+			}
+			var rangePath = modelAbsPath
+			for len(rangePath) > 0 {
+				modPath = filepath.Join(rangePath, "go.mod")
+				if IsExist(modPath) {
+					relationModelPath = strings.ReplaceAll(strings.ReplaceAll(modelAbsPath, rangePath, ""), string(os.PathSeparator), "/")
+					relationDaoPath = strings.ReplaceAll(strings.ReplaceAll(daoAbsPath, rangePath, ""), string(os.PathSeparator), "/")
+					modFile, err := os.Open(modPath)
+					if err != nil {
+						goto process
+					}
+					defer modFile.Close()
+					scanner := bufio.NewScanner(modFile)
+					for scanner.Scan() {
+						lineText := scanner.Text()
+						if strings.Contains(lineText, "module ") {
+							dbInfo.ModelModule = strings.TrimSpace(strings.ReplaceAll(lineText, "module ", "")) +
+								"/" + strings.TrimLeft(strings.ReplaceAll(relationModelPath, string(os.PathSeparator), "/"), "/")
+							dbInfo.DaoModule = strings.TrimSpace(strings.ReplaceAll(lineText, "module ", "")) +
+								"/" + strings.TrimLeft(strings.ReplaceAll(relationDaoPath, string(os.PathSeparator), "/"), "/")
+							break
+						}
+					}
+					goto process
+				}
+				rangePath = rangePath[:strings.LastIndex(rangePath, string(os.PathSeparator))]
 			}
 		}
 	process:
