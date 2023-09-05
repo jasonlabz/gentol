@@ -125,6 +125,7 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 		columnInfo.Tags = fmt.Sprintf("%s %s", gormTag, jsonTag)
 	}
 	result := map[string]any{
+		"DBType":           m.DBType,
 		"ModelPackageName": m.ModelPackageName,
 		"ModelStructName":  m.ModelStructName,
 		"ModelShortName":   ToLower(strings.Split(m.ModelStructName, "")[0]),
@@ -161,10 +162,10 @@ var (
 )
 
 {{if .TableName -}}
-	{{if .SchemaName -}}
-const TableName{{.ModelStructName}} = "{{.SchemaName}}.{{.TableName}}"
+	{{if and  .SchemaName (eq .DBType "postgres") -}}
+const TableName{{.ModelStructName}} = "\"{{.SchemaName}}\".\"{{.TableName}}\""
 	{{- else}}
-const TableName{{.ModelStructName}} = "{{.TableName}}"	
+const TableName{{.ModelStructName}} = "\"{{.TableName}}\""	
 	{{- end}}
 {{- end}}
 
@@ -185,7 +186,7 @@ type {{.ModelStructName}}TableColumn struct {
 	{{end}}
 }
 
-func ({{.ModelShortName}} *{{.ModelStructName}}) GetTableName() string {
+func ({{.ModelShortName}} *{{.ModelStructName}}) TableName() string {
 	return "{{.TableName}}"
 }
 
@@ -201,7 +202,7 @@ type {{.ModelStructName}}Condition struct {
 	Condition
 }
 
-func ({{.ModelShortName}} *{{.ModelStructName}}Condition) addCondition(condition string, args ...any) *{{.ModelStructName}}Condition {
+func ({{.ModelShortName}} *{{.ModelStructName}}Condition) AddStrCondition(condition string, args ...any) *{{.ModelStructName}}Condition {
 	if len(args)> 0 {
 		{{.ModelShortName}}.StringCondition = append({{.ModelShortName}}.StringCondition, fmt.Sprintf(condition, args))
 		return {{.ModelShortName}}
@@ -213,63 +214,63 @@ func ({{.ModelShortName}} *{{.ModelStructName}}Condition) addCondition(condition
 {{range .ColumnList}}
 {{if eq .GoColumnType "string"}}
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}IsLike(value string) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" like %q", value)
+	return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" like %q", value)
 }
 {{end}}
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}IsNull() *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" is null")
+	return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" is null")
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}IsNotNull() *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" is not null")
+	return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" is not null")
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}EqualTo(value {{.GoColumnType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" = {{.ValueFormat}}", value)
+	return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" = {{.ValueFormat}}", value)
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}NotEqualTo(value {{.GoColumnType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" <> {{.ValueFormat}}", value)
+	return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" <> {{.ValueFormat}}", value)
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}GreaterThan(value {{.GoColumnType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" > {{.ValueFormat}}", value)
+	return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" > {{.ValueFormat}}", value)
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}GreaterThanOrEqualTo(value {{.GoColumnType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" >= {{.ValueFormat}}", value)
+	return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" >= {{.ValueFormat}}", value)
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}LessThan(value {{.GoColumnType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" < {{.ValueFormat}}", value)
+	return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" < {{.ValueFormat}}", value)
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}LessThanOrEqualTo(value {{.GoColumnType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" <= {{.ValueFormat}}", value)
+	return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" <= {{.ValueFormat}}", value)
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}Between(startValue, endValue  {{.GoColumnType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" between {{.ValueFormat}} and {{.ValueFormat}}", startValue, endValue)
+	return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" between {{.ValueFormat}} and {{.ValueFormat}}", startValue, endValue)
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}NotBetween(startValue, endValue  {{.GoColumnType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" not between {{.ValueFormat}} and {{.ValueFormat}}", startValue, endValue)
+	return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" not between {{.ValueFormat}} and {{.ValueFormat}}", startValue, endValue)
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}In(inValues []{{.GoColumnType}}) *{{.ModelStructName}}Condition {
 	if len(inValues) == 0 {
-		return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" in ()")
+		return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" in ()")
 	}
 	bytes, _ := json.Marshal(inValues)
-	return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" in %s", "(" + strings.TrimRight(strings.TrimLeft(string(bytes), "["), "]") + ")")
+	return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" in %s", "(" + strings.TrimRight(strings.TrimLeft(string(bytes), "["), "]") + ")")
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}NotIn(inValues []{{.GoColumnType}}) *{{.ModelStructName}}Condition {
 	if len(inValues) == 0 {
-		return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" not in ()")
+		return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" not in ()")
 	}
 	bytes, _ := json.Marshal(inValues)
-	return {{.ModelShortName}}.addCondition("\"{{.ColumnName}}\" not in %s", "(" + strings.TrimRight(strings.TrimLeft(string(bytes), "["), "]") + ")")
+	return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" not in %s", "(" + strings.TrimRight(strings.TrimLeft(string(bytes), "["), "]") + ")")
 }
 {{end}}	
 
@@ -286,7 +287,7 @@ func ({{.ModelShortName}} *{{.ModelStructName}}Condition) AddMapCondition(mapCon
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) AddOrderByClause(orderByClause ...string) *{{.ModelStructName}}Condition {
 	{{.ModelShortName}}.OrderByClause = append({{.ModelShortName}}.OrderByClause, orderByClause...)
-	return u
+	return {{.ModelShortName}}
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) Build() *Condition {
