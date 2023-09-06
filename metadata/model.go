@@ -37,6 +37,7 @@ type ColumnInfo struct {
 	DataBaseType       string // varchar
 	Length             int64  // 64
 	IsPrimaryKey       bool
+	Unique             bool
 	AutoIncrement      bool
 	Nullable           bool
 	Comment            string
@@ -76,19 +77,27 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 		columnInfo.ValueFormat = metaType.ValueFormat
 		gormTag := fmt.Sprintf("gorm:\"%s%s%s%s%s%s\"",
 			func() string {
+				var tag string
 				if columnInfo.IsPrimaryKey {
-					return "primary_key;"
+					tag = tag + "primaryKey;"
 				}
-				return ""
+				if columnInfo.Unique {
+					tag = tag + "unique;"
+				}
+				return tag
 			}(),
 			func() string {
 				if columnInfo.AutoIncrement {
-					return "auto_increment;"
+					return "autoIncrement;"
 				}
 				return ""
 			}(),
 			func() string {
-				return fmt.Sprintf("column:%s;", columnInfo.ColumnName)
+				var tag = fmt.Sprintf("column:%s;", columnInfo.ColumnName)
+				if !columnInfo.Nullable {
+					tag = tag + "not null;"
+				}
+				return tag
 			}(),
 			func() string {
 				return fmt.Sprintf("type:%s;", columnInfo.DataBaseType)

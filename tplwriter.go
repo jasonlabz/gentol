@@ -123,7 +123,7 @@ func WriteModel(dbInfo *configx.DBTableInfo, schemaName, tableName string, colum
 	}
 	exist := IsExist(modelData.ModelPath)
 	if !exist {
-		_ = os.MkdirAll(modelData.ModelPath, 0666)
+		_ = os.MkdirAll(modelData.ModelPath, 0777)
 	}
 	ff, _ := filepath.Abs(filepath.Join(modelData.ModelPath, metadata.CamelCaseToUnderscore(modelData.TableName)+".go"))
 	err := RenderingTemplate(modelTpl, modelData, ff, true)
@@ -134,7 +134,7 @@ func WriteModel(dbInfo *configx.DBTableInfo, schemaName, tableName string, colum
 
 	hookFile := filepath.Join(modelData.ModelPath, metadata.CamelCaseToUnderscore(modelData.TableName)+"_hook.go")
 	exist = IsExist(hookFile)
-	if !exist {
+	if !exist && false {
 		ff, _ = filepath.Abs(hookFile)
 		modelHookTpl, ok := metadata.LoadTpl("model_hook")
 		if !ok {
@@ -153,7 +153,7 @@ func WriteModel(dbInfo *configx.DBTableInfo, schemaName, tableName string, colum
 		ff, _ = filepath.Abs(baseFile)
 		modelBaseTpl, ok := metadata.LoadTpl("model_base")
 		if !ok {
-			fmt.Println("undefined template" + "model_hook")
+			fmt.Println("undefined template" + "model_base")
 			return
 		}
 		err = RenderingTemplate(modelBaseTpl, modelData, ff, true)
@@ -246,6 +246,12 @@ func getColumnInfo(columnTypes []gorm.ColumnType, columnInfoList *[]*metadata.Co
 			IsPrimaryKey: func() bool {
 				if prime, ok := columnType.PrimaryKey(); ok {
 					return prime
+				}
+				return false
+			}(),
+			Unique: func() bool {
+				if unique, ok := columnType.Unique(); ok {
+					return unique
 				}
 				return false
 			}(),

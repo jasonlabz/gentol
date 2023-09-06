@@ -52,10 +52,12 @@ func TestPostgresOperator(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	columnTypes, err := db.Migrator().ColumnTypes("public.user")
+	columnTypes, err := db.Migrator().ColumnTypes("test.user1")
+	indexes, err := db.Migrator().GetIndexes("user1")
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println(indexes)
 	fmt.Println(columnTypes)
 }
 
