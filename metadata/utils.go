@@ -6,7 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"unicode"
 )
@@ -418,4 +420,19 @@ func GetFuncNamePath(fn interface{}) string {
 	ptr := value.Pointer()
 	ffp := runtime.FuncForPC(ptr)
 	return ffp.Name()
+}
+
+func SupportGenericType() bool {
+	versionInfo := runtime.Version()
+	reg := regexp.MustCompile(`(\d+\.\d+\.*\d*)`)
+	if reg == nil {
+		return false
+	}
+	versionStr := reg.FindString(versionInfo)
+	versionSlice := strings.Split(versionStr, ".")
+	if len(versionSlice) >= 2 {
+		version, _ := strconv.Atoi(versionSlice[1])
+		return version >= 18
+	}
+	return false
 }

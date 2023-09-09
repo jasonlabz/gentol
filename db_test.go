@@ -2,14 +2,18 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/jasonlabz/gentol/datasource"
 	"github.com/jasonlabz/gentol/gormx"
 	"github.com/jasonlabz/gentol/metadata"
+	"log"
 	"reflect"
+	"regexp"
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestNewOperator(t *testing.T) {
@@ -70,6 +74,14 @@ func TestDemo(t *testing.T) {
 	//fmt.Print(ok)
 	fmt.Print(baseName)
 	fmt.Print(filename)
+	inValues := []bool{true, true, false}
+	bytes, _ := json.Marshal(inValues)
+	inValues1 := []int32{1, 3, 5}
+	bytes1, _ := json.Marshal(inValues1)
+	res := string(bytes)
+	res1 := string(bytes1)
+	fmt.Print(res)
+	fmt.Print(res1)
 }
 func TestStruct(t *testing.T) {
 	user := struct{}{}
@@ -89,11 +101,59 @@ func TestStruct(t *testing.T) {
 		fmt.Println("json:" + val.Type().Field(i).Tag.Get("json"))
 	}
 }
+func Values(value any) string {
+	switch value.(type) {
+	case int, int8, int16, int32, int64, bool, float32, float64:
+		return fmt.Sprintf("%v", value)
+	default:
+		return fmt.Sprintf("'%v'", value)
+	}
+}
+
+func TransInCondition[T any](prefix string, values []T) string {
+	res := make([]string, 0)
+	numbers := len(values) / 1000
+	for i := 0; i < numbers; i++ {
+		items := make([]string, 0)
+		for j := i * 1000; j < (i+1)*1000; j++ {
+			items = append(items, Values(values[j]))
+		}
+		res = append(res, fmt.Sprintf("%s (%s)", prefix, strings.Join(items, ",")))
+	}
+	items := make([]string, 0)
+	for i := numbers * 1000; i < numbers*1000+len(values)%1000; i++ {
+		items = append(items, Values(values[i]))
+	}
+	res = append(res, fmt.Sprintf("%s (%s)", prefix, strings.Join(items, ",")))
+	return strings.Join(res, " or ")
+}
+
+func TestTransInCondition(t *testing.T) {
+	inValues := []bool{true, true, false}
+	inValues0 := []int32{}
+	inValues1 := []float64{1.0, 3.0, 5.0}
+	inValues2 := []string{"这种短手", "sdasdsd", "sdasdsd", "sdasdsd", "sad"}
+	inValues3 := []time.Time{time.Now(), time.Now(), time.Now(), time.Now(), time.Now()}
+	condition := TransInCondition("name in", inValues)
+	condition1 := TransInCondition("name in", inValues0)
+	condition2 := TransInCondition("name in", inValues1)
+	condition3 := TransInCondition("name in", inValues2)
+	condition4 := TransInCondition("name in", inValues3)
+	fmt.Print(condition)
+	fmt.Print(condition1)
+	fmt.Print(condition2)
+	fmt.Print(condition3)
+	fmt.Print(condition4)
+}
 
 func TestListDir(t *testing.T) {
-	files, err := metadata.ListDir("C:\\", ".mod")
-	if err != nil {
-		panic(err)
+	version := runtime.Version()
+	reg := regexp.MustCompile(`(\d+\.\d+\.*\d*)`)
+	if reg == nil {
+		log.Panicln("正则表达式解析失败")
 	}
-	fmt.Print(files)
+	versionStr := reg.FindString(version)
+	versionSlice := strings.Split(versionStr, ".")
+	fmt.Print(versionStr)
+	fmt.Print(versionSlice)
 }

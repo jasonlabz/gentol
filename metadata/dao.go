@@ -182,7 +182,7 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) SelectOneByPrimaryKey(ctx
 
 func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) SelectRecordByCondition(ctx context.Context, condition *model.Condition, selectFields ...model.{{.ModelStructName}}Field) (records []*model.{{.ModelStructName}}, err error) {
 	if condition == nil {
-		return u.SelectAll(ctx, selectFields...)
+		return {{.ModelShortName}}.SelectAll(ctx, selectFields...)
 	}
 	tx := DB().WithContext(ctx).
 		Table(model.TableName{{.ModelStructName}})

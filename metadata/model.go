@@ -28,8 +28,10 @@ type ColumnInfo struct {
 	ModelStructName   string
 	ModelShortName    string
 	SchemaName        string
+	TableQuota        bool
 	TableName         string
 
+	ColumnQuota        bool
 	ColumnName         string
 	SQLNullableType    string
 	GureguNullableType string
@@ -66,6 +68,16 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 		columnInfo.TableName = m.TableName
 		columnInfo.SchemaName = m.SchemaName
 
+		columnInfo.ColumnQuota = func() bool {
+			if m.DBType == string(gormx.DBTypePostgres) ||
+				m.DBType == string(gormx.DBTypeGreenplum) {
+				if ToLower(columnInfo.ColumnName) == columnInfo.ColumnName {
+					return false
+				}
+				return true
+			}
+			return false
+		}()
 		if columnInfo.Nullable {
 			columnInfo.GoColumnType = func() string {
 				if useSQLNullable {
@@ -109,6 +121,9 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 				return ""
 			}(),
 			func() string {
+				if strings.Contains(columnInfo.DefaultValue, "\"") {
+					return ""
+				}
 				if strings.Contains(columnInfo.DefaultValue, "::") {
 					return fmt.Sprintf("default:%s;", columnInfo.DefaultValue[:strings.Index(columnInfo.DefaultValue, "::")])
 				}
@@ -143,6 +158,26 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 		"TableName":        m.TableName,
 		"TitleTableName":   m.ModelStructName,
 		"ImportPkgList":    []string{},
+		"SchemaQuota": func() bool {
+			if m.DBType == string(gormx.DBTypePostgres) ||
+				m.DBType == string(gormx.DBTypeGreenplum) {
+				if ToLower(m.SchemaName) == m.SchemaName {
+					return false
+				}
+				return true
+			}
+			return false
+		}(),
+		"TableQuota": func() bool {
+			if m.DBType == string(gormx.DBTypePostgres) ||
+				m.DBType == string(gormx.DBTypeGreenplum) {
+				if ToLower(m.TableName) == m.TableName {
+					return false
+				}
+				return true
+			}
+			return false
+		}(),
 	}
 	return result
 }
@@ -153,9 +188,7 @@ package {{.ModelPackageName}}
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/guregu/null"
@@ -171,10 +204,10 @@ var (
 )
 
 {{if .TableName -}}
-	{{if and  .SchemaName (eq .DBType "postgres") -}}
-const TableName{{.ModelStructName}} = "\"{{.SchemaName}}\".\"{{.TableName}}\""
+	{{if and  .SchemaName -}}
+const TableName{{.ModelStructName}} = "{{if .SchemaQuota -}}\"{{.SchemaName}}\"{{- else}}{{.SchemaName}}{{- end}}.{{if .TableQuota -}}\"{{.TableName}}\"{{- else}}{{.TableName}}{{- end}}"
 	{{- else}}
-const TableName{{.ModelStructName}} = "\"{{.TableName}}\""	
+const TableName{{.ModelStructName}} = "{{if .TableQuota -}}\"{{.TableName}}\"{{- else}}{{.TableName}}{{- end}}"	
 	{{- end}}
 {{- end}}
 
@@ -223,63 +256,61 @@ func ({{.ModelShortName}} *{{.ModelStructName}}Condition) AddStrCondition(condit
 {{range .ColumnList}}
 {{if eq .GoColumnType "string"}}
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}IsLike(value string) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" like %q", value)
+	return {{.ModelShortName}}.AddStrCondition("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} like '%v'", value)
 }
 {{end}}
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}IsNull() *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" is null")
+	return {{.ModelShortName}}.AddStrCondition("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} is null")
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}IsNotNull() *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" is not null")
+	return {{.ModelShortName}}.AddStrCondition("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} is not null")
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}EqualTo(value {{.GoColumnType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" = {{.ValueFormat}}", value)
+	return {{.ModelShortName}}.AddStrCondition("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} = {{.ValueFormat}}", value)
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}NotEqualTo(value {{.GoColumnType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" <> {{.ValueFormat}}", value)
+	return {{.ModelShortName}}.AddStrCondition("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} <> {{.ValueFormat}}", value)
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}GreaterThan(value {{.GoColumnType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" > {{.ValueFormat}}", value)
+	return {{.ModelShortName}}.AddStrCondition("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} > {{.ValueFormat}}", value)
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}GreaterThanOrEqualTo(value {{.GoColumnType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" >= {{.ValueFormat}}", value)
+	return {{.ModelShortName}}.AddStrCondition("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} >= {{.ValueFormat}}", value)
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}LessThan(value {{.GoColumnType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" < {{.ValueFormat}}", value)
+	return {{.ModelShortName}}.AddStrCondition("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} < {{.ValueFormat}}", value)
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}LessThanOrEqualTo(value {{.GoColumnType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" <= {{.ValueFormat}}", value)
+	return {{.ModelShortName}}.AddStrCondition("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} <= {{.ValueFormat}}", value)
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}Between(startValue, endValue  {{.GoColumnType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" between {{.ValueFormat}} and {{.ValueFormat}}", startValue, endValue)
+	return {{.ModelShortName}}.AddStrCondition("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} between {{.ValueFormat}} and {{.ValueFormat}}", startValue, endValue)
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}NotBetween(startValue, endValue  {{.GoColumnType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" not between {{.ValueFormat}} and {{.ValueFormat}}", startValue, endValue)
+	return {{.ModelShortName}}.AddStrCondition("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} not between {{.ValueFormat}} and {{.ValueFormat}}", startValue, endValue)
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}In(inValues []{{.GoColumnType}}) *{{.ModelStructName}}Condition {
 	if len(inValues) == 0 {
-		return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" in ()")
+		return {{.ModelShortName}}
 	}
-	bytes, _ := json.Marshal(inValues)
-	return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" in %s", "(" + strings.TrimRight(strings.TrimLeft(string(bytes), "["), "]") + ")")
+	return {{.ModelShortName}}.AddStrCondition(TransInCondition("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} in ",inValues))
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}NotIn(inValues []{{.GoColumnType}}) *{{.ModelStructName}}Condition {
 	if len(inValues) == 0 {
-		return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" not in ()")
+		return {{.ModelShortName}}
 	}
-	bytes, _ := json.Marshal(inValues)
-	return {{.ModelShortName}}.AddStrCondition("\"{{.ColumnName}}\" not in %s", "(" + strings.TrimRight(strings.TrimLeft(string(bytes), "["), "]") + ")")
+	return {{.ModelShortName}}.AddStrCondition(TransInCondition("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} not in ",inValues))
 }
 {{end}}	
 
@@ -373,7 +404,11 @@ func ({{.ModelShortName}} *{{.ModelStructName}}) AfterFind(tx *gorm.DB) (err err
 const ModelBase = NotEditMark + `
 package {{.ModelPackageName}}
 
-import "math"
+import (
+	"fmt"
+	"math"
+	"strings"
+)
 
 type ConditionBuilder interface {
 	Build() *Condition
@@ -409,6 +444,33 @@ func (p *Pagination) CalculateOffset() (offset int64) {
 	}
 	offset = (p.Page - 1) * p.PageSize
 	return
+}
+
+func Values(value any) string {
+	switch value.(type) {
+	case int, int8, int16, int32, int64, bool, float32, float64:
+		return fmt.Sprintf("%v", value)
+	default:
+		return fmt.Sprintf("'%v'", value)
+	}
+}
+
+func TransInCondition[T any](prefix string, values []T) string {
+	res := make([]string, 0)
+	numbers := len(values) / 1000
+	for i := 0; i < numbers; i++ {
+		items := make([]string, 0)
+		for j := i * 1000; j < (i+1)*1000; j++ {
+			items = append(items, Values(values[j]))
+		}
+		res = append(res, fmt.Sprintf("%s (%s)", prefix, strings.Join(items, ",")))
+	}
+	items := make([]string, 0)
+	for i := numbers * 1000; i < numbers*1000+len(values)%1000; i++ {
+		items = append(items, Values(values[i]))
+	}
+	res = append(res, fmt.Sprintf("%s (%s)", prefix, strings.Join(items, ",")))
+	return strings.Join(res, " or ")
 }
 
 `

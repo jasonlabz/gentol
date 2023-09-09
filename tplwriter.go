@@ -125,14 +125,14 @@ func WriteModel(dbInfo *configx.DBTableInfo, schemaName, tableName string, colum
 	if !exist {
 		_ = os.MkdirAll(modelData.ModelPath, 0777)
 	}
-	ff, _ := filepath.Abs(filepath.Join(modelData.ModelPath, metadata.CamelCaseToUnderscore(modelData.TableName)+".go"))
+	ff, _ := filepath.Abs(filepath.Join(modelData.ModelPath, modelData.TableName+".go"))
 	err := RenderingTemplate(modelTpl, modelData, ff, true)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	hookFile := filepath.Join(modelData.ModelPath, metadata.CamelCaseToUnderscore(modelData.TableName)+"_hook.go")
+	hookFile := filepath.Join(modelData.ModelPath, modelData.TableName+"_hook.go")
 	exist = IsExist(hookFile)
 	if !exist && false {
 		ff, _ = filepath.Abs(hookFile)
@@ -191,14 +191,14 @@ func WriteDao(dbInfo *configx.DBTableInfo, schemaName, tableName string, columnT
 		_ = os.MkdirAll(daoInterfacePath, 0777)
 	}
 
-	ff, _ := filepath.Abs(filepath.Join(daoInterfacePath, metadata.CamelCaseToUnderscore(daoData.TableName)+"_dao.go"))
+	ff, _ := filepath.Abs(filepath.Join(daoInterfacePath, daoData.TableName+"_dao.go"))
 	err := RenderingTemplate(daoTpl, daoData, ff, true)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	daoImplFile := filepath.Join(daoData.DaoPath, metadata.CamelCaseToUnderscore(daoData.TableName)+"_dao_impl.go")
+	daoImplFile := filepath.Join(daoData.DaoPath, daoData.TableName+"_dao_impl.go")
 	ff, _ = filepath.Abs(daoImplFile)
 	daoImplTpl, ok := metadata.LoadTpl("dao_impl")
 	if !ok {

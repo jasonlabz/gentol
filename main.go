@@ -24,9 +24,7 @@ func main() {
 	//protobufFormat := tableConfigs.ProtobufFormat
 
 	for _, dbInfo := range tableConfigs.Configs {
-		dbInfo.ModelModule = "//TODO: fix path/"
-		dbInfo.DaoModule = "//TODO: fix path/"
-		modPath, _ := filepath.Abs(fmt.Sprintf(".%sgo1.mod", string(os.PathSeparator)))
+		modPath, _ := filepath.Abs(fmt.Sprintf(".%sgo.mod", string(os.PathSeparator)))
 		var relationModelPath = dbInfo.ModelPath
 		var relationDaoPath = dbInfo.DaoPath
 		if filepath.IsAbs(dbInfo.ModelPath) && tableConfigs.GoModule != "" {
