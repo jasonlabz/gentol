@@ -16,7 +16,7 @@
 
 1. 下载并安装该工具。
 ```shell
-go install go install github.com/jasonlabz/gentol@v0.1.3
+go install github.com/jasonlabz/gentol@latest
 ```
 2. 使用工具。
 ```shell
@@ -51,6 +51,7 @@ gentol [--dao value] [-d value] [--db_type value] [--dsn value] [--gogoproto val
 ```
 tips: 当提供`--dsn`选项后，无需`--host --port --username --password`；`--model --dao`为model和dao层的生成路径，当给定绝对路径时需要给定`--module`,以便生成model的包路径。
 
+example: `gentol --db_type="postgres" --dsn="user=postgres password=password host=127.0.0.1 port=5432 dbname=lg_server sslmode=disable TimeZone=Asia/Shanghai" --schema="public"`
 ## 注意事项
 
 - 请确保您的开发环境已安装Golang开发环境，并已安装相应的数据库驱动程序。
