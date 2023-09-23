@@ -126,17 +126,13 @@ func main() {
 					panic(err)
 				}
 				for schemaItem, dbMeta := range dbTableMap {
-					if schemaName == "" {
-						continue
-					}
-
-					if schemaItem != schemaName {
+					if schemaName != "" && schemaItem != schemaName {
 						continue
 					}
 
 					for _, tableItem := range dbMeta.TableInfoList {
-						if tableMap, ok := checkDupTableMap[schemaName]; !ok {
-							checkDupTableMap[schemaName] = map[string]bool{
+						if tableMap, ok := checkDupTableMap[schemaItem]; !ok {
+							checkDupTableMap[schemaItem] = map[string]bool{
 								tableItem.TableName: true,
 							}
 						} else {

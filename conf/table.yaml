@@ -12,9 +12,8 @@ configs:
     dao_path: F:\baidu\aiib-go\lg_server\dal\db\dao
     only_model: false
     tables:
-#      - schema_name: public
-      - table_list:
-          - user
+      - schema_name:
+        table_list:
 
 #  - db_type: "mysql"
 #    db_name: "mysql"

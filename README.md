@@ -51,7 +51,9 @@ gentol [--dao value] [-d value] [--db_type value] [--dsn value] [--gogoproto val
 ```
 tips: 当提供`--dsn`选项后，无需`--host --port --username --password`；`--model --dao`为model和dao层的生成路径，当给定绝对路径时需要给定`--module`,以便生成model的包路径。
 
-example: `gentol --db_type="postgres" --dsn="user=postgres password=password host=127.0.0.1 port=5432 dbname=lg_server sslmode=disable TimeZone=Asia/Shanghai" --schema="public"`
+example: `gentol --db_type="postgres" --dsn="user=postgres password=halojeff host=1.117.232.208 port=8432 dbname=lg_server sslmode=disable TimeZone=Asia/Shanghai" --schema="public"`
+
+- gentol工具在提供`db_type、dsn`参数情况下会生成当前数据库（当前模式）下所有表的model以及dao层代码，默认生成路径为`dal/db/dao,dal/model`,可以通过参数`--model \ --dao`修改， `--table="table1,table2"`可以指定表列表生成。
 ## 注意事项
 
 - 请确保您的开发环境已安装Golang开发环境，并已安装相应的数据库驱动程序。
