@@ -14,7 +14,7 @@ type Gentol struct {
 }
 
 var (
-	dbType = getopt.StringLong("db_type", 0, "mysql", "database type such as [mysql, sqlserver, postgres, oracle, greenplum etc. ]")
+	dbType = getopt.StringLong("db_type", 0, "postgres", "database type such as [mysql, sqlserver, postgres, oracle, greenplum etc. ]")
 
 	dsn = getopt.StringLong("dsn", 0, "", "option database connection string, or provide host and port ...")
 
@@ -24,9 +24,9 @@ var (
 	password = getopt.StringLong("password", 'P', "", "db password, if there is a dsn, ignore it")
 	database = getopt.StringLong("database", 'd', "", "database to for db table")
 
-	module      = getopt.StringLong("module", 'm', "gentol", "module name for go project")
-	schema      = getopt.StringLong("schema", 's', "public", "schema to for db table")
-	table       = getopt.StringLong("table", 't', "user", "table name to build struct from")
+	module      = getopt.StringLong("module", 'm', "", "module name for go project")
+	schema      = getopt.StringLong("schema", 's', "", "schema to for db table")
+	table       = getopt.StringLong("table", 't', "", "table name to build struct from")
 	templateDir = getopt.StringLong("template_dir", 0, "./template", "Template Dir")
 
 	modelPath   = getopt.StringLong("model", 0, "dal/db/model", "name to set for model package")

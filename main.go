@@ -27,6 +27,7 @@ func main() {
 		modPath, _ := filepath.Abs(fmt.Sprintf(".%sgo.mod", string(os.PathSeparator)))
 		var relationModelPath = dbInfo.ModelPath
 		var relationDaoPath = dbInfo.DaoPath
+		var findModule bool
 		if filepath.IsAbs(dbInfo.ModelPath) && tableConfigs.GoModule != "" {
 			lastIndex := strings.LastIndex(dbInfo.ModelPath, tableConfigs.GoModule)
 			if lastIndex != -1 {
@@ -51,6 +52,10 @@ func main() {
 			for scanner.Scan() {
 				lineText := scanner.Text()
 				if strings.Contains(lineText, "module ") {
+					if strings.Contains(lineText, "github.com/jasonlabz/gentol") {
+						break
+					}
+					findModule = true
 					relationModelPath = strings.ReplaceAll(relationModelPath, modPath[:strings.LastIndex(modPath, string(os.PathSeparator))], "")
 					relationDaoPath = strings.ReplaceAll(relationDaoPath, modPath[:strings.LastIndex(modPath, string(os.PathSeparator))], "")
 					dbInfo.ModelModule = strings.TrimSpace(strings.ReplaceAll(lineText, "module ", "")) +
@@ -60,7 +65,9 @@ func main() {
 					break
 				}
 			}
-		} else {
+		}
+
+		if !findModule {
 			modelAbsPath, err := filepath.Abs(dbInfo.ModelPath)
 			daoAbsPath, err := filepath.Abs(dbInfo.DaoPath)
 			if err != nil {
@@ -74,7 +81,7 @@ func main() {
 					relationDaoPath = strings.ReplaceAll(strings.ReplaceAll(daoAbsPath, rangePath, ""), string(os.PathSeparator), "/")
 					modFile, err := os.Open(modPath)
 					if err != nil {
-						goto process
+						break
 					}
 					defer modFile.Close()
 					scanner := bufio.NewScanner(modFile)
@@ -85,12 +92,15 @@ func main() {
 								"/" + strings.TrimLeft(strings.ReplaceAll(relationModelPath, string(os.PathSeparator), "/"), "/")
 							dbInfo.DaoModule = strings.TrimSpace(strings.ReplaceAll(lineText, "module ", "")) +
 								"/" + strings.TrimLeft(strings.ReplaceAll(relationDaoPath, string(os.PathSeparator), "/"), "/")
-							break
+							goto process
 						}
 					}
-					goto process
 				}
-				rangePath = rangePath[:strings.LastIndex(rangePath, string(os.PathSeparator))]
+				lastIndex := strings.LastIndex(rangePath, string(os.PathSeparator))
+				if lastIndex == -1 {
+					break
+				}
+				rangePath = rangePath[:lastIndex]
 			}
 		}
 	process:

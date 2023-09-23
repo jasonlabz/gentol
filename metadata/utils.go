@@ -339,6 +339,11 @@ func UnderscoreToUpperCamelCase(s string) string {
 
 // UnderscoreToLowerCamelCase 下划线单词转为小写驼峰单词
 func UnderscoreToLowerCamelCase(s string) string {
+	for key := range abbreviationMap {
+		if strings.HasPrefix(s, key) {
+			return strings.ToLower(key) + s[len(key):]
+		}
+	}
 	s = UnderscoreToUpperCamelCase(s)
 	return string(unicode.ToLower(rune(s[0]))) + s[1:]
 }
