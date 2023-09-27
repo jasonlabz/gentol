@@ -16,7 +16,7 @@
 
 1. 下载并安装该工具。
 ```shell
-go install github.com/jasonlabz/gentol@latest
+go install github.com/jasonlabz/gentol@master
 ```
 2. 使用工具。
 ```shell
