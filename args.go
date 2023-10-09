@@ -51,7 +51,7 @@ func init() {
 	if !exist {
 		exist = IsExist("./table.yaml")
 	}
-	if exist {
+	if !exist {
 		configx.Init()
 	} else {
 		// check args
@@ -82,7 +82,12 @@ func init() {
 			Tables: []*configx.TableInfo{
 				{
 					SchemaName: *schema,
-					TableList:  strings.Split(*table, ","),
+					TableList: func() []string {
+						if *table != "" {
+							return strings.Split(*table, ",")
+						}
+						return []string{}
+					}(),
 				},
 			},
 		}
