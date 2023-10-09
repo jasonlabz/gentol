@@ -17,9 +17,10 @@ type DaoMeta struct {
 }
 
 type PrimaryKeyInfo struct {
-	GoColumnName string
-	GoColumnType string
-	GoFieldName  string
+	GoColumnName       string
+	GoColumnType       string
+	GoColumnOriginType string
+	GoFieldName        string
 }
 
 func (m *DaoMeta) GenRenderData() map[string]any {
@@ -31,6 +32,7 @@ func (m *DaoMeta) GenRenderData() map[string]any {
 		columnInfo.Index = index + 1
 		metaType := GetMetaType(gormx.DBType(m.DBType), columnInfo.DataBaseType)
 		columnInfo.GoColumnType = metaType.GoType
+		columnInfo.GoColumnOriginType = metaType.GoType
 		columnInfo.GureguNullableType = metaType.GureguNullableType
 		columnInfo.SQLNullableType = metaType.SQLNullableType
 		columnInfo.ValueFormat = metaType.ValueFormat
@@ -49,9 +51,10 @@ func (m *DaoMeta) GenRenderData() map[string]any {
 		}
 		if columnInfo.IsPrimaryKey && len(m.PrimaryKeyList) == 0 {
 			m.PrimaryKeyList = append(m.PrimaryKeyList, &PrimaryKeyInfo{
-				GoFieldName:  columnInfo.ColumnName,
-				GoColumnName: UnderscoreToLowerCamelCase(columnInfo.ColumnName),
-				GoColumnType: columnInfo.GoColumnType,
+				GoFieldName:        columnInfo.ColumnName,
+				GoColumnName:       UnderscoreToLowerCamelCase(columnInfo.ColumnName),
+				GoColumnType:       columnInfo.GoColumnType,
+				GoColumnOriginType: columnInfo.GoColumnOriginType,
 			})
 		}
 	}
@@ -85,7 +88,7 @@ type {{.ModelStructName}}Dao interface {
 	SelectAll(ctx context.Context, selectFields ...model.{{.ModelStructName}}Field) (records []*model.{{.ModelStructName}}, err error)
 	
 	// SelectOneByPrimaryKey 通过主键查询记录
-	SelectOneByPrimaryKey(ctx context.Context, {{range .PrimaryKeyList}}{{.GoColumnName}} {{.GoColumnType}}, {{end}}selectFields ...model.{{.ModelStructName}}Field) (record *model.{{.ModelStructName}}, err error)
+	SelectOneByPrimaryKey(ctx context.Context, {{range .PrimaryKeyList}}{{.GoColumnName}} {{.GoColumnOriginType}}, {{end}}selectFields ...model.{{.ModelStructName}}Field) (record *model.{{.ModelStructName}}, err error)
 	
 	// SelectRecordByCondition 通过指定条件查询记录
 	SelectRecordByCondition(ctx context.Context, condition *model.Condition, selectFields ...model.{{.ModelStructName}}Field) (records []*model.{{.ModelStructName}}, err error)
@@ -101,7 +104,7 @@ type {{.ModelStructName}}Dao interface {
 	DeleteByCondition(ctx context.Context, condition *model.Condition) (affect int64, err error)
 	
 	// DeleteByPrimaryKey 通过主键删除记录，返回删除记录数量
-	DeleteByPrimaryKey(ctx context.Context{{range .PrimaryKeyList}}, {{.GoColumnName}} {{.GoColumnType}}{{end}}) (affect int64, err error)
+	DeleteByPrimaryKey(ctx context.Context{{range .PrimaryKeyList}}, {{.GoColumnName}} {{.GoColumnOriginType}}{{end}}) (affect int64, err error)
 
 	// UpdateRecord 更新记录
 	UpdateRecord(ctx context.Context, record *model.{{.ModelStructName}}) (affect int64, err error)
@@ -113,7 +116,7 @@ type {{.ModelStructName}}Dao interface {
 	UpdateByCondition(ctx context.Context, condition *model.Condition, updateField *model.UpdateField) (affect int64, err error)
 	
 	// UpdateByPrimaryKey 更新主键的记录
-	UpdateByPrimaryKey(ctx context.Context, {{range .PrimaryKeyList}}{{.GoColumnName}} {{.GoColumnType}}, {{end}}updateField *model.UpdateField) (affect int64, err error)
+	UpdateByPrimaryKey(ctx context.Context, {{range .PrimaryKeyList}}{{.GoColumnName}} {{.GoColumnOriginType}}, {{end}}updateField *model.UpdateField) (affect int64, err error)
 	
 	// Insert 插入记录
 	Insert(ctx context.Context, record *model.{{.ModelStructName}}) (affect int64, err error)
@@ -161,7 +164,7 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) SelectAll(ctx context.Con
 	return
 }
 
-func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) SelectOneByPrimaryKey(ctx context.Context, {{range .PrimaryKeyList}}{{.GoColumnName}} {{.GoColumnType}}, {{end}}selectFields ...model.{{.ModelStructName}}Field) (record *model.{{.ModelStructName}}, err error) {
+func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) SelectOneByPrimaryKey(ctx context.Context, {{range .PrimaryKeyList}}{{.GoColumnName}} {{.GoColumnOriginType}}, {{end}}selectFields ...model.{{.ModelStructName}}Field) (record *model.{{.ModelStructName}}, err error) {
 	tx := DB().WithContext(ctx).
 		Table(model.TableName{{.ModelStructName}})
 	if len(selectFields) > 0 {
@@ -272,7 +275,7 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) DeleteByCondition(ctx con
 	return
 }
 
-func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) DeleteByPrimaryKey(ctx context.Context{{range .PrimaryKeyList}}, {{.GoColumnName}} {{.GoColumnType}}{{end}}) (affect int64, err error) {
+func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) DeleteByPrimaryKey(ctx context.Context{{range .PrimaryKeyList}}, {{.GoColumnName}} {{.GoColumnOriginType}}{{end}}) (affect int64, err error) {
 	whereCondition := map[string]any{
  		{{ range .PrimaryKeyList -}}
 		"{{- .GoFieldName -}}": {{- .GoColumnName }},
@@ -319,7 +322,7 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) UpdateByCondition(ctx con
 	return
 }
 
-func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) UpdateByPrimaryKey(ctx context.Context, {{range .PrimaryKeyList}}{{.GoColumnName}} {{.GoColumnType}}, {{end}}updateField *model.UpdateField) (affect int64, err error) {
+func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) UpdateByPrimaryKey(ctx context.Context, {{range .PrimaryKeyList}}{{.GoColumnName}} {{.GoColumnOriginType}}, {{end}}updateField *model.UpdateField) (affect int64, err error) {
 	whereCondition := map[string]any{
  		{{ range .PrimaryKeyList -}}
 		"{{- .GoFieldName -}}": {{- .GoColumnName }},
