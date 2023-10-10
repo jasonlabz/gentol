@@ -56,8 +56,6 @@ func init() {
 	} else {
 		// check args
 		getopt.Lookup("db_type").SetGroup("check")
-		getopt.Lookup("database").SetGroup("check")
-		getopt.Lookup("table").SetGroup("check")
 		getopt.RequiredGroup("check")
 		getopt.ParseV2()
 
