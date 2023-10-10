@@ -51,7 +51,7 @@ func init() {
 	if !exist {
 		exist = IsExist("./table.yaml")
 	}
-	if !exist {
+	if exist {
 		configx.Init()
 	} else {
 		// check args
