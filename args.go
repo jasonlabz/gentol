@@ -40,6 +40,7 @@ var (
 	gogoProtoImport = getopt.StringLong("gogoproto", 0, "", "location of gogo import ")
 
 	onlyModel             = getopt.BoolLong("only_model", 0, "overwrite existing files (default)", "disable overwriting files")
+	useHook               = getopt.BoolLong("gen_hook", 0, "disable gorm hook file (default)", "gorm hook file")
 	useSQLNullable        = getopt.BoolLong("use_sql_nullable", 0, "use sql.Null if use_sql_nullable true, default use guregu")
 	addProtobufAnnotation = getopt.BoolLong("proto", 0, "add protobuf annotations (tags)", "")
 	runGoFmt              = getopt.BoolLong("rungofmt", 0, "run gofmt on output dir", "")
@@ -70,6 +71,7 @@ func init() {
 			DBType:      *dbType,
 			DSN:         *dsn,
 			OnlyModel:   *onlyModel,
+			GenHook:     *useHook,
 			ModelPath:   *modelPath,
 			DaoPath:     *daoPath,
 			ServicePath: *servicePath,

@@ -11,9 +11,11 @@ configs:
     model_path: F:\baidu\aiib-go\lg_server\dal\db\model
     dao_path: F:\baidu\aiib-go\lg_server\dal\db\dao
     only_model: false
+    gen_hook: true
     tables:
       - schema_name:
         table_list:
+          - user
 
 #  - db_type: "mysql"
 #    db_name: "mysql"

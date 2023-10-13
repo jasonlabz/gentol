@@ -134,7 +134,7 @@ func WriteModel(dbInfo *configx.DBTableInfo, schemaName, tableName string, colum
 
 	hookFile := filepath.Join(modelData.ModelPath, modelData.TableName+"_hook.go")
 	exist = IsExist(hookFile)
-	if !exist && false {
+	if !exist && dbInfo.GenHook {
 		ff, _ = filepath.Abs(hookFile)
 		modelHookTpl, ok := metadata.LoadTpl("model_hook")
 		if !ok {
@@ -148,18 +148,16 @@ func WriteModel(dbInfo *configx.DBTableInfo, schemaName, tableName string, colum
 		}
 	}
 	baseFile := filepath.Join(modelData.ModelPath, "base.go")
-	exist = IsExist(baseFile)
-	if !exist {
-		ff, _ = filepath.Abs(baseFile)
-		modelBaseTpl, ok := metadata.LoadTpl("model_base")
-		if !ok {
-			fmt.Println("undefined template" + "model_base")
-			return
-		}
-		err = RenderingTemplate(modelBaseTpl, modelData, ff, true)
-		if err != nil {
-			panic(err)
-		}
+	ff, _ = filepath.Abs(baseFile)
+	modelBaseTpl, ok := metadata.LoadTpl("model_base")
+	if !ok {
+		fmt.Println("undefined template" + "model_base")
+		return
+	}
+	err = RenderingTemplate(modelBaseTpl, modelData, ff, true)
+	if err != nil {
+		fmt.Println(err)
+		return
 	}
 	return
 }

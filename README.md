@@ -16,7 +16,7 @@
 
 1. 下载并安装该工具。
 ```shell
-go install github.com/jasonlabz/gentol@v1.0.5
+go install github.com/jasonlabz/gentol@v1.0.6
 ```
 2. 使用工具。
 ```shell
@@ -54,6 +54,317 @@ tips: 当提供`--dsn`选项后，无需`--host --port --username --password`；
 example: `gentol --db_type="postgres" --dsn="user=postgres password=XXXXX host=127.0.0.1 port=8432 dbname=dbName sslmode=disable TimeZone=Asia/Shanghai" --schema="public"`
 
 - gentol工具在提供`db_type、dsn`参数情况下会生成当前数据库（当前模式）下所有表的model以及dao层代码，默认生成路径为`dal/db/dao,dal/model`,可以通过参数`--model \ --dao`修改， `--table="table1,table2"`可以指定表列表生成。
+
+3、生成示例
+- model生成结果：
+```go
+package model
+
+import (
+	"database/sql"
+	"fmt"
+	"time"
+
+	"github.com/guregu/null"
+	"github.com/satori/go.uuid"
+)
+
+var (
+	_ = time.Second
+	_ = sql.LevelDefault
+	_ = null.Bool{}
+	_ = uuid.UUID{}
+)
+
+const TableNameUser = "user"
+
+type UserField string
+
+// User struct is mapping to the user table
+type User struct {
+	UserID int32 `gorm:"primaryKey;autoIncrement;column:user_id;not null;type:int4;size:32;" json:"user_id"` // Comment: 用户ID
+
+	Nickname string `gorm:"column:nickname;not null;type:varchar;size:255;" json:"nickname"` // Comment: 用户名
+
+	Avatar string `gorm:"column:avatar;not null;type:varchar;size:255;" json:"avatar"` // Comment: 头像
+
+	Password string `gorm:"column:password;not null;type:varchar;size:255;" json:"password"` // Comment: 用户密码 des/md5加密值
+
+	Phone string `gorm:"unique;column:phone;not null;type:varchar;size:255;" json:"phone"` // Comment: 手机号 aes加密
+
+	Gender int32 `gorm:"column:gender;not null;type:int4;size:32;default:9;" json:"gender"` // Comment: 性别 0|男、1|女、9|未知
+
+	Status int32 `gorm:"column:status;not null;type:int4;size:32;default:0;" json:"status"` // Comment: 状态 0|正常、1|注销、2|冻结
+
+	RegisterIP string `gorm:"column:register_ip;not null;type:varchar;size:255;" json:"register_ip"` // Comment: no comment
+
+	RegisterTime time.Time `gorm:"column:register_time;not null;type:timestamp;size:64;default:CURRENT_TIMESTAMP;" json:"register_time"` // Comment: no comment
+
+	LastLoginIP string `gorm:"column:last_login_ip;not null;type:varchar;size:255;" json:"last_login_ip"` // Comment: no comment
+
+	LastLoginTime time.Time `gorm:"column:last_login_time;not null;type:timestamp;size:64;default:CURRENT_TIMESTAMP;" json:"last_login_time"` // Comment: no comment
+
+	CreateTime time.Time `gorm:"column:create_time;not null;type:timestamp;size:64;default:CURRENT_TIMESTAMP;" json:"create_time"` // Comment: no comment
+
+	UpdateTime time.Time `gorm:"column:update_time;not null;type:timestamp;size:64;default:CURRENT_TIMESTAMP;" json:"update_time"` // Comment: no comment
+}
+
+func (u *User) TableName() string {
+	return "user"
+}
+
+type UserTableColumn struct {
+	UserID        UserField
+	Nickname      UserField
+	Avatar        UserField
+	Password      UserField
+	Phone         UserField
+	Gender        UserField
+	Status        UserField
+	RegisterIP    UserField
+	RegisterTime  UserField
+	LastLoginIP   UserField
+	LastLoginTime UserField
+	CreateTime    UserField
+	UpdateTime    UserField
+}
+
+type UserCondition struct {
+	Condition
+}
+
+func (u *UserCondition) ColumnInfo() UserTableColumn {
+	return UserTableColumn{
+		UserID:        "user_id",
+		Nickname:      "nickname",
+		Avatar:        "avatar",
+		Password:      "password",
+		Phone:         "phone",
+		Gender:        "gender",
+		Status:        "status",
+		RegisterIP:    "register_ip",
+		RegisterTime:  "register_time",
+		LastLoginIP:   "last_login_ip",
+		LastLoginTime: "last_login_time",
+		CreateTime:    "create_time",
+		UpdateTime:    "update_time",
+	}
+}
+
+func (u *UserCondition) UserIDIsNull() *UserCondition {
+	return u.Where("user_id is null")
+}
+
+func (u *UserCondition) UserIDIsNotNull() *UserCondition {
+	return u.Where("user_id is not null")
+}
+
+func (u *UserCondition) UserIDEqualTo(value int32) *UserCondition {
+	return u.Where("user_id = %v", value)
+}
+
+func (u *UserCondition) UserIDNotEqualTo(value int32) *UserCondition {
+	return u.Where("user_id <> %v", value)
+}
+
+func (u *UserCondition) UserIDGreaterThan(value int32) *UserCondition {
+	return u.Where("user_id > %v", value)
+}
+
+func (u *UserCondition) UserIDGreaterThanOrEqualTo(value int32) *UserCondition {
+	return u.Where("user_id >= %v", value)
+}
+
+func (u *UserCondition) UserIDLessThan(value int32) *UserCondition {
+	return u.Where("user_id < %v", value)
+}
+
+func (u *UserCondition) UserIDLessThanOrEqualTo(value int32) *UserCondition {
+	return u.Where("user_id <= %v", value)
+}
+
+func (u *UserCondition) UserIDBetween(startValue, endValue int32) *UserCondition {
+	return u.Where("user_id between %v and %v", startValue, endValue)
+}
+
+func (u *UserCondition) UserIDNotBetween(startValue, endValue int32) *UserCondition {
+	return u.Where("user_id not between %v and %v", startValue, endValue)
+}
+
+func (u *UserCondition) UserIDIn(inValues []int32) *UserCondition {
+	return u.Where(TransInCondition("user_id in ", inValues))
+}
+
+func (u *UserCondition) UserIDNotIn(inValues []int32) *UserCondition {
+	return u.Where(TransInCondition("user_id not in ", inValues))
+}
+
+func (u *UserCondition) NicknameIsLike(value string) *UserCondition {
+	return u.Where("nickname like '%v'", value)
+}
+
+func (u *UserCondition) NicknameIsNull() *UserCondition {
+	return u.Where("nickname is null")
+}
+
+func (u *UserCondition) NicknameIsNotNull() *UserCondition {
+	return u.Where("nickname is not null")
+}
+
+func (u *UserCondition) NicknameEqualTo(value string) *UserCondition {
+	return u.Where("nickname = '%v'", value)
+}
+
+func (u *UserCondition) NicknameNotEqualTo(value string) *UserCondition {
+	return u.Where("nickname <> '%v'", value)
+}
+
+func (u *UserCondition) NicknameGreaterThan(value string) *UserCondition {
+	return u.Where("nickname > '%v'", value)
+}
+
+func (u *UserCondition) NicknameGreaterThanOrEqualTo(value string) *UserCondition {
+	return u.Where("nickname >= '%v'", value)
+}
+
+func (u *UserCondition) NicknameLessThan(value string) *UserCondition {
+	return u.Where("nickname < '%v'", value)
+}
+
+func (u *UserCondition) NicknameLessThanOrEqualTo(value string) *UserCondition {
+	return u.Where("nickname <= '%v'", value)
+}
+
+func (u *UserCondition) NicknameBetween(startValue, endValue string) *UserCondition {
+	return u.Where("nickname between '%v' and '%v'", startValue, endValue)
+}
+
+func (u *UserCondition) NicknameNotBetween(startValue, endValue string) *UserCondition {
+	return u.Where("nickname not between '%v' and '%v'", startValue, endValue)
+}
+
+func (u *UserCondition) NicknameIn(inValues []string) *UserCondition {
+	return u.Where(TransInCondition("nickname in ", inValues))
+}
+
+func (u *UserCondition) NicknameNotIn(inValues []string) *UserCondition {
+	return u.Where(TransInCondition("nickname not in ", inValues))
+}
+
+// ..... 省略中间部分
+	
+func (u *UserCondition) Where(query any, args ...any) *UserCondition {
+	switch query.(type) {
+	case map[string]any:
+		mapCondition := query.(map[string]any)
+		if u.MapCondition == nil {
+			u.MapCondition = mapCondition
+			break
+		}
+		for key, val := range mapCondition {
+			u.MapCondition[key] = val
+		}
+	case string:
+		condition := query.(string)
+		u.StringCondition = append(u.StringCondition, fmt.Sprintf(condition, args...))
+	}
+	return u
+}
+
+func (u *UserCondition) OrderBy(orderByClause ...string) *UserCondition {
+	u.OrderByClause = append(u.OrderByClause, orderByClause...)
+	return u
+}
+
+func (u *UserCondition) GroupBy(groupByClause string) *UserCondition {
+	u.GroupByClause = groupByClause
+	return u
+}
+
+func (u *UserCondition) Having(query string, args ...any) *UserCondition {
+	u.HavingCondition = fmt.Sprintf(query, args...)
+	return u
+}
+
+func (u *UserCondition) Joins(query string, args ...any) *UserCondition {
+	u.JoinCondition = append(u.JoinCondition, fmt.Sprintf(query, args...))
+	return u
+}
+
+func (u *UserCondition) Build() *Condition {
+	return &u.Condition
+}
+```
+- dao层：
+```go
+//  ...
+type UserDao interface {
+	// SelectAll 查询所有记录
+	SelectAll(ctx context.Context, selectFields ...model.UserField) (records []*model.User, err error)
+
+	// SelectOneByPrimaryKey 通过主键查询记录
+	SelectOneByPrimaryKey(ctx context.Context, userID int32, selectFields ...model.UserField) (record *model.User, err error)
+
+	// SelectRecordByCondition 通过指定条件查询记录
+	SelectRecordByCondition(ctx context.Context, condition *model.Condition, selectFields ...model.UserField) (records []*model.User, err error)
+
+	// SelectPageRecordByCondition 通过指定条件查询分页记录
+	SelectPageRecordByCondition(ctx context.Context, condition *model.Condition, pageParam *model.Pagination,
+		selectFields ...model.UserField) (records []*model.User, err error)
+
+	// CountByCondition 通过指定条件查询记录数量
+	CountByCondition(ctx context.Context, condition *model.Condition) (count int64, err error)
+
+	// DeleteByCondition 通过指定条件删除记录，返回删除记录数量
+	DeleteByCondition(ctx context.Context, condition *model.Condition) (affect int64, err error)
+
+	// DeleteByPrimaryKey 通过主键删除记录，返回删除记录数量
+	DeleteByPrimaryKey(ctx context.Context, userID int32) (affect int64, err error)
+
+	// UpdateRecord 更新记录
+	UpdateRecord(ctx context.Context, record *model.User) (affect int64, err error)
+
+	// UpdateRecords 批量更新记录
+	UpdateRecords(ctx context.Context, records []*model.User) (affect int64, err error)
+
+	// UpdateByCondition 更新指定条件下的记录
+	UpdateByCondition(ctx context.Context, condition *model.Condition, updateField *model.UpdateField) (affect int64, err error)
+
+	// UpdateByPrimaryKey 更新主键的记录
+	UpdateByPrimaryKey(ctx context.Context, userID int32, updateField *model.UpdateField) (affect int64, err error)
+
+	// Insert 插入记录
+	Insert(ctx context.Context, record *model.User) (affect int64, err error)
+
+	// BatchInsert 批量插入记录
+	BatchInsert(ctx context.Context, records []*model.User) (affect int64, err error)
+
+	// InsertOrUpdateOnDuplicateKey 插入记录，假如唯一键冲突则更新
+	InsertOrUpdateOnDuplicateKey(ctx context.Context, record *model.User) (affect int64, err error)
+
+	// BatchInsertOrUpdateOnDuplicateKey 批量插入记录，假如唯一键冲突则更新
+	BatchInsertOrUpdateOnDuplicateKey(ctx context.Context, records []*model.User) (affect int64, err error)
+}
+
+```
+- 使用示例：
+```go
+	logger := log.CtxLogger(ctx)
+	defer logger.Sync()
+	user, err = s.userDao.SelectOneByPrimaryKey(ctx, userID)
+
+	// 构建查询条件
+	userCondition := &model.UserCondition{}
+	userCondition.UserIDEqualTo(userID).GenderEqualTo(1)
+	// 提供查询指定字段
+	column := userCondition.ColumnInfo()
+	userList, err := s.userDao.SelectRecordByCondition(ctx, userCondition.Build(), column.UserID, column.Nickname, column.Password)
+	if err != nil {
+		logger.WithError(err).Errorf("get user error")
+	}
+
+```
+
 ## 注意事项
 
 - 请确保您的开发环境已安装Golang开发环境，并已安装相应的数据库驱动程序。
