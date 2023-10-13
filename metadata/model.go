@@ -319,7 +319,7 @@ func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}NotIn
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) AddStrCondition(condition string, args ...any) *{{.ModelStructName}}Condition {
 	if len(args)> 0 {
-		{{.ModelShortName}}.StringCondition = append({{.ModelShortName}}.StringCondition, fmt.Sprintf(condition, args))
+		{{.ModelShortName}}.StringCondition = append({{.ModelShortName}}.StringCondition, fmt.Sprintf(condition, args...))
 		return {{.ModelShortName}}
 	}
 	{{.ModelShortName}}.StringCondition = append({{.ModelShortName}}.StringCondition, condition)
