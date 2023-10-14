@@ -59,23 +59,24 @@ func (m *DaoMeta) GenRenderData() map[string]any {
 		}
 	}
 	result := map[string]any{
-		"ModelModulePath":  m.ModelModulePath,
-		"DaoModulePath":    m.DaoModulePath,
-		"ModelPackageName": m.ModelPackageName,
-		"DaoPackageName":   m.DaoPackageName,
-		"ModelStructName":  m.ModelStructName,
-		"ModelShortName":   ToLower(strings.Split(m.ModelStructName, "")[0]),
-		"PrimaryKeyList":   m.PrimaryKeyList,
-		"ColumnList":       m.ColumnList,
-		"SchemaName":       m.SchemaName,
-		"TableName":        m.TableName,
-		"TitleTableName":   m.ModelStructName,
+		"ModelModulePath":     m.ModelModulePath,
+		"DaoModulePath":       m.DaoModulePath,
+		"ModelPackageName":    m.ModelPackageName,
+		"DaoPackageName":      m.DaoPackageName,
+		"ModelStructName":     m.ModelStructName,
+		"ModelLowerCamelName": UnderscoreToLowerCamelCase(m.TableName),
+		"ModelShortName":      ToLower(strings.Split(m.ModelStructName, "")[0]),
+		"PrimaryKeyList":      m.PrimaryKeyList,
+		"ColumnList":          m.ColumnList,
+		"SchemaName":          m.SchemaName,
+		"TableName":           m.TableName,
+		"TitleTableName":      m.ModelStructName,
 	}
 	return result
 }
 
 const Dao = NotEditMark + `
-package interfaces
+package {{.DaoPackageName}}
 
 import (
 	"context"
@@ -134,7 +135,7 @@ type {{.ModelStructName}}Dao interface {
 `
 
 const DaoImpl = NotEditMark + `
-package {{.DaoPackageName}}
+package impl
 
 import (
 	"context"
@@ -142,15 +143,19 @@ import (
 
 	"gorm.io/gorm/clause"
 
-	"{{.DaoModulePath}}/interfaces"
+	"{{.DaoModulePath}}"
 	"{{.ModelModulePath}}"
 )
 
-var _ interfaces.{{.ModelStructName}}Dao = &{{.ModelStructName}}DaoImpl{}
+var {{.ModelLowerCamelName}}Dao {{.DaoPackageName}}.{{.ModelStructName}}Dao = &{{.ModelLowerCamelName}}DaoImpl{}
 
-type {{.ModelStructName}}DaoImpl struct{}
+func Get{{.ModelStructName}}Dao() {{.DaoPackageName}}.{{.ModelStructName}}Dao {
+	return {{.ModelLowerCamelName}}Dao
+}
 
-func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) SelectAll(ctx context.Context, selectFields ...model.{{.ModelStructName}}Field) (records []*model.{{.ModelStructName}}, err error) {
+type {{.ModelLowerCamelName}}DaoImpl struct{}
+
+func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectAll(ctx context.Context, selectFields ...model.{{.ModelStructName}}Field) (records []*model.{{.ModelStructName}}, err error) {
 	tx := DB().WithContext(ctx).
 		Table(model.TableName{{.ModelStructName}})
 	if len(selectFields) > 0 {
@@ -164,7 +169,7 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) SelectAll(ctx context.Con
 	return
 }
 
-func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) SelectOneByPrimaryKey(ctx context.Context, {{range .PrimaryKeyList}}{{.GoColumnName}} {{.GoColumnOriginType}}, {{end}}selectFields ...model.{{.ModelStructName}}Field) (record *model.{{.ModelStructName}}, err error) {
+func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectOneByPrimaryKey(ctx context.Context, {{range .PrimaryKeyList}}{{.GoColumnName}} {{.GoColumnOriginType}}, {{end}}selectFields ...model.{{.ModelStructName}}Field) (record *model.{{.ModelStructName}}, err error) {
 	tx := DB().WithContext(ctx).
 		Table(model.TableName{{.ModelStructName}})
 	if len(selectFields) > 0 {
@@ -183,7 +188,7 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) SelectOneByPrimaryKey(ctx
 	return
 }
 
-func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) SelectRecordByCondition(ctx context.Context, condition *model.Condition, selectFields ...model.{{.ModelStructName}}Field) (records []*model.{{.ModelStructName}}, err error) {
+func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectRecordByCondition(ctx context.Context, condition *model.Condition, selectFields ...model.{{.ModelStructName}}Field) (records []*model.{{.ModelStructName}}, err error) {
 	if condition == nil {
 		return {{.ModelShortName}}.SelectAll(ctx, selectFields...)
 	}
@@ -209,7 +214,7 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) SelectRecordByCondition(c
 	return
 }
 
-func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) SelectPageRecordByCondition(ctx context.Context, condition *model.Condition, pageParam *model.Pagination,
+func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectPageRecordByCondition(ctx context.Context, condition *model.Condition, pageParam *model.Pagination,
 	selectFields ...model.{{.ModelStructName}}Field) (records []*model.{{.ModelStructName}}, err error) {
 	tx := DB().WithContext(ctx).
 		Table(model.TableName{{.ModelStructName}})
@@ -244,7 +249,7 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) SelectPageRecordByConditi
 	return
 }
 
-func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) CountByCondition(ctx context.Context, condition *model.Condition) (count int64, err error) {
+func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) CountByCondition(ctx context.Context, condition *model.Condition) (count int64, err error) {
 	tx := DB().WithContext(ctx).
 		Table(model.TableName{{.ModelStructName}})
 	if condition != nil {
@@ -259,7 +264,7 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) CountByCondition(ctx cont
 	return
 }
 
-func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) DeleteByCondition(ctx context.Context, condition *model.Condition) (affect int64, err error) {
+func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) DeleteByCondition(ctx context.Context, condition *model.Condition) (affect int64, err error) {
 	tx := DB().WithContext(ctx)
 	if condition != nil {
 		for _, strCondition := range condition.StringCondition {
@@ -275,7 +280,7 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) DeleteByCondition(ctx con
 	return
 }
 
-func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) DeleteByPrimaryKey(ctx context.Context{{range .PrimaryKeyList}}, {{.GoColumnName}} {{.GoColumnOriginType}}{{end}}) (affect int64, err error) {
+func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) DeleteByPrimaryKey(ctx context.Context{{range .PrimaryKeyList}}, {{.GoColumnName}} {{.GoColumnOriginType}}{{end}}) (affect int64, err error) {
 	whereCondition := map[string]any{
  		{{ range .PrimaryKeyList -}}
 		"{{- .GoFieldName -}}": {{- .GoColumnName }},
@@ -287,7 +292,7 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) DeleteByPrimaryKey(ctx co
 	return
 }
 
-func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) UpdateRecord(ctx context.Context, record *model.{{.ModelStructName}}) (affect int64, err error) {
+func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateRecord(ctx context.Context, record *model.{{.ModelStructName}}) (affect int64, err error) {
 	tx := DB().WithContext(ctx).
 		Table(model.TableName{{.ModelStructName}}).
 		Save(record)
@@ -296,7 +301,7 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) UpdateRecord(ctx context.
 	return
 }
 
-func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) UpdateRecords(ctx context.Context, records []*model.{{.ModelStructName}}) (affect int64, err error) {
+func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateRecords(ctx context.Context, records []*model.{{.ModelStructName}}) (affect int64, err error) {
 	tx := DB().WithContext(ctx).
 		Table(model.TableName{{.ModelStructName}}).
 		Save(records)
@@ -305,7 +310,7 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) UpdateRecords(ctx context
 	return
 }
 
-func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) UpdateByCondition(ctx context.Context, condition *model.Condition, updateField *model.UpdateField) (affect int64, err error) {
+func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateByCondition(ctx context.Context, condition *model.Condition, updateField *model.UpdateField) (affect int64, err error) {
 	tx := DB().WithContext(ctx).
 		Table(model.TableName{{.ModelStructName}})
 		if condition != nil {
@@ -322,7 +327,7 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) UpdateByCondition(ctx con
 	return
 }
 
-func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) UpdateByPrimaryKey(ctx context.Context, {{range .PrimaryKeyList}}{{.GoColumnName}} {{.GoColumnOriginType}}, {{end}}updateField *model.UpdateField) (affect int64, err error) {
+func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateByPrimaryKey(ctx context.Context, {{range .PrimaryKeyList}}{{.GoColumnName}} {{.GoColumnOriginType}}, {{end}}updateField *model.UpdateField) (affect int64, err error) {
 	whereCondition := map[string]any{
  		{{ range .PrimaryKeyList -}}
 		"{{- .GoFieldName -}}": {{- .GoColumnName }},
@@ -337,7 +342,7 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) UpdateByPrimaryKey(ctx co
 	return
 }
 
-func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) Insert(ctx context.Context, record *model.{{.ModelStructName}}) (affect int64, err error) {
+func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) Insert(ctx context.Context, record *model.{{.ModelStructName}}) (affect int64, err error) {
 	tx := DB().WithContext(ctx).
 		Table(model.TableName{{.ModelStructName}}).
 		Create(&record)
@@ -346,7 +351,7 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) Insert(ctx context.Contex
 	return
 }
 
-func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) BatchInsert(ctx context.Context, records []*model.{{.ModelStructName}}) (affect int64, err error) {
+func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) BatchInsert(ctx context.Context, records []*model.{{.ModelStructName}}) (affect int64, err error) {
 	tx := DB().WithContext(ctx).
 		Table(model.TableName{{.ModelStructName}}).
 		Create(&records)
@@ -355,7 +360,7 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) BatchInsert(ctx context.C
 	return
 }
 
-func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) InsertOrUpdateOnDuplicateKey(ctx context.Context, record *model.{{.ModelStructName}}) (affect int64, err error) {
+func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) InsertOrUpdateOnDuplicateKey(ctx context.Context, record *model.{{.ModelStructName}}) (affect int64, err error) {
 	tx := DB().WithContext(ctx).
 		Table(model.TableName{{.ModelStructName}}).
 		Clauses(clause.OnConflict{
@@ -366,7 +371,7 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) InsertOrUpdateOnDuplicate
 	return
 }
 
-func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) BatchInsertOrUpdateOnDuplicateKey(ctx context.Context, records []*model.{{.ModelStructName}}) (affect int64, err error) {
+func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) BatchInsertOrUpdateOnDuplicateKey(ctx context.Context, records []*model.{{.ModelStructName}}) (affect int64, err error) {
 	tx := DB().WithContext(ctx).
 		Table(model.TableName{{.ModelStructName}}).
 		Clauses(clause.OnConflict{
@@ -381,7 +386,7 @@ func ({{.ModelShortName}} {{.ModelStructName}}DaoImpl) BatchInsertOrUpdateOnDupl
 
 `
 const Database = NotEditMark + `
-package {{.DaoPackageName}}
+package impl
 
 import "gorm.io/gorm"
 

@@ -19,15 +19,16 @@ func Init() {
 
 // DBTableInfo 连接配置
 type DBTableInfo struct {
-	DBName      string       `json:"db_name" yaml:"db_name"`
-	DBType      string       `json:"db_type" yaml:"db_type"`
-	DSN         string       `json:"dsn" yaml:"dsn"`
-	OnlyModel   bool         `json:"only_model" yaml:"only_model"`
-	GenHook     bool         `json:"gen_hook" yaml:"gen_hook"`
-	ServicePath string       `json:"service_path" yaml:"service_path"`
-	ModelPath   string       `json:"model_path" yaml:"model_path"`
-	DaoPath     string       `json:"dao_path" yaml:"dao_path"`
-	Tables      []*TableInfo `json:"tables" yaml:"tables"`
+	DBName         string       `json:"db_name" yaml:"db_name"`
+	DBType         string       `json:"db_type" yaml:"db_type"`
+	DSN            string       `json:"dsn" yaml:"dsn"`
+	OnlyModel      bool         `json:"only_model" yaml:"only_model"`
+	GenHook        bool         `json:"gen_hook" yaml:"gen_hook"`
+	ServicePath    string       `json:"service_path" yaml:"service_path"`
+	ModelPath      string       `json:"model_path" yaml:"model_path"`
+	DaoPath        string       `json:"dao_path" yaml:"dao_path"`
+	UseSQLNullable bool         `json:"use_sql_nullable" yaml:"use_sql_nullable"`
+	Tables         []*TableInfo `json:"tables" yaml:"tables"`
 
 	ModelModule string
 	DaoModule   string
@@ -69,7 +70,6 @@ type config struct {
 	JsonFormat            string         `json:"json_format" yaml:"json_format"`
 	ProtobufFormat        string         `json:"protobuf_format" yaml:"protobuf_format"`
 	GoModule              string         `json:"module" yaml:"module"`
-	UseSQLNullable        bool           `json:"use_sql_nullable" yaml:"use_sql_nullable"`
 	RunGoFmt              bool           `json:"rungofmt" yaml:"rungofmt"`
 	AddProtobufAnnotation bool           `json:"addProtobufAnnotation" yaml:"addProtobufAnnotation"`
 }

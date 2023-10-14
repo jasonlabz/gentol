@@ -16,7 +16,7 @@
 
 1. 下载并安装该工具。
 ```shell
-go install github.com/jasonlabz/gentol@v1.0.6
+go install github.com/jasonlabz/gentol@v1.0.7
 ```
 2. 使用工具。
 ```shell
@@ -49,11 +49,12 @@ gentol [--dao value] [-d value] [--db_type value] [--dsn value] [--gogoproto val
                     
  
 ```
-tips: 当提供`--dsn`选项后，无需`--host --port --username --password`；`--model --dao`为model和dao层的生成路径，当给定绝对路径时需要给定`--module`,以便生成model的包路径。
-
+tips: 当提供`--dsn`选项后，无需`--host --port --username --password`；
+`--model --dao`为model和dao层的生成路径，当给定绝对路径时需要给定`--module="module_name""`,以便生成model的包路径。
+--gen_hook参数可以生成对应model的hook文件
 example: `gentol --db_type="postgres" --dsn="user=postgres password=XXXXX host=127.0.0.1 port=8432 dbname=dbName sslmode=disable TimeZone=Asia/Shanghai" --schema="public"`
 
-- gentol工具在提供`db_type、dsn`参数情况下会生成当前数据库（当前模式）下所有表的model以及dao层代码，默认生成路径为`dal/db/dao,dal/model`,可以通过参数`--model \ --dao`修改， `--table="table1,table2"`可以指定表列表生成。
+- gentol工具在提供`db_type、dsn`参数情况下会生成当前数据库（当前模式）下所有表的model以及dao层代码，默认生成路径为`dal/db/dao,dal/model`,可以通过参数`--model \ --dao`修改， `--table="table1,table2"`可以指定表列表生成(不提供该参数时生成当前schema下所有table)。
 
 3、生成示例
 - model生成结果：

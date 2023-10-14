@@ -116,6 +116,7 @@ func WriteModel(dbInfo *configx.DBTableInfo, schemaName, tableName string, colum
 	modelData.SchemaName = schemaName
 	modelData.TableName = tableName
 	modelData.ModelPath = dbInfo.ModelPath
+	modelData.UseSQLNullable = dbInfo.UseSQLNullable
 	modelTpl, ok := metadata.LoadTpl("model")
 	if !ok {
 		fmt.Println("undefined template" + "model")
@@ -183,9 +184,8 @@ func WriteDao(dbInfo *configx.DBTableInfo, schemaName, tableName string, columnT
 		fmt.Println("undefined template" + "dao")
 		return
 	}
-	daoInterfacePath := filepath.Join(daoData.DaoPath, "interfaces")
-	interfaceExist := IsExist(daoInterfacePath)
-	if !interfaceExist {
+	daoInterfacePath := daoData.DaoPath
+	if !IsExist(daoInterfacePath) {
 		_ = os.MkdirAll(daoInterfacePath, 0777)
 	}
 
@@ -195,8 +195,11 @@ func WriteDao(dbInfo *configx.DBTableInfo, schemaName, tableName string, columnT
 		fmt.Println(err)
 		return
 	}
-
-	daoImplFile := filepath.Join(daoData.DaoPath, daoData.TableName+"_dao_impl.go")
+	implDir := filepath.Join(daoData.DaoPath, "impl")
+	if !IsExist(implDir) {
+		_ = os.MkdirAll(implDir, 0777)
+	}
+	daoImplFile := filepath.Join(daoData.DaoPath, "impl", daoData.TableName+"_dao_impl.go")
 	ff, _ = filepath.Abs(daoImplFile)
 	daoImplTpl, ok := metadata.LoadTpl("dao_impl")
 	if !ok {
@@ -208,7 +211,7 @@ func WriteDao(dbInfo *configx.DBTableInfo, schemaName, tableName string, columnT
 		fmt.Println(err)
 		return
 	}
-	baseFile := filepath.Join(daoData.DaoPath, "db.go")
+	baseFile := filepath.Join(daoData.DaoPath, "impl", "db.go")
 	//baseFileExist := IsExist(baseFile)
 	ff, _ = filepath.Abs(baseFile)
 	daoBaseTpl, ok := metadata.LoadTpl("database")
@@ -220,11 +223,6 @@ func WriteDao(dbInfo *configx.DBTableInfo, schemaName, tableName string, columnT
 	if err != nil {
 		fmt.Println(err)
 		return
-	}
-	daoCustomInterfacePath := filepath.Join(daoData.DaoPath, "custom")
-	customExist := IsExist(daoCustomInterfacePath)
-	if !customExist {
-		_ = os.MkdirAll(daoCustomInterfacePath, 0777)
 	}
 	return
 }

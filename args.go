@@ -67,18 +67,19 @@ func init() {
 		configx.TableConfigs.ProtobufFormat = *protoNameFormat
 		configx.TableConfigs.GoModule = *module
 		databaseConfig := &configx.DBTableInfo{
-			DBName:      DefaultDBName,
-			DBType:      *dbType,
-			DSN:         *dsn,
-			OnlyModel:   *onlyModel,
-			GenHook:     *useHook,
-			ModelPath:   *modelPath,
-			DaoPath:     *daoPath,
-			ServicePath: *servicePath,
-			Host:        *host,
-			Port:        *port,
-			User:        *username,
-			Password:    *password,
+			DBName:         DefaultDBName,
+			DBType:         *dbType,
+			DSN:            *dsn,
+			OnlyModel:      *onlyModel,
+			GenHook:        *useHook,
+			ModelPath:      *modelPath,
+			DaoPath:        *daoPath,
+			ServicePath:    *servicePath,
+			Host:           *host,
+			Port:           *port,
+			User:           *username,
+			Password:       *password,
+			UseSQLNullable: *useSQLNullable,
 			Tables: []*configx.TableInfo{
 				{
 					SchemaName: *schema,

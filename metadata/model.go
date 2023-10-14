@@ -364,15 +364,15 @@ import (
 )
 
 // BeforeSave invoked before saving, return an error.
-func ({{.ModelShortName}} *{{.ModelStructName}}) BeforeSave() (err error) {
+func ({{.ModelShortName}} *{{.ModelStructName}}) BeforeSave(tx *gorm.DB) (err error) {
 	// TODO: something
-	return nil
+	return 
 }
 
 // AfterSave invoked after saving, return an error if field is not populated.
-func ({{.ModelShortName}} *{{.ModelStructName}}) AfterSave() (err error) {
+func ({{.ModelShortName}} *{{.ModelStructName}}) AfterSave(tx *gorm.DB) (err error) {
 	// TODO: something
-	return nil
+	return 
 }
 
 // BeforeCreate invoked before create, return an error.
@@ -388,9 +388,9 @@ func ({{.ModelShortName}} *{{.ModelStructName}}) AfterCreate(tx *gorm.DB) (err e
 }
 
 // BeforeUpdate invoked before update, return an error.
-func ({{.ModelShortName}} *{{.ModelStructName}}) BeforeUpdate() (err error) {
+func ({{.ModelShortName}} *{{.ModelStructName}}) BeforeUpdate(tx *gorm.DB) (err error) {
 	// TODO: something
-	return nil
+	return 
 }
 
 // AfterUpdate invoked after update, return an error.
@@ -400,9 +400,9 @@ func ({{.ModelShortName}} *{{.ModelStructName}}) AfterUpdate(tx *gorm.DB) (err e
 }
 
 // BeforeDelete invoked before delete, return an error.
-func ({{.ModelShortName}} *{{.ModelStructName}}) BeforeDelete() (err error) {
+func ({{.ModelShortName}} *{{.ModelStructName}}) BeforeDelete(tx *gorm.DB) (err error) {
 	// TODO: something
-	return nil
+	return 
 }
 
 // AfterDelete invoked after delete, return an error.

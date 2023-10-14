@@ -344,6 +344,9 @@ func UnderscoreToLowerCamelCase(s string) string {
 			return strings.ToLower(key) + s[len(key):]
 		}
 	}
+	if ToUpper(s) == s {
+		return ToLower(s)
+	}
 	s = UnderscoreToUpperCamelCase(s)
 	return string(unicode.ToLower(rune(s[0]))) + s[1:]
 }
