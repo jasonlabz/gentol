@@ -114,10 +114,10 @@ type {{.ModelStructName}}Dao interface {
 	UpdateRecords(ctx context.Context, records []*model.{{.ModelStructName}}) (affect int64, err error)
 
 	// UpdateByCondition 更新指定条件下的记录
-	UpdateByCondition(ctx context.Context, condition *model.Condition, updateField *model.UpdateField) (affect int64, err error)
+	UpdateByCondition(ctx context.Context, condition *model.Condition, updateField model.UpdateField) (affect int64, err error)
 	
 	// UpdateByPrimaryKey 更新主键的记录
-	UpdateByPrimaryKey(ctx context.Context, {{range .PrimaryKeyList}}{{.GoColumnName}} {{.GoColumnOriginType}}, {{end}}updateField *model.UpdateField) (affect int64, err error)
+	UpdateByPrimaryKey(ctx context.Context, {{range .PrimaryKeyList}}{{.GoColumnName}} {{.GoColumnOriginType}}, {{end}}updateField model.UpdateField) (affect int64, err error)
 	
 	// Insert 插入记录
 	Insert(ctx context.Context, record *model.{{.ModelStructName}}) (affect int64, err error)
@@ -310,7 +310,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateRecords(ctx con
 	return
 }
 
-func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateByCondition(ctx context.Context, condition *model.Condition, updateField *model.UpdateField) (affect int64, err error) {
+func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateByCondition(ctx context.Context, condition *model.Condition, updateField model.UpdateField) (affect int64, err error) {
 	tx := DB().WithContext(ctx).
 		Table(model.TableName{{.ModelStructName}})
 		if condition != nil {
@@ -321,13 +321,13 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateByCondition(ctx
 			tx = tx.Where(condition.MapCondition)
 		}
 	}
-	tx = tx.Updates(updateField)
+	tx = tx.Updates(map[string]any(updateField))
 	affect = tx.RowsAffected
 	err = tx.Error
 	return
 }
 
-func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateByPrimaryKey(ctx context.Context, {{range .PrimaryKeyList}}{{.GoColumnName}} {{.GoColumnOriginType}}, {{end}}updateField *model.UpdateField) (affect int64, err error) {
+func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateByPrimaryKey(ctx context.Context, {{range .PrimaryKeyList}}{{.GoColumnName}} {{.GoColumnOriginType}}, {{end}}updateField model.UpdateField) (affect int64, err error) {
 	whereCondition := map[string]any{
  		{{ range .PrimaryKeyList -}}
 		"{{- .GoFieldName -}}": {{- .GoColumnName }},
@@ -336,7 +336,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateByPrimaryKey(ct
 	tx := DB().WithContext(ctx).
 		Table(model.TableName{{.ModelStructName}}).
 		Where(whereCondition)
-	tx = tx.Updates(updateField)
+	tx = tx.Updates(map[string]any(updateField))
 	affect = tx.RowsAffected
 	err = tx.Error
 	return
