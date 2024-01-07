@@ -17,7 +17,7 @@ var DatabaseDsnMap = map[DBType]string{
 	DBTypeOracle:    "%s/%s@%s:%d/%s",
 	DBTypeMySQL:     "%s:%s@tcp(%s:%d)/%s?parseTime=True&loc=Local",
 	DBTypePostgres:  "user=%s password=%s host=%s port=%d dbname=%s sslmode=disable TimeZone=Asia/Shanghai",
-	DBTypeSqlserver: "user id=%s;password=%s;server=%s;port=%d;database=%s",
+	DBTypeSqlserver: "user id=%s;password=%s;server=%s;port=%d;database=%s;encrypt=disable",
 	DBTypeGreenplum: "user=%s password=%s host=%s port=%d dbname=%s sslmode=disable TimeZone=Asia/Shanghai",
 }
 
@@ -26,6 +26,6 @@ var JDBCUrlMap = map[DBType]string{
 	DBTypeOracle:    "jdbc:oracle:thin:@%s:%d/%s",
 	DBTypeMySQL:     "jdbc:mysql://%s:%d/%s?parseTime=True&loc=Local",
 	DBTypePostgres:  "jdbc:postgresql://%s:%d/%s",
-	DBTypeSqlserver: "jdbc:sqlserver://%s:%d;DatabaseName=%s",
+	DBTypeSqlserver: "jdbc:sqlserver://%s:%d;DatabaseName=%s;encrypt=disable",
 	DBTypeGreenplum: "jdbc:postgresql://%s:%d/%s",
 }
