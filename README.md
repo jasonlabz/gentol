@@ -456,7 +456,7 @@ type UserDao interface {
 	// 构建查询条件
 	userCondition := &model.UserCondition{}
 	userCondition.UserIDEqualTo(userID).GenderEqualTo(1)
-	// 提供查询指定字段
+	// 提供查询指定字段， 默认查询该表全部字段：s.userDao.SelectRecordByCondition(ctx, userCondition.Build()）
 	column := userCondition.ColumnInfo()
 	userList, err := s.userDao.SelectRecordByCondition(ctx, userCondition.Build(), column.UserID, column.Nickname, column.Password)
 	if err != nil {
