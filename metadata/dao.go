@@ -127,11 +127,11 @@ type {{.ModelStructName}}Dao interface {
 	
 	// InsertOrUpdateOnDuplicateKey 插入记录，假如唯一键冲突则更新
 	InsertOrUpdateOnDuplicateKey(ctx context.Context, record *{{.ModelPackageName}}.{{.ModelStructName}},
-	uniqueKeys ...{{.ModelStructName}}Field) (affect int64, err error)
+	uniqueKeys ...{{.ModelPackageName}}.{{.ModelStructName}}Field) (affect int64, err error)
 	
 	// BatchInsertOrUpdateOnDuplicateKey 批量插入记录，假如唯一键冲突则更新
 	BatchInsertOrUpdateOnDuplicateKey(ctx context.Context, records []*{{.ModelPackageName}}.{{.ModelStructName}},
-	uniqueKeys ...{{.ModelStructName}}Field) (affect int64, err error)
+	uniqueKeys ...{{.ModelPackageName}}.{{.ModelStructName}}Field) (affect int64, err error)
 }
 
 `
