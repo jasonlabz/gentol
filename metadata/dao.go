@@ -363,7 +363,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) BatchInsert(ctx conte
 }
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) InsertOrUpdateOnDuplicateKey(ctx context.Context, record *{{.ModelPackageName}}.{{.ModelStructName}},
-	uniqueKeys ...{{.ModelStructName}}Field) (affect int64, err error) {
+	uniqueKeys ...{{.ModelPackageName}}.{{.ModelStructName}}Field) (affect int64, err error) {
 	columns := make([]clause.Column, 0)
 	for _, field := range uniqueKeys {
 		columns = append(columns, clause.Column{
@@ -382,7 +382,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) InsertOrUpdateOnDupli
 }
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) BatchInsertOrUpdateOnDuplicateKey(ctx context.Context, records []*{{.ModelPackageName}}.{{.ModelStructName}},
-	uniqueKeys ...{{.ModelStructName}}Field) (affect int64, err error) {
+	uniqueKeys ...{{.ModelPackageName}}.{{.ModelStructName}}Field) (affect int64, err error) {
 	columns := make([]clause.Column, 0)
 	for _, field := range uniqueKeys {
 		columns = append(columns, clause.Column{
