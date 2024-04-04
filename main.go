@@ -15,31 +15,33 @@ import (
 )
 
 func main() {
+	handleDB()
+}
+
+func handleDB() {
 	tableConfigs := configx.TableConfigs
-	//gormAnnotation := tableConfigs.AddGormAnnotation
-	//protobufAnnotation := tableConfigs.AddProtobufAnnotation
-	//gormAnnotation := tableConfigs.RunGoFmt
-	//jsonFormat := tableConfigs.JsonFormat
-	//xmlFormat := tableConfigs.XMLFormat
-	//protobufFormat := tableConfigs.ProtobufFormat
 
 	for _, dbInfo := range tableConfigs.Configs {
 		modPath, _ := filepath.Abs(fmt.Sprintf(".%sgo.mod", string(os.PathSeparator)))
-		var relationModelPath = dbInfo.ModelPath
-		var relationDaoPath = dbInfo.DaoPath
+		var relativeModelPath = dbInfo.ModelPath
+		var relativeDaoPath = dbInfo.DaoPath
+
+		// 是否已经读取go.mod文件
 		var findModule bool
 		if filepath.IsAbs(dbInfo.ModelPath) && tableConfigs.GoModule != "" {
+			// 截断golang项目名称
 			lastIndex := strings.LastIndex(dbInfo.ModelPath, tableConfigs.GoModule)
 			if lastIndex != -1 {
 				modPath = dbInfo.ModelPath[:lastIndex+len(tableConfigs.GoModule)] + fmt.Sprintf("%sgo.mod", string(os.PathSeparator))
-				relationModelPath = strings.ReplaceAll(dbInfo.ModelPath[lastIndex+len(tableConfigs.GoModule)+1:], string(os.PathSeparator), "/")
+				relativeModelPath = strings.ReplaceAll(dbInfo.ModelPath[lastIndex+len(tableConfigs.GoModule)+1:], string(os.PathSeparator), "/")
 			}
 		}
 		if filepath.IsAbs(dbInfo.DaoPath) && tableConfigs.GoModule != "" {
+			// 截断golang项目名称
 			lastIndex := strings.LastIndex(dbInfo.DaoPath, tableConfigs.GoModule)
 			if lastIndex != -1 {
 				modPath = dbInfo.DaoPath[:lastIndex+len(tableConfigs.GoModule)] + fmt.Sprintf("%sgo.mod", string(os.PathSeparator))
-				relationDaoPath = strings.ReplaceAll(dbInfo.DaoPath[lastIndex+len(tableConfigs.GoModule)+1:], string(os.PathSeparator), "/")
+				relativeDaoPath = strings.ReplaceAll(dbInfo.DaoPath[lastIndex+len(tableConfigs.GoModule)+1:], string(os.PathSeparator), "/")
 			}
 		}
 		if IsExist(modPath) {
@@ -56,29 +58,50 @@ func main() {
 						break
 					}
 					findModule = true
-					relationModelPath = strings.ReplaceAll(relationModelPath, modPath[:strings.LastIndex(modPath, string(os.PathSeparator))], "")
-					relationDaoPath = strings.ReplaceAll(relationDaoPath, modPath[:strings.LastIndex(modPath, string(os.PathSeparator))], "")
+					relativeModelPath = strings.ReplaceAll(relativeModelPath, modPath[:strings.LastIndex(modPath, string(os.PathSeparator))], "")
+					relativeDaoPath = strings.ReplaceAll(relativeDaoPath, modPath[:strings.LastIndex(modPath, string(os.PathSeparator))], "")
 					dbInfo.ModelModule = strings.TrimSpace(strings.ReplaceAll(lineText, "module ", "")) +
-						"/" + strings.TrimLeft(strings.ReplaceAll(relationModelPath, string(os.PathSeparator), "/"), "/")
+						"/" + strings.TrimLeft(strings.ReplaceAll(relativeModelPath, string(os.PathSeparator), "/"), "/")
 					dbInfo.DaoModule = strings.TrimSpace(strings.ReplaceAll(lineText, "module ", "")) +
-						"/" + strings.TrimLeft(strings.ReplaceAll(relationDaoPath, string(os.PathSeparator), "/"), "/")
+						"/" + strings.TrimLeft(strings.ReplaceAll(relativeDaoPath, string(os.PathSeparator), "/"), "/")
 					break
 				}
 			}
 		}
 
 		if !findModule {
-			modelAbsPath, err := filepath.Abs(dbInfo.ModelPath)
-			daoAbsPath, err := filepath.Abs(dbInfo.DaoPath)
-			if err != nil {
-				goto process
-			}
+			// 没有找到，则遍历目录
+			modelAbsPath := func() string {
+				if filepath.IsAbs(dbInfo.ModelPath) {
+					return dbInfo.ModelPath
+				}
+				trimLeft := strings.TrimLeft(dbInfo.ModelPath, "."+string(os.PathSeparator))
+				trimLeft = strings.TrimLeft(trimLeft, "./")
+				abs, err := filepath.Abs(trimLeft)
+				if err != nil {
+					abs = dbInfo.ModelPath
+				}
+				return abs
+			}()
+			daoAbsPath := func() string {
+				if filepath.IsAbs(dbInfo.DaoPath) {
+					return dbInfo.DaoPath
+				}
+				trimLeft := strings.TrimLeft(dbInfo.DaoPath, "."+string(os.PathSeparator))
+				trimLeft = strings.TrimLeft(trimLeft, "./")
+				abs, err := filepath.Abs(trimLeft)
+				if err != nil {
+					abs = dbInfo.DaoPath
+				}
+				return abs
+			}()
+
 			var rangePath = modelAbsPath
 			for len(rangePath) > 0 {
 				modPath = filepath.Join(rangePath, "go.mod")
 				if IsExist(modPath) {
-					relationModelPath = strings.ReplaceAll(strings.ReplaceAll(modelAbsPath, rangePath, ""), string(os.PathSeparator), "/")
-					relationDaoPath = strings.ReplaceAll(strings.ReplaceAll(daoAbsPath, rangePath, ""), string(os.PathSeparator), "/")
+					relativeModelPath = strings.ReplaceAll(strings.ReplaceAll(modelAbsPath, rangePath, ""), string(os.PathSeparator), "/")
+					relativeDaoPath = strings.ReplaceAll(strings.ReplaceAll(daoAbsPath, rangePath, ""), string(os.PathSeparator), "/")
 					modFile, err := os.Open(modPath)
 					if err != nil {
 						break
@@ -89,9 +112,9 @@ func main() {
 						lineText := scanner.Text()
 						if strings.Contains(lineText, "module ") {
 							dbInfo.ModelModule = strings.TrimSpace(strings.ReplaceAll(lineText, "module ", "")) +
-								"/" + strings.TrimLeft(strings.ReplaceAll(relationModelPath, string(os.PathSeparator), "/"), "/")
+								"/" + strings.TrimLeft(strings.ReplaceAll(relativeModelPath, string(os.PathSeparator), "/"), "/")
 							dbInfo.DaoModule = strings.TrimSpace(strings.ReplaceAll(lineText, "module ", "")) +
-								"/" + strings.TrimLeft(strings.ReplaceAll(relationDaoPath, string(os.PathSeparator), "/"), "/")
+								"/" + strings.TrimLeft(strings.ReplaceAll(relativeDaoPath, string(os.PathSeparator), "/"), "/")
 							goto process
 						}
 					}

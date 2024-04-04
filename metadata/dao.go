@@ -126,10 +126,12 @@ type {{.ModelStructName}}Dao interface {
 	BatchInsert(ctx context.Context, records []*{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error)
 	
 	// InsertOrUpdateOnDuplicateKey 插入记录，假如唯一键冲突则更新
-	InsertOrUpdateOnDuplicateKey(ctx context.Context, record *{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error)
+	InsertOrUpdateOnDuplicateKey(ctx context.Context, record *{{.ModelPackageName}}.{{.ModelStructName}},
+	uniqueKeys ...{{.ModelStructName}}Field) (affect int64, err error)
 	
 	// BatchInsertOrUpdateOnDuplicateKey 批量插入记录，假如唯一键冲突则更新
-	BatchInsertOrUpdateOnDuplicateKey(ctx context.Context, records []*{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error)
+	BatchInsertOrUpdateOnDuplicateKey(ctx context.Context, records []*{{.ModelPackageName}}.{{.ModelStructName}},
+	uniqueKeys ...{{.ModelStructName}}Field) (affect int64, err error)
 }
 
 `
@@ -360,10 +362,18 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) BatchInsert(ctx conte
 	return
 }
 
-func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) InsertOrUpdateOnDuplicateKey(ctx context.Context, record *{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error) {
+func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) InsertOrUpdateOnDuplicateKey(ctx context.Context, record *{{.ModelPackageName}}.{{.ModelStructName}},
+	uniqueKeys ...{{.ModelStructName}}Field) (affect int64, err error) {
+	columns := make([]clause.Column, 0)
+	for _, field := range uniqueKeys {
+		columns = append(columns, clause.Column{
+			Name: string(field),
+		})
+	}
 	tx := DB().WithContext(ctx).
 		Table({{.ModelPackageName}}.TableName{{.ModelStructName}}).
 		Clauses(clause.OnConflict{
+			Columns:   columns,
 			UpdateAll: true,
 		}).Create(&record)
 	affect = tx.RowsAffected
@@ -371,10 +381,18 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) InsertOrUpdateOnDupli
 	return
 }
 
-func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) BatchInsertOrUpdateOnDuplicateKey(ctx context.Context, records []*{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error) {
+func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) BatchInsertOrUpdateOnDuplicateKey(ctx context.Context, records []*{{.ModelPackageName}}.{{.ModelStructName}},
+	uniqueKeys ...{{.ModelStructName}}Field) (affect int64, err error) {
+	columns := make([]clause.Column, 0)
+	for _, field := range uniqueKeys {
+		columns = append(columns, clause.Column{
+			Name: string(field),
+		})
+	}
 	tx := DB().WithContext(ctx).
 		Table({{.ModelPackageName}}.TableName{{.ModelStructName}}).
 		Clauses(clause.OnConflict{
+			Columns:   columns,
 			UpdateAll: true,
 		}).Create(&records)
 	affect = tx.RowsAffected

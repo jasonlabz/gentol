@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/jasonlabz/gentol/configx"
 	"github.com/pborman/getopt/v2"
+	"os"
 	"strings"
 	"sync"
 )
@@ -96,5 +97,13 @@ func init() {
 		configx.TableConfigs.Configs = []*configx.DBTableInfo{
 			databaseConfig,
 		}
+	}
+}
+
+func argHandler() {
+	// gentol new
+	secondStr := os.Args[1]
+	if secondStr == "new" {
+
 	}
 }
