@@ -2,7 +2,6 @@ package gormx
 
 import (
 	"fmt"
-	"strings"
 	"time"
 )
 
@@ -29,34 +28,6 @@ type Config struct {
 	SSLMode         string        `json:"ssl_mode"`
 	TimeZone        string        `json:"time_zone"`
 	Charset         string        `json:"charset"`
-}
-
-func (c *Config) GetDataBase() (database string) {
-	if c.Database != "" {
-		return c.Database
-	}
-	dsn := c.GenDSN()
-	switch c.DBType {
-	case DBTypeMySQL:
-		split := strings.Split(dsn, "/")
-		database = split[len(split)-1]
-		database = strings.ReplaceAll(database, "?parseTime=True&loc=Local", "")
-	case DBTypeGreenplum:
-		fallthrough
-	case DBTypePostgres:
-		split := strings.Split(dsn, " ")
-		database = split[4]
-		database = strings.ReplaceAll(database, "dbname=", "")
-	case DBTypeOracle:
-		split := strings.Split(dsn, "/")
-		database = split[len(split)-1]
-	case DBTypeSqlserver:
-		split := strings.Split(dsn, "database=")
-		database = split[len(split)-1]
-	default:
-		return ""
-	}
-	return
 }
 
 func (c *Config) GenDSN() (dsn string) {

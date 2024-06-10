@@ -140,6 +140,11 @@ func handleDB() {
 			panic(err)
 		}
 		checkDupTableMap := make(map[string]map[string]bool, 0)
+		if len(dbInfo.Tables) == 0 {
+			dbInfo.Tables = []*configx.TableInfo{
+				{SchemaName: "", TableList: []string{}},
+			}
+		}
 		for _, tableInfo := range dbInfo.Tables {
 			schemaName := strings.Trim(tableInfo.SchemaName, "\"")
 

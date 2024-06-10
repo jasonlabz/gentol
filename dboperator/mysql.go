@@ -76,7 +76,7 @@ func (m MySQLOperator) GetTablesUnderDB(ctx context.Context, dbName string) (dbT
 			"TABLE_COMMENT as comments " +
 			"FROM INFORMATION_SCHEMA.TABLES " +
 			"WHERE TABLE_TYPE = 'BASE TABLE' " +
-			"AND TABLE_SCHEMA NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema') " +
+			"AND TABLE_SCHEMA =  DATABASE() " +
 			"ORDER  BY TABLE_SCHEMA, TABLE_NAME").
 		Find(&gormDBTables).Error
 	if err != nil {
