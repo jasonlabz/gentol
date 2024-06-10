@@ -64,17 +64,21 @@ func (c *Config) GenDSN() (dsn string) {
 		return c.DSN
 	}
 
-	dbName := c.Database
-	if dbName == "" {
-		dbName = c.DBName
+	switch c.DBType {
+	case DBTypeSQLite:
+		//dsn = c.DSN
+	default:
+		dbName := c.Database
+		if dbName == "" {
+			dbName = c.DBName
+		}
+		dsnTemplate, ok := DatabaseDsnMap[c.DBType]
+		if !ok {
+			return
+		}
+		c.DSN = fmt.Sprintf(dsnTemplate, c.User, c.Password, c.Host, c.Port, dbName)
 	}
-	dsnTemplate, ok := DatabaseDsnMap[c.DBType]
-	if !ok {
-		return
-	}
-	dsn = fmt.Sprintf(dsnTemplate, c.User, c.Password, c.Host, c.Port, dbName)
-
-	c.DSN = dsn
+	dsn = c.DSN
 	return
 }
 

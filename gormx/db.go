@@ -3,12 +3,13 @@ package gormx
 import (
 	"errors"
 	"fmt"
-	//"github.com/onlyzzg/oracle"
+	"sync"
+
+	"github.com/jasonlabz/oracle"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlserver"
 	"gorm.io/gorm"
-	"sync"
 )
 
 var dbMap *sync.Map
@@ -45,8 +46,8 @@ func LoadDBInstance(config *Config) (*gorm.DB, error) {
 		fallthrough
 	case DBTypePostgres:
 		dialect = postgres.Open(config.DSN)
-	//case DBTypeOracle:
-	//dialect = oracle.Open(config.DSN)
+	case DBTypeOracle:
+		dialect = oracle.Open(config.DSN)
 	case DBTypeSqlserver:
 		dialect = sqlserver.Open(config.DSN)
 	default:
@@ -104,8 +105,8 @@ func InitConfig(config *Config) error {
 		fallthrough
 	case DBTypePostgres:
 		dialect = postgres.Open(config.DSN)
-	//case DBTypeOracle:
-	//	dialect = oracle.Open(config.DSN)
+	case DBTypeOracle:
+		dialect = oracle.Open(config.DSN)
 	case DBTypeSqlserver:
 		dialect = sqlserver.Open(config.DSN)
 	default:

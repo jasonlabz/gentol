@@ -71,7 +71,7 @@ func (G GPOperator) GetTablesUnderDB(ctx context.Context, dbName string) (dbTabl
 		return
 	}
 	err = db.WithContext(ctx).
-		Raw("SELECT tb.schemaname as table_schema, " +
+		Raw("SELECT  distinct  tb.schemaname as table_schema, " +
 			"tb.tablename as table_name, " +
 			"d.description as comments " +
 			"FROM pg_tables tb " +
