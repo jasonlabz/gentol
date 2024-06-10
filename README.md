@@ -6,7 +6,7 @@
 
 ## 功能特点
 
-- 支持多种数据库类型，如MySQL、PostgreSQL、Oracle、SqlServer等
+- 支持多种数据库类型，如MySQL、PostgreSQL、Oracle、SqlServer等(为不受CGO编译影响，oracle&sqlite支持在 oracle_sqlite分支)
 - 支持以shell命令的方式使用，或者下载源码，通过配置table.yaml生成代码
 - 根据数据库表结构自动生成相应的model和dao层代码
 - 可自定义代码生成模板，满足不同项目需求
@@ -17,6 +17,9 @@
 1. 下载并安装该工具。
 ```shell
 go install github.com/jasonlabz/gentol@master
+
+或者额外支持 oracle & sqlite 
+go install github.com/jasonlabz/gentol@oracle_sqlite
 ```
 2. 使用工具。
 ```shell
