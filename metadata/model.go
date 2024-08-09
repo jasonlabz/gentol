@@ -193,7 +193,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/guregu/null"
+	"github.com/guregu/null/v5"
 	"github.com/satori/go.uuid"
 	{{range .ImportPkgList}}{{.}} ` + "\n" + `{{end}}
 )
