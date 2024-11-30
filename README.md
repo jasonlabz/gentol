@@ -14,15 +14,15 @@
 
 ## 如何使用
 
-1. 下载并安装该工具。
+#### 1. 下载并安装该工具。
 ```shell
 go install github.com/jasonlabz/gentol@master
 
 或者额外支持 oracle & sqlite 
 go install github.com/jasonlabz/gentol@oracle_sqlite
 ```
-2. 使用工具。
-- 生成gin项目
+#### 2. 使用工具。
+##### 用法一：生成gin项目
 ```shell
 gentol new|init [project_name|module_name]
 
@@ -71,7 +71,7 @@ F:.
 ```
 
 
-- 生成dao、model层代码
+##### 用法二：生成dao、model层代码
 ```shell
 gentol [--dao value] [-d value] [--db_type value] [--dsn value] [--gogoproto value] [--grpc value] [-h value] [--json_format value] [--model value] [--only_model] [--out value] [-P value] [-p value] [--proto] [--protobuf_format value] [--rungofmt] [-s value] [--service value] [-t value] [--template_dir value] [--use_sql_nullable] [-U value] [parameters ...]
      --dao=value    name to set for dao package [dal/db/dao]
@@ -108,11 +108,11 @@ tips: 当提供`--dsn`选项后，无需`--host --port --username --password`；
 
 示例: 
 
-1、postgresql
+**postgresql**
 
 `gentol --db_type="postgres" --dsn="user=postgres password=XXXXX host=127.0.0.1 port=8432 dbname=dbName sslmode=disable TimeZone=Asia/Shanghai" --schema="public"`
 
-2、mysql
+**mysql**
 
 `gentol --db_type="mysql" --dsn="%s:%s@tcp(%s:%d)/%s?parseTime=True&loc=Local" --table="table1,table2" --only_model`
 
