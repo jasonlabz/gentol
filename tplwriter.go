@@ -19,14 +19,14 @@ func RenderingTemplate(templateInfo *metadata.Template, dataGen metadata.IBaseDa
 	var file *os.File
 	data := dataGen.GenRenderData()
 	if !IsExist(outFilePath) && !overwrite {
-		file, err = os.OpenFile(outFilePath, os.O_CREATE|os.O_RDWR, 0666)
+		file, err = os.OpenFile(outFilePath, os.O_CREATE|os.O_RDWR, 0644)
 		if err != nil {
 			fmt.Printf("open file error %s\n", err.Error())
 			return
 		}
 	} else {
 		if overwrite {
-			file, err = os.OpenFile(outFilePath, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
+			file, err = os.OpenFile(outFilePath, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0644)
 			if err != nil {
 				fmt.Printf("overwrite true: open file error %s\n", err.Error())
 				return
@@ -129,7 +129,7 @@ func WriteModel(dbInfo *configx.DBTableInfo, schemaName, tableName string, colum
 	ff, _ := filepath.Abs(filepath.Join(modelData.ModelPath, modelData.TableName+".go"))
 	err := RenderingTemplate(modelTpl, modelData, ff, true)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("err occured: ", err)
 		return
 	}
 
@@ -144,7 +144,7 @@ func WriteModel(dbInfo *configx.DBTableInfo, schemaName, tableName string, colum
 		}
 		err = RenderingTemplate(modelHookTpl, modelData, ff, true)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println("err occured: ", err)
 			return
 		}
 	}
@@ -157,7 +157,7 @@ func WriteModel(dbInfo *configx.DBTableInfo, schemaName, tableName string, colum
 	}
 	err = RenderingTemplate(modelBaseTpl, modelData, ff, true)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("err occured: ", err)
 		return
 	}
 	return
@@ -192,7 +192,7 @@ func WriteDao(dbInfo *configx.DBTableInfo, schemaName, tableName string, columnT
 	ff, _ := filepath.Abs(filepath.Join(daoInterfacePath, daoData.TableName+"_dao.go"))
 	err := RenderingTemplate(daoTpl, daoData, ff, true)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("err occured: ", err)
 		return
 	}
 	implDir := filepath.Join(daoData.DaoPath, "impl")
@@ -208,7 +208,7 @@ func WriteDao(dbInfo *configx.DBTableInfo, schemaName, tableName string, columnT
 	}
 	err = RenderingTemplate(daoImplTpl, daoData, ff, true)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("err occured: ", err)
 		return
 	}
 	baseFile := filepath.Join(daoData.DaoPath, "impl", "db.go")
@@ -221,7 +221,7 @@ func WriteDao(dbInfo *configx.DBTableInfo, schemaName, tableName string, columnT
 	}
 	err = RenderingTemplate(daoBaseTpl, daoData, ff, true)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("err occured: ", err)
 		return
 	}
 	return

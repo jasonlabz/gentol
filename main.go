@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/jasonlabz/gentol/configx"
@@ -15,7 +16,29 @@ import (
 )
 
 func main() {
-	handleDB()
+	switch os.Args[1] {
+	case "init", "new":
+		projectName := os.Args[2]
+		if projectName == "" {
+			projectName = "demo"
+		}
+		match, _ := regexp.MatchString("^[a-zA-Z0-9]+$", projectName)
+		if !match {
+			log.Fatalf("project name is not valid, only in [a-zA-Z0-9]")
+		}
+		handleNewProject(projectName)
+	//case "update":
+	//	version := os.Args[2]
+	//	if version == "" {
+	//		version = "master"
+	//	}
+
+	default:
+		// 参数获取
+		argHandler()
+		// 分析数据库
+		handleDB()
+	}
 }
 
 func handleDB() {

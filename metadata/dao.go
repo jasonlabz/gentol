@@ -1,8 +1,9 @@
 package metadata
 
 import (
-	"github.com/jasonlabz/gentol/gormx"
 	"strings"
+
+	"github.com/jasonlabz/gentol/gormx"
 )
 
 type DaoMeta struct {
