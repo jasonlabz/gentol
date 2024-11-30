@@ -50,7 +50,7 @@ func LoadDBInstance(config *Config) (*gorm.DB, error) {
 	//	dialect = oracle.Open(config.DSN)
 	case DBTypeSqlserver:
 		dialect = sqlserver.Open(config.DSN)
-	case DatabaseTypeDM:
+	case DBTypeDM:
 		dialect = dm.Open(config.DSN)
 	default:
 		return nil, errors.New(fmt.Sprintf("unsupported dbType: %s", string(config.DBType)))
