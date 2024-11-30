@@ -2,13 +2,14 @@ package configx
 
 import (
 	"fmt"
-	"github.com/jasonlabz/gentol/gormx"
 	"log"
 	"os"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
+
+	"github.com/jasonlabz/gentol/gormx"
 )
 
 var DefaultPath = "conf/table.yaml"
