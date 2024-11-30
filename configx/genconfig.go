@@ -90,7 +90,7 @@ func LoadConfigFromYaml(configPath string) {
 	}
 	err = yaml.Unmarshal(file, TableConfigs)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("err occured: ", err)
 		return
 	}
 }

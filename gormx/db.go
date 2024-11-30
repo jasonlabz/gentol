@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	dm "github.com/jasonlabz/gorm-dm-driver"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlserver"
@@ -49,6 +50,8 @@ func LoadDBInstance(config *Config) (*gorm.DB, error) {
 	//	dialect = oracle.Open(config.DSN)
 	case DBTypeSqlserver:
 		dialect = sqlserver.Open(config.DSN)
+	case DatabaseTypeDM:
+		dialect = dm.Open(config.DSN)
 	default:
 		return nil, errors.New(fmt.Sprintf("unsupported dbType: %s", string(config.DBType)))
 	}

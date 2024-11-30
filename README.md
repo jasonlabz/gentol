@@ -1,15 +1,15 @@
-# Golang常用数据库的model、dao层低代码生成工具
+# Golang代码生成工具：支持数据库model、dao层代码生成&&gin项目生成
 
 ## 概述
 
-**gentol**工具旨在简化Golang中常用数据库的model和dao层的代码生成过程，提高开发效率。它通过分析数据库结构，自动生成相应的model和dao层代码，让您能够快速创建数据库访问层。目前工具在不定期更新中
+**gentol**工具旨在简化Golang中一些通用化的代码逻辑编写过程，提高开发效率。其中包含常用数据库的model和dao层的代码生成过程、gin项目初始化生成过程。对于初建项目时，它简单生成一套可用的gin程序代码，通过简单配置即可运行。对于数据库操作代码逻辑，它通过分析数据库结构，自动生成相应的model和dao层代码，让您能够快速创建数据库访问层。目前工具在不定期更新中
 
 ## 功能特点
 
-- 支持多种数据库类型，如MySQL、PostgreSQL、Oracle、SqlServer等(为不受CGO编译影响，oracle&sqlite支持在 oracle_sqlite分支)
+- 支持初始化gin项目代码，简化项目搭建成本。
+- 支持多种数据库类型，如达梦数据库、MySQL、PostgreSQL、Oracle、SqlServer、sqlite(为不受CGO编译影响，oracle&sqlite支持在 oracle_sqlite分支)
 - 支持以shell命令的方式使用，或者下载源码，通过配置table.yaml生成代码
 - 根据数据库表结构自动生成相应的model和dao层代码
-- 可自定义代码生成模板，满足不同项目需求
 - 支持生成符合项目规范的代码，如命名规范、注释等
 
 ## 如何使用
@@ -22,6 +22,56 @@ go install github.com/jasonlabz/gentol@master
 go install github.com/jasonlabz/gentol@oracle_sqlite
 ```
 2. 使用工具。
+- 生成gin项目
+```shell
+gentol new|init [project_name|module_name]
+
+例如：gentol new projectA
+     gentol new github.com/XXX/projectB
+     
+     
+生成项目：
+PS F:\baidu\aiib-go\gentol\testPro> ls
+
+    目录: F:\baidu\aiib-go\gentol\testPro
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        2024/11/30     15:14                bootstrap
+d-----        2024/11/30     15:14                cmd
+d-----        2024/11/30     15:14                common
+d-----        2024/11/30     15:14                conf
+d-----        2024/11/30     15:14                docs
+d-----        2024/11/30     15:14                server
+-a----        2024/11/30     15:14           4742 go.mod
+-a----        2024/11/30     15:14           3511 main.go
+-a----        2024/11/30     15:14           2606 README.md
+
+PS F:\baidu\aiib-go\gentol\testPro> tree
+
+F:.
+├─bootstrap
+├─cmd
+│  └─demo_program
+├─common
+│  ├─consts
+│  ├─ginx
+│  └─helper
+├─conf
+│  └─schema
+├─docs
+└─server
+    ├─controller
+    ├─middleware
+    ├─routers
+    └─service
+        └─health_check
+            └─dto
+```
+
+
+- 生成dao、model层代码
 ```shell
 gentol [--dao value] [-d value] [--db_type value] [--dsn value] [--gogoproto value] [--grpc value] [-h value] [--json_format value] [--model value] [--only_model] [--out value] [-P value] [-p value] [--proto] [--protobuf_format value] [--rungofmt] [-s value] [--service value] [-t value] [--template_dir value] [--use_sql_nullable] [-U value] [parameters ...]
      --dao=value    name to set for dao package [dal/db/dao]
@@ -70,23 +120,29 @@ tips: 当提供`--dsn`选项后，无需`--host --port --username --password`；
 - gentol工具在提供`db_type、dsn`参数情况下会生成当前数据库（当前模式）下所有表的model以及dao层代码，默认生成路径为`dal/db/dao,dal/model`,
 可以通过参数`--model \ --dao`修改， `--table="table1,table2"`可以指定表列表生成(不提供该参数时生成当前schema下所有table)。
 `--use_sql_nullable`可以替换guregu
+
 ```go
 const (
-	DBTypeOracle    DBType = "oracle"
-	DBTypePostgres  DBType = "postgres"
-	DBTypeMySQL     DBType = "mysql"
-	DBTypeSqlserver DBType = "sqlserver"
-	DBTypeGreenplum DBType = "greenplum"
+    DBTypeOracle    DBType = "oracle"
+    DBTypePostgres  DBType = "postgres"
+    DBTypeMySQL     DBType = "mysql"
+    DBTypeSqlserver DBType = "sqlserver"
+    DBTypeGreenplum DBType = "greenplum"
+    DBTypeSQLite    DBType = "sqlite"
+    DatabaseTypeDM  DBType = "dm"
 )
 
 // DatabaseDsnMap 关系型数据库类型  username、password、address、port、dbname
 var DatabaseDsnMap = map[DBType]string{
-	DBTypeOracle:    "%s/%s@%s:%d/%s",
-	DBTypeMySQL:     "%s:%s@tcp(%s:%d)/%s?parseTime=True&loc=Local",
-	DBTypePostgres:  "user=%s password=%s host=%s port=%d dbname=%s sslmode=disable TimeZone=Asia/Shanghai",
-	DBTypeSqlserver: "user id=%s;password=%s;server=%s;port=%d;database=%s;encrypt=disable",
-	DBTypeGreenplum: "user=%s password=%s host=%s port=%d dbname=%s sslmode=disable TimeZone=Asia/Shanghai",
+    DBTypeSQLite:    "%s",
+    DatabaseTypeDM:  "dm://%s:%s@%s:%d?schema=%s",
+    DBTypeOracle:    "%s/%s@%s:%d/%s",
+    DBTypeMySQL:     "%s:%s@tcp(%s:%d)/%s?parseTime=True&loc=Local&timeout=30s",
+    DBTypePostgres:  "user=%s password=%s host=%s port=%d dbname=%s sslmode=disable TimeZone=Asia/Shanghai",
+    DBTypeSqlserver: "user id=%s;password=%s;server=%s;port=%d;database=%s;encrypt=disable",
+    DBTypeGreenplum: "user=%s password=%s host=%s port=%d dbname=%s sslmode=disable TimeZone=Asia/Shanghai",
 }
+
 ```
 
 3、生成示例

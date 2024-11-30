@@ -52,22 +52,3 @@ func (c *Config) GenDSN() (dsn string) {
 	dsn = c.DSN
 	return
 }
-
-func (c *Config) GenJDBCUrl() (jdbcUrl string) {
-	if c.JDBCUrl != "" {
-		return c.JDBCUrl
-	}
-
-	dbName := c.Database
-	if dbName == "" {
-		dbName = c.DBName
-	}
-	jdbcTemplate, ok := JDBCUrlMap[c.DBType]
-	if !ok {
-		return
-	}
-	jdbcUrl = fmt.Sprintf(jdbcTemplate, c.Host, c.Port, dbName)
-
-	c.JDBCUrl = jdbcUrl
-	return
-}

@@ -99,4 +99,9 @@ func init() {
 	dsMap[gormx.DBTypeSqlserver] = &DS{
 		Operator: dboperator.NewSqlserverOperator(),
 	}
+
+	// dm
+	dsMap[gormx.DBTypeDM] = &DS{
+		Operator: dboperator.NewDMOperator(),
+	}
 }

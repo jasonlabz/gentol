@@ -1,0 +1,63 @@
+application:
+  name: testPro
+  port: 8080
+  prom:
+    enable: false      # Enable prometheus client
+    path: "metrics"   # Default value is "metrics", set path as needed.
+  pprof:
+    enable: true  # Enable PProf tool
+    port: 8082
+debug: true
+kafka:
+  topic: ["XXX"]
+  group_id: "XXX"
+  bootstrap_servers: "XXX:XX,XXX:XX,XXX:XX"
+  security_protocol: "PLAINTEXT"
+  sasl_mechanism: "PLAIN"
+  sasl_username: "XXX"
+  sasl_password: "XXX"
+database:
+  db_type: "mysql"
+  dsn: "user:passwd@tcp(*******:8306)/lg_server?charset=utf8mb4&parseTime=True&loc=Local&timeout=20s"
+#  dsn: "user=postgres password=halojeff host=127.0.0.1 port=8432 dbname=lg_server sslmode=disable TimeZone=Asia/Shanghai"
+  charset: "utf-8"
+  log_mode: "info"
+  max_idle_conn: 10
+  max_open_conn: 100
+redis:
+  endpoints:
+    - "*******:8379"
+  password: "*******"
+  index_db: 0
+  MinIdleConns: 10
+  max_idle_conns: 50
+  max_active_conns: 10
+  max_retry_times: 5
+  master_name:
+  sentinel_username:
+  sentinel_password:
+rabbitmq:
+  host: "*******"
+  port: 8672
+  username: lucas
+  password: "*******"
+crypto:
+  - type: aes
+    key: "wrEDGh75pxAUH8Mr"
+  - type: des
+    key: "b_K3prT8"
+log:
+  # 是否写入文件
+  write_file: true
+  # json|console
+  format: console
+  # error|warn|info|debug
+  log_level: debug
+  # 文件配置
+  log_file_conf:
+    base_path: ./log
+    file_name: service.log
+    max_size: 10
+    max_age: 15
+    max_backups: 30
+    compress: false
