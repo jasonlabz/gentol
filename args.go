@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/jasonlabz/gentol/configx"
-	"github.com/pborman/getopt/v2"
 	"strings"
 	"sync"
+	
+	"github.com/jasonlabz/gentol/configx"
+	"github.com/pborman/getopt/v2"
 )
 
 var once sync.Once
@@ -97,5 +98,5 @@ func argHandler() {
 			databaseConfig,
 		}
 	}
-	handleDB()
+	//handleDB()
 }
