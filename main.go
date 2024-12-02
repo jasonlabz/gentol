@@ -16,6 +16,10 @@ import (
 )
 
 func main() {
+	if len(os.Args) < 1 {
+		process()
+		return
+	}
 	switch os.Args[1] {
 	case "init", "new":
 		projectName := os.Args[2]
@@ -32,13 +36,16 @@ func main() {
 	//	if version == "" {
 	//		version = "master"
 	//	}
-
 	default:
-		// 参数获取
-		argHandler()
-		// 分析数据库
-		handleDB()
+		process()
 	}
+}
+
+func process() {
+	// 参数获取
+	argHandler()
+	// 分析数据库
+	handleDB()
 }
 
 func handleDB() {
