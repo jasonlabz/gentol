@@ -50,6 +50,14 @@ type GormTableColumn struct {
 	DataType    string `db:"data_type"`
 }
 
+type SQLiteTableColumn struct {
+	ColumnName      string `db:"name" gorm:"name"`
+	DataType        string `db:"type" gorm:"type"`
+	IsNullable      int8   `db:"notnull" gorm:"notnull"` // 可否为null
+	PrimaryKey      int8   `db:"pk" gorm:"pk"`           // 是否为主键
+	OrdinalPosition int    `db:"cid" gorm:"cid"`         // 字段序号
+}
+
 type LogicDBInfo struct {
 	SchemaName    string
 	TableInfoList []*TableInfo
