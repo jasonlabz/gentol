@@ -7,7 +7,7 @@
 ## 功能特点
 
 - 支持初始化gin项目代码，简化项目搭建成本。
-- 支持多种数据库类型，如达梦数据库、MySQL、PostgreSQL、Oracle、SqlServer、sqlite(为不受CGO编译影响，oracle&sqlite支持在 oracle_sqlite分支)
+- 支持多种数据库类型，如达梦数据库、MySQL、PostgreSQL、Oracle、SqlServer、sqlite
 - 支持以shell命令的方式使用，或者下载源码，通过配置table.yaml生成代码
 - 根据数据库表结构自动生成相应的model和dao层代码
 - 支持生成符合项目规范的代码，如命名规范、注释等
@@ -17,9 +17,6 @@
 1. 下载并安装该工具。
 ```shell
 go install github.com/jasonlabz/gentol@master
-
-或者额外支持 oracle & sqlite 
-go install github.com/jasonlabz/gentol@oracle_sqlite
 ```
 2. 使用工具。
 - 生成gin项目
