@@ -104,4 +104,9 @@ func init() {
 	dsMap[gormx.DBTypeDM] = &DS{
 		Operator: dboperator.NewDMOperator(),
 	}
+	
+	// sqlite
+	dsMap[gormx.DBTypeSQLite] = &DS{
+		Operator: dboperator.NewSQLiteOperator(),
+	}
 }
