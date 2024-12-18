@@ -95,7 +95,7 @@ func initDB(_ context.Context) {
 		panic(err)
 	}
 	gormConfig.DBName = gormx.DefaultDBNameMaster
-	err = gormx.InitConfig(gormConfig)
+	_, err = gormx.InitConfig(gormConfig)
 	if err != nil {
 		panic(err)
 	}
@@ -831,7 +831,7 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/google/uuid v1.6.0
 	github.com/jasonlabz/knife4go v1.0.1-0.20241118142759-6386e3973279
-	github.com/jasonlabz/potato v0.0.9-0.20241130131449-e45fe56a0ca8
+	github.com/jasonlabz/potato v0.0.9-0.20241217172850-fb16a9a69b88
 )
 
 require (
