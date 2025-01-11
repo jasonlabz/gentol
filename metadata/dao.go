@@ -162,7 +162,7 @@ func Get{{.ModelStructName}}Dao() {{.DaoPackageName}}.{{.ModelStructName}}Dao {
 
 type {{.ModelLowerCamelName}}DaoImpl struct{}
 
-func (u userDaoImpl) tx(ctx context.Context) *gorm.DB {
+func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) tx(ctx context.Context) *gorm.DB {
 	tx, ok := ctx.Value("transactionDB").(*gorm.DB)
 	if ok {
 		return tx
