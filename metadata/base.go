@@ -71,38 +71,89 @@ type BaseConfig struct {
 }
 
 var abbreviationMap = map[string]bool{
-	"API":   true,
-	"ASCII": true,
-	"CPU":   true,
-	"CSS":   true,
-	"DNS":   true,
-	"EOF":   true,
-	"GUID":  true,
-	"HTML":  true,
-	"HTTP":  true,
-	"HTTPS": true,
-	"ID":    true,
-	"IP":    true,
-	"JSON":  true,
-	"LHS":   true,
-	"QPS":   true,
-	"RAM":   true,
-	"RHS":   true,
-	"RPC":   true,
-	"SLA":   true,
-	"SMTP":  true,
-	"SSH":   true,
-	"TLS":   true,
-	"TTL":   true,
-	"UI":    true,
-	"UID":   true,
-	"UUID":  true,
-	"URI":   true,
-	"URL":   true,
-	"UTF8":  true,
-	"VM":    true,
-	"XML":   true,
-	"ACL":   true,
+	"API":   true, // Application Programming Interface（应用程序编程接口）
+	"ASCII": true, // American Standard Code for Information Interchange（美国信息交换标准代码）
+	"CPU":   true, // Central Processing Unit（中央处理器）
+	"CSS":   true, // Cascading Style Sheets（层叠样式表）
+	"DNS":   true, // Domain Name System（域名系统）
+	"EOF":   true, // End of File（文件结束符）
+	"GUID":  true, // Globally Unique Identifier（全局唯一标识符）
+	"HTML":  true, // HyperText Markup Language（超文本标记语言）
+	"HTTP":  true, // HyperText Transfer Protocol（超文本传输协议）
+	"HTTPS": true, // HyperText Transfer Protocol Secure（超文本传输安全协议）
+	"ID":    true, // Identifier（标识符）
+	"IP":    true, // Internet Protocol（互联网协议）
+	"JSON":  true, // JavaScript Object Notation（JavaScript对象表示法）
+	"LHS":   true, // Left-Hand Side（左侧）
+	"QPS":   true, // Queries Per Second（每秒查询数）
+	"RAM":   true, // Random Access Memory（随机存取存储器）
+	"RHS":   true, // Right-Hand Side（右侧）
+	"RPC":   true, // Remote Procedure Call（远程过程调用）
+	"SLA":   true, // Service Level Agreement（服务级别协议）
+	"SMTP":  true, // Simple Mail Transfer Protocol（简单邮件传输协议）
+	"SSH":   true, // Secure Shell（安全外壳协议）
+	"TLS":   true, // Transport Layer Security（传输层安全协议）
+	"TTL":   true, // Time to Live（生存时间）
+	"UI":    true, // User Interface（用户界面）
+	"UID":   true, // User Identifier（用户标识符）
+	"UUID":  true, // Universally Unique Identifier（通用唯一标识符）
+	"URI":   true, // Uniform Resource Identifier（统一资源标识符）
+	"URL":   true, // Uniform Resource Locator（统一资源定位符）
+	"UTF8":  true, // Unicode Transformation Format 8-bit（8位统一码转换格式）
+	"VM":    true, // Virtual Machine（虚拟机）
+	"XML":   true, // Extensible Markup Language（可扩展标记语言）
+	"ACL":   true, // Access Control List（访问控制列表）
+	"DIY":   true, // Do It Yourself（自己动手）
+	"AI":    true, // Artificial Intelligence（人工智能）
+	"BIOS":  true, // Basic Input/Output System（基本输入输出系统）
+	"CDN":   true, // Content Delivery Network（内容分发网络）
+	"CRM":   true, // Customer Relationship Management（客户关系管理）
+	"CSV":   true, // Comma-Separated Values（逗号分隔值）
+	"DHCP":  true, // Dynamic Host Configuration Protocol（动态主机配置协议）
+	"ERP":   true, // Enterprise Resource Planning（企业资源计划）
+	"FIFO":  true, // First In, First Out（先进先出）
+	"FTP":   true, // File Transfer Protocol（文件传输协议）
+	"GIS":   true, // Geographic Information System（地理信息系统）
+	"GPS":   true, // Global Positioning System（全球定位系统）
+	"HDD":   true, // Hard Disk Drive（硬盘驱动器）
+	"IDE":   true, // Integrated Development Environment（集成开发环境）
+	"IOT":   true, // Internet of Things（物联网）
+	"ISP":   true, // Internet Service Provider（互联网服务提供商）
+	"JWT":   true, // JSON Web Token（JSON Web令牌）
+	"KPI":   true, // Key Performance Indicator（关键绩效指标）
+	"LAN":   true, // Local Area Network（局域网）
+	"LCD":   true, // Liquid Crystal Display（液晶显示器）
+	"LED":   true, // Light Emitting Diode（发光二极管）
+	"MAC":   true, // Media Access Control（媒体访问控制）
+	"MD5":   true, // Message Digest Algorithm 5（消息摘要算法5）
+	"NAT":   true, // Network Address Translation（网络地址转换）
+	"OCR":   true, // Optical Character Recognition（光学字符识别）
+	"OS":    true, // Operating System（操作系统）
+	"PDF":   true, // Portable Document Format（便携式文档格式）
+	"PNG":   true, // Portable Network Graphics（便携式网络图形）
+	"POP3":  true, // Post Office Protocol 3（邮局协议3）
+	"REST":  true, // Representational State Transfer（表述性状态转移）
+	"RTF":   true, // Rich Text Format（富文本格式）
+	"SAAS":  true, // Software as a Service（软件即服务）
+	"SAN":   true, // Storage Area Network（存储区域网络）
+	"SATA":  true, // Serial Advanced Technology Attachment（串行高级技术附件）
+	"SCSI":  true, // Small Computer System Interface（小型计算机系统接口）
+	"SDK":   true, // Software Development Kit（软件开发工具包）
+	"SMS":   true, // Short Message Service（短信服务）
+	"SOAP":  true, // Simple Object Access Protocol（简单对象访问协议）
+	"SQL":   true, // Structured Query Language（结构化查询语言）
+	"SSD":   true, // Solid State Drive（固态硬盘）
+	"SSL":   true, // Secure Sockets Layer（安全套接层）
+	"TCP":   true, // Transmission Control Protocol（传输控制协议）
+	"UDP":   true, // User Datagram Protocol（用户数据报协议）
+	"USB":   true, // Universal Serial Bus（通用串行总线）
+	"VPN":   true, // Virtual Private Network（虚拟专用网络）
+	"WAN":   true, // Wide Area Network（广域网）
+	"WIFI":  true, // Wireless Fidelity（无线保真）
+	"XHTML": true, // Extensible HyperText Markup Language（可扩展超文本标记语言）
+	"XSS":   true, // Cross-Site Scripting（跨站脚本攻击）
+	"YAML":  true, // YAML Ain't Markup Language（YAML不是标记语言）
+	"ZIP":   true, // Zone Information Protocol（区域信息协议）
 }
 
 func init() {
@@ -130,4 +181,5 @@ func init() {
 	StoreTpl("helper", Helper)
 	StoreTpl("gomod", GOMOD)
 	StoreTpl("conf", Conf)
+	StoreTpl("resource", Resource)
 }

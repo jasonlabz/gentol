@@ -86,6 +86,9 @@ import (
 )
 
 type {{.ModelStructName}}Dao interface {
+	// SelectByRawSQL 自定义SQL查询，满足连表查询场景
+	SelectByRawSQL(ctx context.Context, rawSQL string, result any) (err error)
+
 	// SelectAll 查询所有记录
 	SelectAll(ctx context.Context, selectFields ...{{.ModelPackageName}}.{{.ModelStructName}}Field) (records []*{{.ModelPackageName}}.{{.ModelStructName}}, err error)
 	
@@ -144,6 +147,7 @@ import (
 	"context"
 	"strings"
 
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
 	"{{.DaoModulePath}}"
@@ -158,8 +162,22 @@ func Get{{.ModelStructName}}Dao() {{.DaoPackageName}}.{{.ModelStructName}}Dao {
 
 type {{.ModelLowerCamelName}}DaoImpl struct{}
 
+func (u userDaoImpl) tx(ctx context.Context) *gorm.DB {
+	tx, ok := ctx.Value("transactionDB").(*gorm.DB)
+	if ok {
+		return tx
+	}
+	return {{.DaoPackageName}}.DB()
+}
+
+func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectByRawSQL(ctx context.Context, rawSQL string, result any) (err error) {
+	err = {{.ModelShortName}}.tx(ctx).WithContext(ctx).
+		Raw(rawSQL).Scan(&result).Error
+	return
+}
+
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectAll(ctx context.Context, selectFields ...{{.ModelPackageName}}.{{.ModelStructName}}Field) (records []*{{.ModelPackageName}}.{{.ModelStructName}}, err error) {
-	tx := DB().WithContext(ctx).
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
 		Table({{.ModelPackageName}}.TableName{{.ModelStructName}})
 	if len(selectFields) > 0 {
 		columns := make([]string, 0)
@@ -173,7 +191,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectAll(ctx context
 }
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectOneByPrimaryKey(ctx context.Context, {{range .PrimaryKeyList}}{{.GoColumnName}} {{.GoColumnOriginType}}, {{end}}selectFields ...{{.ModelPackageName}}.{{.ModelStructName}}Field) (record *{{.ModelPackageName}}.{{.ModelStructName}}, err error) {
-	tx := DB().WithContext(ctx).
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
 		Table({{.ModelPackageName}}.TableName{{.ModelStructName}})
 	if len(selectFields) > 0 {
 		columns := make([]string, 0)
@@ -195,7 +213,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectRecordByConditi
 	if condition == nil {
 		return {{.ModelShortName}}.SelectAll(ctx, selectFields...)
 	}
-	tx := DB().WithContext(ctx).
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
 		Table({{.ModelPackageName}}.TableName{{.ModelStructName}})
 	if len(selectFields) > 0 {
 		columns := make([]string, 0)
@@ -219,7 +237,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectRecordByConditi
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectPageRecordByCondition(ctx context.Context, condition *{{.ModelPackageName}}.Condition, pageParam *{{.ModelPackageName}}.Pagination,
 	selectFields ...{{.ModelPackageName}}.{{.ModelStructName}}Field) (records []*{{.ModelPackageName}}.{{.ModelStructName}}, err error) {
-	tx := DB().WithContext(ctx).
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
 		Table({{.ModelPackageName}}.TableName{{.ModelStructName}})
 	if len(selectFields) > 0 {
 		columns := make([]string, 0)
@@ -253,7 +271,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectPageRecordByCon
 }
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) CountByCondition(ctx context.Context, condition *{{.ModelPackageName}}.Condition) (count int64, err error) {
-	tx := DB().WithContext(ctx).
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
 		Table({{.ModelPackageName}}.TableName{{.ModelStructName}})
 	if condition != nil {
 		for _, strCondition := range condition.StringCondition {
@@ -268,7 +286,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) CountByCondition(ctx 
 }
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) DeleteByCondition(ctx context.Context, condition *{{.ModelPackageName}}.Condition) (affect int64, err error) {
-	tx := DB().WithContext(ctx)
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx)
 	if condition != nil {
 		for _, strCondition := range condition.StringCondition {
 			tx = tx.Where(strCondition)
@@ -289,14 +307,14 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) DeleteByPrimaryKey(ct
 		"{{- .GoFieldName -}}": {{- .GoColumnName }},
 		{{ end }}
 	}	
-	tx := DB().WithContext(ctx).Where(whereCondition).Delete(&{{.ModelPackageName}}.{{.ModelStructName}}{})
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).Where(whereCondition).Delete(&{{.ModelPackageName}}.{{.ModelStructName}}{})
 	affect = tx.RowsAffected
 	err = tx.Error
 	return
 }
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateRecord(ctx context.Context, record *{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error) {
-	tx := DB().WithContext(ctx).
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
 		Table({{.ModelPackageName}}.TableName{{.ModelStructName}}).
 		Save(record)
 	affect = tx.RowsAffected
@@ -305,7 +323,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateRecord(ctx cont
 }
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateRecords(ctx context.Context, records []*{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error) {
-	tx := DB().WithContext(ctx).
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
 		Table({{.ModelPackageName}}.TableName{{.ModelStructName}}).
 		Save(records)
 	affect = tx.RowsAffected
@@ -314,7 +332,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateRecords(ctx con
 }
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateByCondition(ctx context.Context, condition *{{.ModelPackageName}}.Condition, updateField {{.ModelPackageName}}.UpdateField) (affect int64, err error) {
-	tx := DB().WithContext(ctx).
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
 		Table({{.ModelPackageName}}.TableName{{.ModelStructName}})
 		if condition != nil {
 		for _, strCondition := range condition.StringCondition {
@@ -336,7 +354,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateByPrimaryKey(ct
 		"{{- .GoFieldName -}}": {{- .GoColumnName }},
 		{{ end }}
 	}
-	tx := DB().WithContext(ctx).
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
 		Table({{.ModelPackageName}}.TableName{{.ModelStructName}}).
 		Where(whereCondition)
 	tx = tx.Updates(map[string]any(updateField))
@@ -346,7 +364,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateByPrimaryKey(ct
 }
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) Insert(ctx context.Context, record *{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error) {
-	tx := DB().WithContext(ctx).
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
 		Table({{.ModelPackageName}}.TableName{{.ModelStructName}}).
 		Create(&record)
 	affect = tx.RowsAffected
@@ -355,7 +373,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) Insert(ctx context.Co
 }
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) BatchInsert(ctx context.Context, records []*{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error) {
-	tx := DB().WithContext(ctx).
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
 		Table({{.ModelPackageName}}.TableName{{.ModelStructName}}).
 		Create(&records)
 	affect = tx.RowsAffected
@@ -371,7 +389,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) InsertOrUpdateOnDupli
 			Name: string(field),
 		})
 	}
-	tx := DB().WithContext(ctx).
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
 		Table({{.ModelPackageName}}.TableName{{.ModelStructName}}).
 		Clauses(clause.OnConflict{
 			Columns:   columns,
@@ -390,7 +408,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) BatchInsertOrUpdateOn
 			Name: string(field),
 		})
 	}
-	tx := DB().WithContext(ctx).
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
 		Table({{.ModelPackageName}}.TableName{{.ModelStructName}}).
 		Clauses(clause.OnConflict{
 			Columns:   columns,
@@ -405,9 +423,13 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) BatchInsertOrUpdateOn
 
 `
 const Database = NotEditMark + `
-package impl
+package dao
 
-import "gorm.io/gorm"
+import (
+	"context"
+
+	"gorm.io/gorm"
+)
 
 var gormDB *gorm.DB
 
@@ -424,5 +446,17 @@ func DB() *gorm.DB {
 		panic("db connection is nil")
 	}
 	return gormDB
+}
+
+func RunTransaction(ctx context.Context, f func(ctx context.Context) error) error {
+	// 使用 Transaction 方法并绑定上下文
+	return DB().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		transCtx := context.WithValue(ctx, "transactionDB", tx)
+		// 在事务中创建用户
+		if err := f(transCtx); err != nil {
+			return err // 返回错误，事务会回滚
+		}
+		return nil // 返回 nil，事务会提交
+	})
 }
 `

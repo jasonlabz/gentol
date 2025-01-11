@@ -33,34 +33,38 @@ import (
 	"github.com/jasonlabz/potato/cryptox/aes"
 	"github.com/jasonlabz/potato/cryptox/des"
 	"github.com/jasonlabz/potato/gormx"
-	_ "github.com/jasonlabz/potato/log"
+	"github.com/jasonlabz/potato/log"
 	"github.com/jasonlabz/potato/utils"
-)
 
-var (
-	Username string
-	Password string
+	"{{.ModulePath}}/global/resource"
 )
 
 func MustInit(ctx context.Context) {
+	// 初始化配置文件
+	initConfig(ctx)
+	// 初始化日志对象
+	initLogger(ctx)
+	// 初始化全局变量
 	initResource(ctx)
 	// 初始化加解秘钥
 	initCrypto(ctx)
 	// 初始化DB
 	initDB(ctx)
-	// 初始化配置文件
-	initConfig(ctx)
+}
+
+func initLogger(_ context.Context) {
+	resource.Logger = log.GetLogger()
 }
 
 func initResource(_ context.Context) {
-	Username = func() string {
+	resource.Username = func() string {
 		user := os.Getenv("AUTH_USER")
 		if user != "" {
 			return user
 		}
 		return "admin"
 	}()
-	Password = func() string {
+	resource.Password = func() string {
 		passwd := os.Getenv("AUTH_PASSWD")
 		if passwd != "" {
 			return passwd
@@ -85,21 +89,21 @@ func initCrypto(_ context.Context) {
 }
 
 func initDB(_ context.Context) {
-	conf := configx.GetConfig()
-	if conf.Database == nil {
-		panic("no db config")
+	dbConf := configx.GetConfig().Database
+	if !dbConf.Enable {
+		return
 	}
 	gormConfig := &gormx.Config{}
-	err := utils.CopyStruct(conf.Database, gormConfig)
+	err := utils.CopyStruct(dbConf, gormConfig)
 	if err != nil {
 		panic(err)
 	}
 	gormConfig.DBName = gormx.DefaultDBNameMaster
-	_, err = gormx.InitConfig(gormConfig)
+	db, err := gormx.InitConfig(gormConfig)
 	if err != nil {
 		panic(err)
 	}
-	//impl.SetGormDB(gormx.GetDBWithPanic(gormConfig.DBName))
+	// dao.SetGormDB(db)
 }
 
 func initConfig(_ context.Context) {
@@ -135,6 +139,7 @@ import (
 	"github.com/jasonlabz/potato/ginmetrics"
 
 	"{{.ModulePath}}/bootstrap"
+	"{{.ModulePath}}/global/resource"
 	"{{.ModulePath}}/server/routers"
 )
 
@@ -251,7 +256,7 @@ func fileServer(port int) {
 func basicAuth(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user, pass, ok := r.BasicAuth()
-		if !ok || user != bootstrap.Username || pass != bootstrap.Password {
+		if !ok || user != resource.Username || pass != resource.Password {
 			w.Header().Set("WWW-Authenticate", ` + "`Basic realm" + `="Restricted"` + "`)" + `
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
@@ -831,7 +836,7 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/google/uuid v1.6.0
 	github.com/jasonlabz/knife4go v1.0.1-0.20241118142759-6386e3973279
-	github.com/jasonlabz/potato v0.0.9-0.20241217172850-fb16a9a69b88
+	github.com/jasonlabz/potato v0.0.9-0.20250111091136-eeb3ddcb0df3
 )
 
 require (
@@ -937,6 +942,7 @@ const Conf = `application:
     port: 8082
 debug: true
 kafka:
+  enable: false
   topic: ["XXX"]
   group_id: "XXX"
   bootstrap_servers: "XXX:XX,XXX:XX,XXX:XX"
@@ -945,6 +951,7 @@ kafka:
   sasl_username: "XXX"
   sasl_password: "XXX"
 database:
+  enable: true
   db_type: "mysql"
   dsn: "user:passwd@tcp(*******:8306)/lg_server?charset=utf8mb4&parseTime=True&loc=Local&timeout=20s"
 #  dsn: "user=postgres password=halojeff host=127.0.0.1 port=8432 dbname=lg_server sslmode=disable TimeZone=Asia/Shanghai"
@@ -953,6 +960,7 @@ database:
   max_idle_conn: 10
   max_open_conn: 100
 redis:
+  enable: false
   endpoints:
     - "*******:8379"
   password: "*******"
@@ -965,6 +973,7 @@ redis:
   sentinel_username:
   sentinel_password:
 rabbitmq:
+  enable: false
   host: "*******"
   port: 8672
   username: lucas
@@ -989,4 +998,18 @@ log:
     max_age: 15
     max_backups: 30
     compress: false
+`
+const Resource = `
+package resource
+
+import "github.com/jasonlabz/potato/log"
+
+// 文件服务账号密码
+var (
+	Username string
+	Password string
+)
+
+// Logger 日志对象
+var Logger *log.LoggerWrapper
 `

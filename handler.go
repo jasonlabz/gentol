@@ -193,6 +193,24 @@ func handleNewProject(projectName string) {
 		return
 	}
 
+	// resource 写入
+	resourcePath := filepath.Join(projectDir, "global", "resource")
+	err = os.MkdirAll(resourcePath, 0644)
+	if err != nil {
+		fmt.Println("err occured: ", err)
+		return
+	}
+	resourceTpl, ok := metadata.LoadTpl("resource")
+	if !ok {
+		fmt.Println("undefined template" + "resource")
+		return
+	}
+	err = RenderingTemplate(resourceTpl, projectMeta, filepath.Join(docsPath, "resourceTpl.go"), true)
+	if err != nil {
+		fmt.Println("err occured: ", err)
+		return
+	}
+
 	// server 写入
 	serverPath := filepath.Join(projectDir, "server")
 	err = os.MkdirAll(serverPath, 0644)
