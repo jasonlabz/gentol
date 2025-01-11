@@ -99,7 +99,7 @@ func initDB(_ context.Context) {
 		panic(err)
 	}
 	gormConfig.DBName = gormx.DefaultDBNameMaster
-	db, err := gormx.InitConfig(gormConfig)
+	_, err = gormx.InitConfig(gormConfig)
 	if err != nil {
 		panic(err)
 	}
@@ -357,7 +357,7 @@ import (
 )
 
 const (
-	requestBodyMaxLen = 20480
+	requestBodyMaxLen = 204800
 )
 
 type BodyLog struct {
@@ -386,7 +386,6 @@ func RequestMiddleware() gin.HandlerFunc {
 		}
 
 		var requestBodyBytes []byte
-		var requestBodyLogBytes []byte
 		if c.Request.Body != nil {
 			requestBodyBytes, _ = io.ReadAll(c.Request.Body)
 		}
@@ -394,35 +393,39 @@ func RequestMiddleware() gin.HandlerFunc {
 		bodyLog := &BodyLog{body: bytes.NewBufferString(""), ResponseWriter: c.Writer}
 		c.Writer = bodyLog
 
-		maxLen := len(requestBodyBytes)
-		if maxLen > requestBodyMaxLen {
-			maxLen = requestBodyMaxLen
-		}
-		requestBodyLogBytes = make([]byte, maxLen)
-		copy(requestBodyLogBytes, requestBodyBytes)
-		if maxLen < len(requestBodyBytes) {
-			requestBodyLogBytes = append(requestBodyLogBytes, []byte("......")...)
-		}
-
-		logger := log.GetLogger().WithContext(c)
 		start := time.Now() // Start timer
-
-		logger.Info("[GIN] request",
-			"method", c.Request.Method,
-			"agent", c.Request.UserAgent(),
-			"body", string(requestBodyLogBytes),
-			"client_ip", c.ClientIP(),
-			"path", c.Request.URL.RawPath)
+		log.GetLogger().InfoContext(c, "	[GIN] request",
+			log.String("proto", c.Request.Proto),
+			log.String("client_ip", c.ClientIP()),
+			log.Int64("content_length", c.Request.ContentLength),
+			log.String("agent", c.Request.UserAgent()),
+			log.String("request_body", string(logBytes(requestBodyBytes, requestBodyMaxLen))),
+			log.String("method", c.Request.Method),
+			log.String("path", c.Request.URL.Path))
 
 		c.Next()
 
-		logger.Info("[GIN] response",
-			"error_message", c.Errors.ByType(gin.ErrorTypePrivate).String(),
-			"body", bodyLog.body.String(),
-			"path", c.Request.URL.RawPath,
-			"status_code", c.Writer.Status(),
-			"cost", fmt.Sprintf("%dms", time.Now().Sub(start).Milliseconds()))
+		log.GetLogger().InfoContext(c, "	[GIN] response",
+			log.Int("status_code", c.Writer.Status()),
+			log.String("error_message", c.Errors.ByType(gin.ErrorTypePrivate).String()),
+			log.String("response_body", string(logBytes(bodyLog.body.Bytes(), requestBodyMaxLen))),
+			log.String("path", c.Request.URL.Path),
+			log.String("cost", fmt.Sprintf("%dms", time.Now().Sub(start).Milliseconds())))
 	}
+}
+
+func logBytes(src []byte, maxLen int) []byte {
+	srcLen := len(src)
+	length := srcLen
+	if maxLen > 0 && srcLen > maxLen {
+		length = maxLen
+	}
+	requestBodyLogBytes := make([]byte, length)
+	copy(requestBodyLogBytes, src)
+	if length < srcLen {
+		requestBodyLogBytes = append(requestBodyLogBytes, []byte(" ......")...)
+	}
+	return requestBodyLogBytes
 }
 `
 
@@ -836,7 +839,7 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/google/uuid v1.6.0
 	github.com/jasonlabz/knife4go v1.0.1-0.20241118142759-6386e3973279
-	github.com/jasonlabz/potato v0.0.9-0.20250111091136-eeb3ddcb0df3
+	github.com/jasonlabz/potato v1.0.0
 )
 
 require (
@@ -951,7 +954,7 @@ kafka:
   sasl_username: "XXX"
   sasl_password: "XXX"
 database:
-  enable: true
+  enable: false
   db_type: "mysql"
   dsn: "user:passwd@tcp(*******:8306)/lg_server?charset=utf8mb4&parseTime=True&loc=Local&timeout=20s"
 #  dsn: "user=postgres password=halojeff host=127.0.0.1 port=8432 dbname=lg_server sslmode=disable TimeZone=Asia/Shanghai"

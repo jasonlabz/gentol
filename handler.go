@@ -205,7 +205,7 @@ func handleNewProject(projectName string) {
 		fmt.Println("undefined template" + "resource")
 		return
 	}
-	err = RenderingTemplate(resourceTpl, projectMeta, filepath.Join(docsPath, "resourceTpl.go"), true)
+	err = RenderingTemplate(resourceTpl, projectMeta, filepath.Join(resourcePath, "resource.go"), true)
 	if err != nil {
 		fmt.Println("err occured: ", err)
 		return
