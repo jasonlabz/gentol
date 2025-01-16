@@ -86,6 +86,9 @@ import (
 )
 
 type {{.ModelStructName}}Dao interface {
+	// 可编辑自定义dao层逻辑
+	{{.ModelStructName}}DaoExt
+
 	// SelectByRawSQL 自定义SQL查询，满足连表查询场景
 	SelectByRawSQL(ctx context.Context, rawSQL string, result any) (err error)
 
@@ -137,7 +140,13 @@ type {{.ModelStructName}}Dao interface {
 	BatchInsertOrUpdateOnDuplicateKey(ctx context.Context, records []*{{.ModelPackageName}}.{{.ModelStructName}},
 	uniqueKeys ...{{.ModelPackageName}}.{{.ModelStructName}}Field) (affect int64, err error)
 }
+`
 
+const DaoExt = `
+package dao
+
+type {{.ModelStructName}}DaoExt interface {
+}
 `
 
 const DaoImpl = NotEditMark + `
@@ -422,6 +431,16 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) BatchInsertOrUpdateOn
 
 
 `
+
+const DaoExtImpl = `
+package impl
+
+// CustomMethod 自定义方法, 该文件不会被覆盖
+// func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) CustomMethod(ctx context.Context, rawSQL string, result any) (err error) {
+//		return
+// }
+`
+
 const Database = NotEditMark + `
 package dao
 

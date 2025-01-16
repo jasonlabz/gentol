@@ -195,11 +195,27 @@ func WriteDao(dbInfo *configx.DBTableInfo, schemaName, tableName string, columnT
 		fmt.Println("err occured: ", err)
 		return
 	}
+
+	// dao扩展自定义文件，不覆盖
+	daoExtInterface, _ := filepath.Abs(filepath.Join(daoInterfacePath, daoData.TableName+"_dao_ext.go"))
+	if !IsExist(daoExtInterface) {
+		daoExtTpl, ok := metadata.LoadTpl("daoExt")
+		if !ok {
+			fmt.Println("undefined template" + "daoExt")
+			return
+		}
+		err = RenderingTemplate(daoExtTpl, daoData, daoExtInterface, true)
+		if err != nil {
+			fmt.Println("err occured: ", err)
+			return
+		}
+	}
+
 	implDir := filepath.Join(daoData.DaoPath, "impl")
 	if !IsExist(implDir) {
 		_ = os.MkdirAll(implDir, 0666)
 	}
-	daoImplFile := filepath.Join(daoData.DaoPath, "impl", daoData.TableName+"_dao_impl.go")
+	daoImplFile := filepath.Join(implDir, daoData.TableName+"_dao_impl.go")
 	ff, _ = filepath.Abs(daoImplFile)
 	daoImplTpl, ok := metadata.LoadTpl("dao_impl")
 	if !ok {
@@ -210,6 +226,20 @@ func WriteDao(dbInfo *configx.DBTableInfo, schemaName, tableName string, columnT
 	if err != nil {
 		fmt.Println("err occured: ", err)
 		return
+	}
+	daoExtImplFile := filepath.Join(implDir, daoData.TableName+"_dao_ext_impl.go")
+	ff, _ = filepath.Abs(daoExtImplFile)
+	if !IsExist(ff) {
+		daoExtImplTpl, ok := metadata.LoadTpl("daoExtImpl")
+		if !ok {
+			fmt.Println("undefined template" + "daoExtImpl")
+			return
+		}
+		err = RenderingTemplate(daoExtImplTpl, daoData, ff, true)
+		if err != nil {
+			fmt.Println("err occured: ", err)
+			return
+		}
 	}
 	//baseFile := filepath.Join(daoData.DaoPath, "impl", "db.go")
 	baseFile := filepath.Join(daoData.DaoPath, "db.go")
