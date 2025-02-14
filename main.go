@@ -26,7 +26,7 @@ func main() {
 		if projectName == "" {
 			projectName = "demo"
 		}
-		match, _ := regexp.MatchString("^[a-zA-Z0-9]+$", projectName)
+		match, _ := regexp.MatchString("^[a-zA-Z0-9_-]+$", projectName)
 		if !match {
 			log.Fatalf("project name is not valid, only in [a-zA-Z0-9]")
 		}
