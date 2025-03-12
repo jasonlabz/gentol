@@ -181,7 +181,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) tx(ctx context.Contex
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectByRawSQL(ctx context.Context, rawSQL string, result any) (err error) {
 	err = {{.ModelShortName}}.tx(ctx).WithContext(ctx).
-		Raw(rawSQL).Scan(&result).Error
+		Raw(rawSQL).Scan(result).Error
 	return
 }
 
