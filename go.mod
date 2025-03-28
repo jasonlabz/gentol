@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/gobuffalo/packr/v2 v2.8.3
-	github.com/jasonlabz/gorm-dm-driver v0.1.1
+	github.com/jasonlabz/gorm-dm-driver v0.1.3
 	github.com/jasonlabz/oracle v1.1.1-0.20240609161033-cf780c860ebb
 	github.com/pborman/getopt/v2 v2.1.0
 	github.com/spf13/viper v1.15.0
