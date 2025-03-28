@@ -72,7 +72,8 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 
 		columnInfo.ColumnQuota = func() bool {
 			if m.DBType == string(gormx.DBTypePostgres) ||
-				m.DBType == string(gormx.DBTypeGreenplum) {
+				m.DBType == string(gormx.DBTypeGreenplum) ||
+				m.DBType == string(gormx.DBTypeDM) {
 				if ToLower(columnInfo.ColumnName) == columnInfo.ColumnName {
 					return false
 				}
@@ -162,7 +163,8 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 		"ImportPkgList":    []string{},
 		"SchemaQuota": func() bool {
 			if m.DBType == string(gormx.DBTypePostgres) ||
-				m.DBType == string(gormx.DBTypeGreenplum) {
+				m.DBType == string(gormx.DBTypeGreenplum) ||
+				m.DBType == string(gormx.DBTypeDM) {
 				if ToLower(m.SchemaName) == m.SchemaName {
 					return false
 				}
@@ -172,7 +174,8 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 		}(),
 		"TableQuota": func() bool {
 			if m.DBType == string(gormx.DBTypePostgres) ||
-				m.DBType == string(gormx.DBTypeGreenplum) {
+				m.DBType == string(gormx.DBTypeGreenplum) ||
+				m.DBType == string(gormx.DBTypeDM) {
 				if ToLower(m.TableName) == m.TableName {
 					return false
 				}
