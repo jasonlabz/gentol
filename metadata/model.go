@@ -212,7 +212,19 @@ const TableName{{.ModelStructName}} = "{{if .SchemaQuota -}}\"{{.SchemaName}}\"{
 		{{- else -}}
 const TableName{{.ModelStructName}} = "{{if .TableQuota -}}\"{{.TableName}}\"{{- else}}{{.TableName}}{{- end}}"
 		{{ end }}
-	{{- else if eq .DBType "sqlserver" -}}
+	{{- else if eq .DBType "oracle" -}}
+ 		{{if .SchemaName -}}
+const TableName{{.ModelStructName}} = "{{.SchemaName}}.{{.TableName}}"
+		{{- else -}}
+const TableName{{.ModelStructName}} = "{{.TableName}}"
+		{{ end }}
+ 	{{- else if eq .DBType "dm" -}}
+ 		{{if .SchemaName -}}
+const TableName{{.ModelStructName}} = "{{if .SchemaQuota -}}\"{{.SchemaName}}\"{{- else}}{{.SchemaName}}{{- end}}.{{if .TableQuota -}}\"{{.TableName}}\"{{- else}}{{.TableName}}{{- end}}"
+		{{- else -}}
+const TableName{{.ModelStructName}} = "{{if .TableQuota -}}\"{{.TableName}}\"{{- else}}{{.TableName}}{{- end}}"
+		{{ end }}
+ 	{{- else if eq .DBType "sqlserver" -}}
  		{{if ne .SchemaName "dbo" -}}
 const TableName{{.ModelStructName}} = "{{.SchemaName}}.{{.TableName}}"
 		{{- else -}}
