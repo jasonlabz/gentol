@@ -513,6 +513,42 @@ func UnderscoreToUpperCamelCase(s string) string {
 	return s
 }
 
+// LowerCamelCaseToUpperCamelCase 小写驼峰单词转为大写驼峰单词
+func LowerCamelCaseToUpperCamelCase(s string) string {
+	if len(s) == 0 {
+		return s
+	}
+
+	// 检查是否匹配特殊单词
+	for word := range lowerAbbreviationMap {
+		if strings.HasPrefix(s, word) {
+			// 如果匹配特殊单词，直接返回小写形式
+			return strings.ToUpper(word) + s[len(word):]
+		}
+	}
+
+	// 将第一个字符转换为大写
+	return string(unicode.ToUpper(rune(s[0]))) + s[1:]
+}
+
+// UpperCamelCaseToLowerCamelCase 大写驼峰单词转为小写驼峰单词
+func UpperCamelCaseToLowerCamelCase(s string) string {
+	if len(s) == 0 {
+		return s
+	}
+
+	// 检查是否匹配特殊单词
+	for word := range abbreviationMap {
+		if strings.HasPrefix(s, word) {
+			// 如果匹配特殊单词，直接返回小写形式
+			return strings.ToLower(word) + s[len(word):]
+		}
+	}
+
+	// 将第一个字符转换为小写
+	return string(unicode.ToLower(rune(s[0]))) + s[1:]
+}
+
 // UnderscoreToLowerCamelCase 下划线单词转为小写驼峰单词
 func UnderscoreToLowerCamelCase(s string) string {
 	for key := range abbreviationMap {
@@ -531,17 +567,16 @@ func UnderscoreToLowerCamelCase(s string) string {
 // CamelCaseToUnderscore 驼峰单词转下划线单词
 func CamelCaseToUnderscore(s string) string {
 	var output []rune
-	var next int
 	for i, r := range s {
-		if i == 0 {
-			output = append(output, unicode.ToLower(r))
-		} else {
-			if i > next && unicode.IsUpper(r) {
-				next = i + 1
+		// 如果当前字符是大写字母
+		if unicode.IsUpper(r) {
+			// 如果不是第一个字符，并且前一个字符不是大写字母，或者下一个字符是小写字母
+			if i > 0 && (!unicode.IsUpper(rune(s[i-1])) || (i+1 < len(s) && unicode.IsLower(rune(s[i+1])))) {
 				output = append(output, '_')
 			}
-
 			output = append(output, unicode.ToLower(r))
+		} else {
+			output = append(output, r)
 		}
 	}
 	return string(output)
