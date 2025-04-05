@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/jasonlabz/gentol/gormx"
 )
@@ -70,7 +71,7 @@ func (m SQLiteOperator) GetTablesUnderDB(ctx context.Context, dbName string) (db
 		err = errors.New("empty dnName")
 		return
 	}
-	defaultName := "sqlite_default"
+	defaultName := ""
 	gormDBTables := make([]*GormDBTable, 0)
 	db, err := gormx.GetDB(dbName)
 	if err != nil {
@@ -88,6 +89,9 @@ func (m SQLiteOperator) GetTablesUnderDB(ctx context.Context, dbName string) (db
 		return
 	}
 	for _, row := range gormDBTables {
+		if strings.HasPrefix(row.TableName, "sqlite_") {
+			continue
+		}
 		if logicDBInfo, ok := dbTableMap[defaultName]; !ok {
 			dbTableMap[defaultName] = &LogicDBInfo{
 				SchemaName: defaultName,
