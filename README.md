@@ -113,6 +113,17 @@ tips: 当提供`--dsn`选项后，无需`--host --port --username --password`；
 
 `gentol --db_type="mysql" --dsn="%s:%s@tcp(%s:%d)/%s?parseTime=True&loc=Local" --table="table1,table2" --only_model`
 
+3、sqlite
+`gentol --db_type="sqlite" --dsn="/path/dagine.db" --table="table1,table2" --dao=/etl/dal/db/dao --model=/etl/dal/db/model --gen_hook`
+
+4、dm
+`gentol --db_type="dm" --dsn="dm://%s:%s@%s:%d?schema=%s" --table="table1,table2" --gen_hook`
+
+5、oracle
+`gentol --db_type="oracle" --dsn="%s/%s@%s:%d/%s" --table="table1,table2" --gen_hook`
+
+6、sqlserver
+`gentol --db_type="sqlserver" --dsn="user id=%s;password=%s;server=%s;port=%d;database=%s;encrypt=disable" --table="table1,table2"  --gen_hook`
 
 - gentol工具在提供`db_type、dsn`参数情况下会生成当前数据库（当前模式）下所有表的model以及dao层代码，默认生成路径为`dal/db/dao,dal/model`,
 可以通过参数`--model \ --dao`修改， `--table="table1,table2"`可以指定表列表生成(不提供该参数时生成当前schema下所有table)。

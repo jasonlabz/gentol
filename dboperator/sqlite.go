@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	
+
 	"github.com/jasonlabz/gentol/gormx"
 )
 
@@ -77,7 +77,7 @@ func (m SQLiteOperator) GetTablesUnderDB(ctx context.Context, dbName string) (db
 		return
 	}
 	err = db.WithContext(ctx).
-		Raw("SELECT name as table_name" +
+		Raw("SELECT name as table_name " +
 			"FROM sqlite_master " +
 			"WHERE type = 'table'").
 		Find(&gormDBTables).Error
@@ -220,6 +220,17 @@ func (m SQLiteOperator) CreateSchema(ctx context.Context, dbName, schemaName, co
 }
 
 func (m SQLiteOperator) ExecuteDDL(ctx context.Context, dbName, ddlStatement string) (err error) {
-
+	if dbName == "" {
+		err = errors.New("empty dnName")
+		return
+	}
+	db, err := gormx.GetDB(dbName)
+	if err != nil {
+		return
+	}
+	err = db.WithContext(ctx).Exec(ddlStatement).Error
+	if err != nil {
+		return
+	}
 	return
 }
