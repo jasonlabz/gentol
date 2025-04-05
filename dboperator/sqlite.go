@@ -122,7 +122,7 @@ func (m SQLiteOperator) GetColumns(ctx context.Context, dbName string) (dbTableC
 	if err != nil {
 		return
 	}
-	defaultName := "sqlite_default"
+	defaultName := ""
 
 	for _, schemaTableInfo := range tableMap {
 		for _, tableInfo := range schemaTableInfo.TableInfoList {
