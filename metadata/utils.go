@@ -86,7 +86,7 @@ func DmTrans(columnType string) (metaType MetaType) {
 	case "blob", "raw", "byte", "binary":
 		metaType.GoType = "[]byte"
 		metaType.SQLNullableType = "sql.RawBytes"
-		metaType.GureguNullableType = "null.Byte"
+		metaType.GureguNullableType = "[]byte"
 		metaType.ValueFormat = "'%v'"
 	default:
 		if strings.Contains(columnType, "number") ||
@@ -160,7 +160,7 @@ func SQLiteTrans(columnType string) (metaType MetaType) {
 	case "blob", "binary":
 		metaType.GoType = "[]byte"
 		metaType.SQLNullableType = "sql.RawBytes"
-		metaType.GureguNullableType = "null.Byte"
+		metaType.GureguNullableType = "[]byte"
 		metaType.ValueFormat = "'%v'"
 	case "date", "datetime", "timestamp":
 		metaType.GoType = "time.Time"
@@ -233,7 +233,7 @@ func PostgresTrans(columnType string) (metaType MetaType) {
 	case "bytea":
 		metaType.GoType = "[]byte"
 		metaType.SQLNullableType = "sql.RawBytes"
-		metaType.GureguNullableType = "null.Byte"
+		metaType.GureguNullableType = "[]byte"
 		metaType.ValueFormat = "'%v'"
 	case "char", "varchar", "character", "text", "json", "xml", "jsonb":
 		metaType.GoType = "string"
@@ -321,7 +321,7 @@ func MySQLTrans(columnType string) (metaType MetaType) {
 	case "binary", "varbinary", "blob":
 		metaType.GoType = "[]byte"
 		metaType.SQLNullableType = "sql.RawBytes"
-		metaType.GureguNullableType = "null.Byte"
+		metaType.GureguNullableType = "[]byte"
 		metaType.ValueFormat = "'%v'"
 	case "year", "date", "time", "timestamp", "datetime":
 		metaType.GoType = "time.Time"
