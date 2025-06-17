@@ -338,8 +338,11 @@ func ({{.ModelShortName}} *{{.ModelStructName}}Condition) Where(query any, args 
 			{{.ModelShortName}}.MapCondition[key] = val
 		}
 	case string:
-		condition:=query.(string)
-		{{.ModelShortName}}.StringCondition = append({{.ModelShortName}}.StringCondition, fmt.Sprintf(condition, args...))
+ 		condition := query.(string)
+		if len(args) > 0 {
+			condition = fmt.Sprintf(condition, args...)
+		}
+		{{.ModelShortName}}.StringCondition = append({{.ModelShortName}}.StringCondition, condition)
 	}
 	return {{.ModelShortName}}
 }
