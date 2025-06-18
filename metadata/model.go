@@ -208,36 +208,6 @@ var (
 	_ = uuid.UUID{}
 )
 
-{{if .TableName -}}
-	{{if eq .DBType "postgres" -}}
-		{{if and .SchemaName (ne .SchemaName "public") -}}
-const TableName{{.ModelStructName}} = "{{if .SchemaQuota -}}\"{{.SchemaName}}\"{{- else}}{{.SchemaName}}{{- end}}.{{if .TableQuota -}}\"{{.TableName}}\"{{- else}}{{.TableName}}{{- end}}"
-		{{- else -}}
-const TableName{{.ModelStructName}} = "{{if .TableQuota -}}\"{{.TableName}}\"{{- else}}{{.TableName}}{{- end}}"
-		{{ end }}
-	{{- else if eq .DBType "oracle" -}}
- 		{{if .SchemaName -}}
-const TableName{{.ModelStructName}} = "{{.SchemaName}}.{{.TableName}}"
-		{{- else -}}
-const TableName{{.ModelStructName}} = "{{.TableName}}"
-		{{ end }}
- 	{{- else if eq .DBType "dm" -}}
- 		{{if .SchemaName -}}
-const TableName{{.ModelStructName}} = "{{if .SchemaQuota -}}\"{{.SchemaName}}\"{{- else}}{{.SchemaName}}{{- end}}.{{if .TableQuota -}}\"{{.TableName}}\"{{- else}}{{.TableName}}{{- end}}"
-		{{- else -}}
-const TableName{{.ModelStructName}} = "{{if .TableQuota -}}\"{{.TableName}}\"{{- else}}{{.TableName}}{{- end}}"
-		{{ end }}
- 	{{- else if eq .DBType "sqlserver" -}}
- 		{{if ne .SchemaName "dbo" -}}
-const TableName{{.ModelStructName}} = "{{.SchemaName}}.{{.TableName}}"
-		{{- else -}}
-const TableName{{.ModelStructName}} = "{{.TableName}}"
-		{{end}}
-	{{- else}}
-const TableName{{.ModelStructName}} = "{{.TableName}}"	
-	{{- end}}
-{{- end}}
-
 type {{.TitleTableName}}Field string
 
 // {{.ModelStructName}} struct is mapping to the {{.TableName}} table
@@ -250,7 +220,35 @@ type {{.ModelStructName}} struct {
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}) TableName() string {
+{{if .TableName -}}
+	{{if eq .DBType "postgres" -}}
+		{{if and .SchemaName (ne .SchemaName "public") -}}
+	return "{{if .SchemaQuota -}}\"{{.SchemaName}}\"{{- else}}{{.SchemaName}}{{- end}}.{{if .TableQuota -}}\"{{.TableName}}\"{{- else}}{{.TableName}}{{- end}}"
+		{{- else -}}
+	return "{{if .TableQuota -}}\"{{.TableName}}\"{{- else}}{{.TableName}}{{- end}}"
+		{{ end }}
+	{{- else if eq .DBType "oracle" -}}
+ 		{{if .SchemaName -}}
+	return "{{.SchemaName}}.{{.TableName}}"
+		{{- else -}}
 	return "{{.TableName}}"
+		{{ end }}
+ 	{{- else if eq .DBType "dm" -}}
+ 		{{if .SchemaName -}}
+	return "{{if .SchemaQuota -}}\"{{.SchemaName}}\"{{- else}}{{.SchemaName}}{{- end}}.{{if .TableQuota -}}\"{{.TableName}}\"{{- else}}{{.TableName}}{{- end}}"
+		{{- else -}}
+	return "{{if .TableQuota -}}\"{{.TableName}}\"{{- else}}{{.TableName}}{{- end}}"
+		{{ end }}
+ 	{{- else if eq .DBType "sqlserver" -}}
+ 		{{if ne .SchemaName "dbo" -}}
+	return "{{.SchemaName}}.{{.TableName}}"
+		{{- else -}}
+	return "{{.TableName}}"
+		{{end}}
+	{{- else}}
+	return "{{.TableName}}"	
+	{{- end}}
+{{- end}}
 }
 
 type {{.ModelStructName}}TableColumn struct {
