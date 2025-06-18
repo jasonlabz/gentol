@@ -3,14 +3,16 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/jasonlabz/gentol/configx"
+	"runtime"
 	"go/format"
-	"gorm.io/gorm"
 	"io"
 	"os"
 	"path/filepath"
 	"text/template"
+	
+	"gorm.io/gorm"
 
+	"github.com/jasonlabz/gentol/configx"
 	"github.com/jasonlabz/gentol/metadata"
 )
 
@@ -94,8 +96,11 @@ func NormalizeNewlines(d []byte) []byte {
 
 // CRLFNewlines transforms \n to \r\n (windows)
 func CRLFNewlines(d []byte) []byte {
-	// replace LF (unix) with CR LF \r\n (windows)
-	d = bytes.Replace(d, []byte{10}, []byte{13, 10}, -1)
+	// Only convert if running on Windows
+	if runtime.GOOS == "windows" {
+		// replace LF (unix) with CR LF \r\n (windows)
+		d = bytes.ReplaceAll(d, []byte{10}, []byte{13, 10})
+	}
 	return d
 }
 
