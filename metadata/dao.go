@@ -187,7 +187,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectByRawSQL(ctx co
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectAll(ctx context.Context, selectFields ...{{.ModelPackageName}}.{{.ModelStructName}}Field) (records []*{{.ModelPackageName}}.{{.ModelStructName}}, err error) {
 	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
-		Table({{.ModelPackageName}}.TableName{{.ModelStructName}})
+		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{})
 	if len(selectFields) > 0 {
 		columns := make([]string, 0)
 		for _, field := range selectFields {
@@ -201,7 +201,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectAll(ctx context
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectOneByPrimaryKey(ctx context.Context, {{range .PrimaryKeyList}}{{.GoColumnName}} {{.GoColumnOriginType}}, {{end}}selectFields ...{{.ModelPackageName}}.{{.ModelStructName}}Field) (record *{{.ModelPackageName}}.{{.ModelStructName}}, err error) {
 	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
-		Table({{.ModelPackageName}}.TableName{{.ModelStructName}})
+		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{})
 	if len(selectFields) > 0 {
 		columns := make([]string, 0)
 		for _, field := range selectFields {
@@ -223,7 +223,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectRecordByConditi
 		return {{.ModelShortName}}.SelectAll(ctx, selectFields...)
 	}
 	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
-		Table({{.ModelPackageName}}.TableName{{.ModelStructName}})
+		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{})
 	if len(selectFields) > 0 {
 		columns := make([]string, 0)
 		for _, field := range selectFields {
@@ -247,7 +247,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectRecordByConditi
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectPageRecordByCondition(ctx context.Context, condition *{{.ModelPackageName}}.Condition, pageParam *{{.ModelPackageName}}.Pagination,
 	selectFields ...{{.ModelPackageName}}.{{.ModelStructName}}Field) (records []*{{.ModelPackageName}}.{{.ModelStructName}}, err error) {
 	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
-		Table({{.ModelPackageName}}.TableName{{.ModelStructName}})
+		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{})
 	if len(selectFields) > 0 {
 		columns := make([]string, 0)
 		for _, field := range selectFields {
@@ -281,7 +281,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectPageRecordByCon
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) CountByCondition(ctx context.Context, condition *{{.ModelPackageName}}.Condition) (count int64, err error) {
 	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
-		Table({{.ModelPackageName}}.TableName{{.ModelStructName}})
+		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{})
 	if condition != nil {
 		for _, strCondition := range condition.StringCondition {
 			tx = tx.Where(strCondition)
@@ -324,7 +324,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) DeleteByPrimaryKey(ct
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateRecord(ctx context.Context, record *{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error) {
 	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
-		Table({{.ModelPackageName}}.TableName{{.ModelStructName}}).
+		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{}).
 		Save(record)
 	affect = tx.RowsAffected
 	err = tx.Error
@@ -333,7 +333,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateRecord(ctx cont
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateRecords(ctx context.Context, records []*{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error) {
 	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
-		Table({{.ModelPackageName}}.TableName{{.ModelStructName}}).
+		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{}).
 		Save(records)
 	affect = tx.RowsAffected
 	err = tx.Error
@@ -342,7 +342,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateRecords(ctx con
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateByCondition(ctx context.Context, condition *{{.ModelPackageName}}.Condition, updateField {{.ModelPackageName}}.UpdateField) (affect int64, err error) {
 	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
-		Table({{.ModelPackageName}}.TableName{{.ModelStructName}})
+		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{})
 		if condition != nil {
 		for _, strCondition := range condition.StringCondition {
 			tx = tx.Where(strCondition)
@@ -364,7 +364,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateByPrimaryKey(ct
 		{{ end }}
 	}
 	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
-		Table({{.ModelPackageName}}.TableName{{.ModelStructName}}).
+		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{}).
 		Where(whereCondition)
 	tx = tx.Updates(map[string]any(updateField))
 	affect = tx.RowsAffected
@@ -374,7 +374,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateByPrimaryKey(ct
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) Insert(ctx context.Context, record *{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error) {
 	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
-		Table({{.ModelPackageName}}.TableName{{.ModelStructName}}).
+		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{}).
 		Create(&record)
 	affect = tx.RowsAffected
 	err = tx.Error
@@ -383,7 +383,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) Insert(ctx context.Co
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) BatchInsert(ctx context.Context, records []*{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error) {
 	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
-		Table({{.ModelPackageName}}.TableName{{.ModelStructName}}).
+		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{}).
 		Create(&records)
 	affect = tx.RowsAffected
 	err = tx.Error
@@ -399,7 +399,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) InsertOrUpdateOnDupli
 		})
 	}
 	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
-		Table({{.ModelPackageName}}.TableName{{.ModelStructName}}).
+		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{}).
 		Clauses(clause.OnConflict{
 			Columns:   columns,
 			UpdateAll: true,
@@ -418,7 +418,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) BatchInsertOrUpdateOn
 		})
 	}
 	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
-		Table({{.ModelPackageName}}.TableName{{.ModelStructName}}).
+		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{}).
 		Clauses(clause.OnConflict{
 			Columns:   columns,
 			UpdateAll: true,
