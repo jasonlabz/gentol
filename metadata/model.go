@@ -219,9 +219,9 @@ type {{.ModelStructName}} struct {
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}) TableName() string {
-{{if .TableName -}}
-	{{if eq .DBType "postgres" -}}
-		{{if and .SchemaName (ne .SchemaName "public") -}}
+{{- if .TableName -}}
+	{{- if eq .DBType "postgres" -}}
+		{{- if and .SchemaName (ne .SchemaName "public") -}}
 	return "{{if .SchemaQuota -}}\"{{.SchemaName}}\"{{- else}}{{.SchemaName}}{{- end}}.{{if .TableQuota -}}\"{{.TableName}}\"{{- else}}{{.TableName}}{{- end}}"
 		{{- else -}}
 	return "{{if .TableQuota -}}\"{{.TableName}}\"{{- else}}{{.TableName}}{{- end}}"
@@ -319,11 +319,11 @@ func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}NotBe
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}In(inValues []{{.GoColumnOriginType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.Where(TransInCondition("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} in (?)", inValues))
+	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} in (?)", inValues)
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}NotIn(inValues []{{.GoColumnOriginType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.Where(TransInCondition("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} not in (?)", inValues))
+	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} not in (?)", inValues)
 }
 {{end}}
 
