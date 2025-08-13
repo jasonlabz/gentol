@@ -231,11 +231,33 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectRecordByConditi
 		}
 		tx = tx.Select(strings.Join(columns, ","))
 	}
-	for _, strCondition := range condition.StringCondition {
-		tx = tx.Where(strCondition)
+	if len(condition.StringCondition) > 0 {
+		paramIndex := 0
+		for _, strCondition := range condition.StringCondition {
+			paramCount := strings.Count(strCondition, "?")
+			var args []interface{}
+			if paramIndex + paramCount <= len(condition.Args) {
+				args = condition.Args[paramIndex : paramIndex + paramCount]
+				paramIndex += paramCount
+			}
+			tx = tx.Where(strCondition, args...)
+		}
 	}
 	if len(condition.MapCondition) > 0 {
 		tx = tx.Where(condition.MapCondition)
+	}
+	for i, join := range condition.JoinCondition {
+		if i < len(condition.JoinArgs) {
+			tx = tx.Joins(join, condition.JoinArgs[i])
+		} else {
+			tx = tx.Joins(join)
+		}
+	}
+	if condition.GroupByClause != "" {
+		tx = tx.Group(condition.GroupByClause)
+	}
+	if condition.HavingCondition != "" {
+		tx = tx.Having(condition.HavingCondition, condition.HavingArgs...)
 	}
 	for _, order := range condition.OrderByClause {
 		tx = tx.Order(order)
@@ -255,10 +277,18 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectPageRecordByCon
 		}
 		tx = tx.Select(strings.Join(columns, ","))
 	}
-
 	if condition != nil {
-		for _, strCondition := range condition.StringCondition {
-			tx = tx.Where(strCondition)
+		if len(condition.StringCondition) > 0 {
+			paramIndex := 0
+			for _, strCondition := range condition.StringCondition {
+				paramCount := strings.Count(strCondition, "?")
+				var args []interface{}
+				if paramIndex+paramCount <= len(condition.Args) {
+					args = condition.Args[paramIndex : paramIndex+paramCount]
+					paramIndex += paramCount
+				}
+				tx = tx.Where(strCondition, args...)
+			}
 		}
 		if len(condition.MapCondition) > 0 {
 			tx = tx.Where(condition.MapCondition)
@@ -283,8 +313,17 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) CountByCondition(ctx 
 	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
 		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{})
 	if condition != nil {
-		for _, strCondition := range condition.StringCondition {
-			tx = tx.Where(strCondition)
+		if len(condition.StringCondition) > 0 {
+			paramIndex := 0
+			for _, strCondition := range condition.StringCondition {
+				paramCount := strings.Count(strCondition, "?")
+				var args []interface{}
+				if paramIndex+paramCount <= len(condition.Args) {
+					args = condition.Args[paramIndex : paramIndex+paramCount]
+					paramIndex += paramCount
+				}
+				tx = tx.Where(strCondition, args...)
+			}
 		}
 		if len(condition.MapCondition) > 0 {
 			tx = tx.Where(condition.MapCondition)
@@ -297,8 +336,17 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) CountByCondition(ctx 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) DeleteByCondition(ctx context.Context, condition *{{.ModelPackageName}}.Condition) (affect int64, err error) {
 	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx)
 	if condition != nil {
-		for _, strCondition := range condition.StringCondition {
-			tx = tx.Where(strCondition)
+		if len(condition.StringCondition) > 0 {
+			paramIndex := 0
+			for _, strCondition := range condition.StringCondition {
+				paramCount := strings.Count(strCondition, "?")
+				var args []interface{}
+				if paramIndex+paramCount <= len(condition.Args) {
+					args = condition.Args[paramIndex : paramIndex+paramCount]
+					paramIndex += paramCount
+				}
+				tx = tx.Where(strCondition, args...)
+			}
 		}
 		if len(condition.MapCondition) > 0 {
 			tx = tx.Where(condition.MapCondition)
@@ -343,9 +391,18 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateRecords(ctx con
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateByCondition(ctx context.Context, condition *{{.ModelPackageName}}.Condition, updateField {{.ModelPackageName}}.UpdateField) (affect int64, err error) {
 	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
 		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{})
-		if condition != nil {
-		for _, strCondition := range condition.StringCondition {
-			tx = tx.Where(strCondition)
+	if condition != nil {
+		if len(condition.StringCondition) > 0 {
+			paramIndex := 0
+			for _, strCondition := range condition.StringCondition {
+				paramCount := strings.Count(strCondition, "?")
+				var args []interface{}
+				if paramIndex+paramCount <= len(condition.Args) {
+					args = condition.Args[paramIndex : paramIndex+paramCount]
+					paramIndex += paramCount
+				}
+				tx = tx.Where(strCondition, args...)
+			}
 		}
 		if len(condition.MapCondition) > 0 {
 			tx = tx.Where(condition.MapCondition)
