@@ -193,6 +193,7 @@ package {{.ModelPackageName}}
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/jasonlabz/null"
@@ -446,9 +447,7 @@ const ModelBase = NotEditMark + `
 package {{.ModelPackageName}}
 
 import (
-	"fmt"
 	"math"
-	"strings"
 )
 
 type ConditionBuilder interface {
