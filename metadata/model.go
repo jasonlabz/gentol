@@ -366,7 +366,6 @@ func ({{.ModelShortName}} *{{.ModelStructName}}Condition) Having(query string, a
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) Joins(query string, args ...any) *{{.ModelStructName}}Condition {
-	{{.ModelShortName}}.JoinCondition = append({{.ModelShortName}}.JoinCondition, fmt.Sprintf(query, args...))
 	{{.ModelShortName}}.JoinCondition = append({{.ModelShortName}}.JoinCondition, query)
 	{{.ModelShortName}}.JoinArgs = append({{.ModelShortName}}.JoinArgs, args...)
 	return {{.ModelShortName}}
