@@ -193,7 +193,6 @@ package {{.ModelPackageName}}
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 
 	"github.com/jasonlabz/null"
