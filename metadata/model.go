@@ -328,19 +328,19 @@ func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}NotIn
 {{end}}
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) Where(query any, args ...any) *{{.ModelStructName}}Condition {
-	switch v := query.(type) {
+	switch obj := query.(type) {
 	case string:
 		if len(args) > 0 {
-			{{.ModelShortName}}.StringCondition = append({{.ModelShortName}}.StringCondition, v)
+			{{.ModelShortName}}.StringCondition = append({{.ModelShortName}}.StringCondition, obj)
 			{{.ModelShortName}}.Condition.Args = append({{.ModelShortName}}.Condition.Args, args...)
 		} else {
-			{{.ModelShortName}}.StringCondition = append({{.ModelShortName}}.StringCondition, v)
+			{{.ModelShortName}}.StringCondition = append({{.ModelShortName}}.StringCondition, obj)
 		}
 	case map[string]any:
 		if {{.ModelShortName}}.MapCondition == nil {
-			{{.ModelShortName}}.MapCondition = v
+			{{.ModelShortName}}.MapCondition = obj
 		} else {
-			for key, val := range v {
+			for key, val := range obj {
 				{{.ModelShortName}}.MapCondition[key] = val
 			}
 		}
