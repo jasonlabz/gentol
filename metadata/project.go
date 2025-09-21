@@ -839,7 +839,7 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/google/uuid v1.6.0
 	github.com/jasonlabz/knife4go v1.0.1-0.20241118142759-6386e3973279
-	github.com/jasonlabz/potato v1.0.2
+	github.com/jasonlabz/potato v1.0.3-0.20250610180945-7e92d506f2b6
 )
 
 require (
