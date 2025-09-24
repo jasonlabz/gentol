@@ -114,11 +114,11 @@ type {{.ModelStructName}}Dao interface {
 	// DeleteByPrimaryKey 通过主键删除记录，返回删除记录数量
 	DeleteByPrimaryKey(ctx context.Context{{range .PrimaryKeyList}}, {{.GoColumnName}} {{.GoColumnOriginType}}{{end}}) (affect int64, err error)
 
-	// UpdateRecord 更新记录
-	UpdateRecord(ctx context.Context, record *{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error)
+	// UpsertRecord 更新记录
+	UpsertRecord(ctx context.Context, record *{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error)
 
-	// UpdateRecords 批量更新记录
-	UpdateRecords(ctx context.Context, records []*{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error)
+	// UpsertRecords 批量更新记录
+	UpsertRecords(ctx context.Context, records []*{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error)
 
 	// UpdateByCondition 更新指定条件下的记录
 	UpdateByCondition(ctx context.Context, condition *{{.ModelPackageName}}.Condition, updateField {{.ModelPackageName}}.UpdateField) (affect int64, err error)
