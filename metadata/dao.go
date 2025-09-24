@@ -370,18 +370,16 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) DeleteByPrimaryKey(ct
 	return
 }
 
-func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateRecord(ctx context.Context, record *{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error) {
+func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpsertRecord(ctx context.Context, record *{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error) {
 	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
-		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{}).
 		Save(record)
 	affect = tx.RowsAffected
 	err = tx.Error
 	return
 }
 
-func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateRecords(ctx context.Context, records []*{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error) {
+func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpsertRecords(ctx context.Context, records []*{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error) {
 	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
-		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{}).
 		Save(records)
 	affect = tx.RowsAffected
 	err = tx.Error
