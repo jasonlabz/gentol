@@ -12,7 +12,6 @@ type ProjectMeta struct {
 }
 
 func (p *ProjectMeta) GenRenderData() map[string]any {
-
 	result := map[string]any{
 		"ModulePath":  p.ModulePath,
 		"ProjectName": p.ProjectName,
@@ -33,6 +32,7 @@ import (
 	"github.com/jasonlabz/potato/cryptox/aes"
 	"github.com/jasonlabz/potato/cryptox/des"
 	"github.com/jasonlabz/potato/gormx"
+	"github.com/jasonlabz/potato/httpx"
 	"github.com/jasonlabz/potato/log"
 	"github.com/jasonlabz/potato/utils"
 
@@ -50,6 +50,8 @@ func MustInit(ctx context.Context) {
 	initCrypto(ctx)
 	// 初始化DB
 	initDB(ctx)
+	// 初始化客户端信息
+	initServicer(ctx)
 }
 
 func initLogger(_ context.Context) {
@@ -119,6 +121,22 @@ func initConfig(_ context.Context) {
 		configx.AddProviders(filePath, provider)
 	}
 }
+
+func initServicer(_ context.Context) {
+	filePaths, _ := utils.ListDir(filepath.Join("conf", "servicer"), ".yaml")
+	for _, filePath := range filePaths {
+		info := &httpx.ServerInfo{}
+		err := configx.ParseConfigByViper(filePath, info)
+		if err != nil {
+			continue
+		}
+		service := filepath.Base(filePath)
+		if info.Name != "" {
+			service = info.Name
+		}
+		httpx.Store(service, info)
+	}
+}
 `
 
 const Main = `package main
@@ -162,20 +180,20 @@ func main() {
 	// gin mode
 	serverMode := gin.ReleaseMode
 	serverConfig := configx.GetConfig()
-	if serverConfig.Debug {
+	if serverConfig.IsDebugMode() {
 		serverMode = gin.DebugMode
 	}
 	gin.SetMode(serverMode)
 
 	r := routers.InitApiRouter()
 
-	appConf := serverConfig.Application
-	if appConf.Prom.Enable {
+	prometheusConf := serverConfig.GetPrometheusConfig()
+	if prometheusConf.Enable {
 		// get global Monitor object
 		m := ginmetrics.GetMonitor()
 
 		// +optional set metric path, default /debug/metrics
-		m.SetMetricPath(appConf.Prom.Path)
+		m.SetMetricPath(prometheusConf.Path)
 		// +optional set slow time, default 5s
 		m.SetSlowTime(10)
 		// +optional set request duration, default {0.1, 0.3, 1.2, 5, 10}
@@ -186,24 +204,25 @@ func main() {
 		m.Use(r)
 	}
 
-	if appConf.PProf.Enable {
+	pprofConf := serverConfig.GetPProfConfig()
+	if pprofConf.Enable {
 		r.GET("/debug/pprof/*any", gin.WrapH(http.DefaultServeMux))
 
 		go func() {
-			if err := http.ListenAndServe(fmt.Sprintf(":%d", appConf.PProf.Port), nil); err != nil {
+			if err := http.ListenAndServe(fmt.Sprintf(":%d", pprofConf.Port), nil); err != nil {
 				log.Fatalf("pprof server failed: %v", err)
 			}
 		}()
 	}
 
-	if appConf.FileServer {
+	if serverConfig.Application.FileServer {
 		go func() {
-			fileServer(appConf.Port + 1)
+			fileServer(serverConfig.Application.Port + 1)
 		}()
 	}
 
 	// start program
-	srv := startServer(r, appConf.Port)
+	srv := startServer(r, serverConfig.Application.Port)
 
 	// receive quit signal, ready to exit
 	quit := make(chan os.Signal)
@@ -244,7 +263,7 @@ func fileServer(port int) {
 	authMux := basicAuth(mux)
 
 	// 启动 HTTP 服务器
-	//log.Printf("Starting file server at :%d", config.GetConfig().Application.Port+1)
+	// log.Printf("Starting file server at :%d", config.GetConfig().Application.Port+1)
 	err := http.ListenAndServe(fmt.Sprintf(":%d", port), authMux)
 	if err != nil {
 		log.Fatalf("file server listen: %s\n", err)
@@ -294,11 +313,11 @@ func InitApiRouter() *gin.Engine {
 	staticRouter := router.Group("/server")
 	staticRouter.Static("/", "application")
 
-	serverGroup := router.Group(fmt.Sprintf("/%s", serverConfig.Application.Name))
-	//debug模式下，注册swagger路由
-	//knife4go: beautify swagger-ui http://ip:port/server_name/doc.html
+	serverGroup := router.Group(fmt.Sprintf("/%s", serverConfig.GetName()))
+	// debug模式下，注册swagger路由
+	// knife4go: beautify swagger-ui http://ip:port/server_name/doc.html
 	// knife4go: beautify swagger-ui,
-	if serverConfig.Debug {
+	if serverConfig.IsDebugMode() {
 		_ = knife4go.InitSwaggerKnife(serverGroup)
 	}
 
@@ -332,13 +351,13 @@ func registerRootAPI(router *gin.Engine) {
 }
 
 // 注册服務路由  http://ip:port/server_name/api/**
-func registerBaseAPI(router *gin.RouterGroup) {
-}
+func registerBaseAPI(router *gin.RouterGroup) {}
 
 // 注册組路由 http://ip:port/server_name/api/v1/**
 func registerV1GroupAPI(router *gin.RouterGroup) {
-	//v1.RegisterSchedulerManagerGroup(router)
-}`
+	// v1.RegisterSchedulerManagerGroup(router)
+}
+`
 
 const LoggerMiddleware = `package middleware
 
@@ -350,7 +369,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-
 	"github.com/jasonlabz/potato/consts"
 	"github.com/jasonlabz/potato/log"
 	"github.com/jasonlabz/potato/utils"
@@ -394,7 +412,7 @@ func RequestMiddleware() gin.HandlerFunc {
 		c.Writer = bodyLog
 
 		start := time.Now() // Start timer
-		log.GetLogger().InfoContext(c, "	[GIN] request",
+		log.GetLogger().Info(c, "	[GIN] request",
 			log.String("proto", c.Request.Proto),
 			log.String("client_ip", c.ClientIP()),
 			log.Int64("content_length", c.Request.ContentLength),
@@ -405,12 +423,12 @@ func RequestMiddleware() gin.HandlerFunc {
 
 		c.Next()
 
-		log.GetLogger().InfoContext(c, "	[GIN] response",
+		log.GetLogger().Info(c, "	[GIN] response",
 			log.Int("status_code", c.Writer.Status()),
 			log.String("error_message", c.Errors.ByType(gin.ErrorTypePrivate).String()),
 			log.String("response_body", string(logBytes(bodyLog.body.Bytes(), requestBodyMaxLen))),
 			log.String("path", c.Request.URL.Path),
-			log.String("cost", fmt.Sprintf("%dms", time.Now().Sub(start).Milliseconds())))
+			log.String("cost", fmt.Sprintf("%dms", time.Since(start).Milliseconds())))
 	}
 }
 
@@ -585,19 +603,20 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-
 	errors2 "github.com/jasonlabz/potato/errors"
 	"github.com/jasonlabz/potato/log"
+
+	"{{.ModulePath}}/global/resource"
 )
 
 // Response 响应结构体
 type Response struct {
-	Code        int         ` + " `json:" + `"code"` + "` // 错误码" + `
-	Message     string      ` + " `json:" + `"message,omitempty"` + "` // 错误信息" + `
-	ErrTrace    string      ` + " `json:" + `"err_trace,omitempty"` + "` // 错误追踪链路信息" + `
-	Version     string      ` + " `json:" + `"version"` + "` // 版本信息" + `
-	CurrentTime string      ` + " `json:" + `"current_time"` + "` // 接口返回时间（当前时间）" + `
-	Data        interface{} ` + " `json:" + `"data,omitempty"` + "` //返回数据" + `
+	Code        int    ` + " `json:" + `"code"` + "` // 错误码" + `
+	Message     string ` + " `json:" + `"message,omitempty"` + "` // 错误信息" + `
+	ErrTrace    string ` + " `json:" + `"err_trace,omitempty"` + "` // 错误追踪链路信息" + `
+	Version     string ` + " `json:" + `"version"` + "` // 版本信息" + `
+	CurrentTime string ` + " `json:" + `"current_time"` + "` // 接口返回时间（当前时间）" + `
+	Data        any    ` + " `json:" + `"data,omitempty"` + "` //返回数据" + `
 }
 
 type ResponseWithPagination struct {
@@ -606,7 +625,7 @@ type ResponseWithPagination struct {
 }
 
 // ResponseOK 返回正确结果及数据
-func ResponseOK(c *gin.Context, version string, data interface{}) {
+func ResponseOK(c *gin.Context, version string, data any) {
 	c.JSON(prepareResponse(c, version, data, nil))
 	return
 }
@@ -618,25 +637,25 @@ func ResponseErr(c *gin.Context, version string, err error) {
 }
 
 // JsonResult 返回结果Json
-func JsonResult(c *gin.Context, version string, data interface{}, err error) {
+func JsonResult(c *gin.Context, version string, data any, err error) {
 	c.JSON(prepareResponse(c, version, data, err))
 	return
 }
 
 // PaginationResult 返回结果Json带分页
-func PaginationResult(c *gin.Context, version string, data interface{}, err error, pagination *Pagination) {
+func PaginationResult(c *gin.Context, version string, data any, err error, pagination *Pagination) {
 	c.JSON(prepareResponseWithPagination(c, version, data, err, pagination))
 	return
 }
 
 // PureJsonResult 返回结果PureJson
-func PureJsonResult(c *gin.Context, version string, data interface{}, err error) {
+func PureJsonResult(c *gin.Context, version string, data any, err error) {
 	c.PureJSON(prepareResponse(c, version, data, err))
 	return
 }
 
 // prepareResponse 准备响应信息
-func prepareResponse(c *gin.Context, version string, data interface{}, err error) (int, *Response) {
+func prepareResponse(c *gin.Context, version string, data any, err error) (int, *Response) {
 	// 格式化返回数据，非数组及切片时，转为切片
 	data = handleData(data)
 	code := http.StatusOK
@@ -655,7 +674,7 @@ func prepareResponse(c *gin.Context, version string, data interface{}, err error
 			errMessage = err.Error()
 			errTrace = err.Error()
 		}
-		log.GetLogger().WithContext(c).Error("        "+errTrace,
+		resource.Logger.Error(c, "        "+errTrace,
 			log.Int("err_code", errCode), log.String("err_message", errMessage))
 	}
 	// 组装响应结果
@@ -672,7 +691,7 @@ func prepareResponse(c *gin.Context, version string, data interface{}, err error
 
 // prepareResponseWithPagination 准备响应信息
 func prepareResponseWithPagination(c *gin.Context, version string,
-	data interface{}, err error, pagination *Pagination) (int, *ResponseWithPagination) {
+	data any, err error, pagination *Pagination) (int, *ResponseWithPagination) {
 	code, resp := prepareResponse(c, version, data, err)
 	respWithPagination := &ResponseWithPagination{
 		*resp,
@@ -683,15 +702,15 @@ func prepareResponseWithPagination(c *gin.Context, version string,
 }
 
 // handleData 格式化返回数据，非数组及切片时，转为切片
-func handleData(data interface{}) interface{} {
+func handleData(data any) any {
 	v := reflect.ValueOf(data)
 	if !v.IsValid() || v.Kind() == reflect.Ptr && v.IsNil() {
-		return make([]interface{}, 0)
+		return make([]any, 0)
 	}
 	if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
 		return data
 	}
-	return []interface{}{data}
+	return []any{data}
 }
 `
 
@@ -839,7 +858,7 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/google/uuid v1.6.0
 	github.com/jasonlabz/knife4go v1.0.1-0.20241118142759-6386e3973279
-	github.com/jasonlabz/potato v1.0.3-0.20250610180945-7e92d506f2b6
+	github.com/jasonlabz/potato v1.0.3-0.20251108150511-4072f6028fde
 )
 
 require (
@@ -853,10 +872,12 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect
 	github.com/dgrijalva/jwt-go v3.2.1-0.20210802184156-9742bd7fca1c+incompatible // indirect
+	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.6 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
+	github.com/glebarez/go-sqlite v1.21.2 // indirect
 	github.com/go-logfmt/logfmt v0.6.0 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/jsonreference v0.21.0 // indirect
@@ -865,6 +886,7 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.23.0 // indirect
+	github.com/go-resty/resty/v2 v2.9.1 // indirect
 	github.com/go-sql-driver/mysql v1.8.1 // indirect
 	github.com/goccy/go-json v0.10.3 // indirect
 	github.com/godror/godror v0.44.0 // indirect
@@ -879,6 +901,7 @@ require (
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
 	github.com/jasonlabz/gorm-dm-driver v0.1.1 // indirect
 	github.com/jasonlabz/oracle v1.1.1-0.20240609161033-cf780c860ebb // indirect
+	github.com/jasonlabz/sqlite v1.11.1 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
@@ -888,7 +911,6 @@ require (
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/microsoft/go-mssqldb v1.7.2 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -899,6 +921,7 @@ require (
 	github.com/prometheus/client_model v0.6.0 // indirect
 	github.com/prometheus/common v0.51.1 // indirect
 	github.com/prometheus/procfs v0.13.0 // indirect
+	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/sagikazarmark/locafero v0.3.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
@@ -927,22 +950,35 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/driver/mysql v1.5.7 // indirect
 	gorm.io/driver/postgres v1.5.9 // indirect
-	gorm.io/driver/sqlite v1.5.6 // indirect
 	gorm.io/driver/sqlserver v1.5.3 // indirect
 	gorm.io/gorm v1.25.12 // indirect
+	modernc.org/libc v1.22.5 // indirect
+	modernc.org/mathutil v1.5.0 // indirect
+	modernc.org/memory v1.5.0 // indirect
+	modernc.org/sqlite v1.23.1 // indirect
 )
 `
 
 const Conf = `application:
-  name: {{.ProjectName}}
-  port: 8080
-  prom:
-    enable: false      # Enable prometheus client
-    path: "metrics"   # Default value is "metrics", set path as needed.
-  pprof:
-    enable: true  # Enable PProf tool
-    port: 8082
-debug: true
+  name: {{.ProjectName}}    # 应用名
+  debug: true        # 调试模式
+  server:
+    http:
+      port: 8080
+      read_timeout: 30s    # 添加超时配置
+      write_timeout: 30s
+    grpc:
+      port: 8082
+      max_concurrent_streams: 100
+  monitor:
+    prometheus:
+      enable: false      # Enable prometheus client
+      path: "metrics"   # Default value is "metrics", set path as needed.
+      scrape_interval: "15s"  # 添加采集间隔
+    pprof:
+      enable: false  # Enable PProf tool
+      port: 8080
+      enabled_endpoints: ["goroutine", "heap"]  # 指定启用的端点
 kafka:
   enable: false
   topic: ["XXX"]
@@ -985,21 +1021,6 @@ crypto:
     key: "wrEDGh75pxAUH8Mr"
   - type: des
     key: "b_K3prT8"
-log:
-  # 是否写入文件
-  write_file: true
-  # json|console
-  format: console
-  # error|warn|info|debug
-  log_level: debug
-  # 文件配置
-  log_file_conf:
-    base_path: ./log
-    file_name: service.log
-    max_size: 10
-    max_age: 15
-    max_backups: 30
-    compress: false
 `
 const Resource = `
 package resource
@@ -1015,3 +1036,91 @@ var (
 // Logger 日志对象
 var Logger *log.LoggerWrapper
 `
+const LOG = `# 是否写入文件
+name: service
+# json|console
+format: console
+# error|warn|info|debug|fatal
+log_level: debug
+# 文件配置
+write_file: true
+# 日志文件路径
+base_path: log
+# 日志文件大小
+max_size: 10
+# 日志文件最大天数
+max_age: 28
+# 最大存在数量
+max_backups: 100
+# 是否压缩日志
+compress: false
+`
+
+const SERVICER = `# service名
+Name: demo
+# 连接协议
+Protocol: http
+# 重试次数
+RetryCount: 3
+# 重试等待时间
+RetryWaitTime: 1000
+# 请求超时时间
+Timeout: 5000
+# service ip地址
+Host: 127.0.0.1
+# service 端口
+Port: 8080
+# service basepath
+BasePath: /
+`
+
+const MAKEFILE = `# 工作目录变量
+WORKDIR := $(shell pwd)
+OUTDIR := $(WORKDIR)/output
+
+# 目标二进制名称
+TARGETNAME = {{.ProjectName}}
+
+GOPKGS := $$(go list ./.. | grep -vE "vendor")
+
+# 设置编译时所需要的 Go 环境
+export GOENV = $(WORKDIR)/go.env
+
+#执行编译，可使用命令 make 或 make all 执行， 顺序执行 prepare -> compile -> test -> package 几个阶段
+all: prepare compile test package
+
+# prepare阶段， 下载 Go 依赖，可单独执行命令: make prepare
+prepare:
+	git version     # 低于 2.17.1 可能不能正常工作
+	go env          # 打印出 go 环境信息，可用于排查问题
+	go mod download || go mod download -x # 下载 Go 依赖
+
+# compile 阶段，执行编译命令，可单独执行命令: make compile
+compile:build
+build: prepare
+	go build -o $(WORKDIR)/bin/$(TARGETNAME)
+	#bash cmd/build.sh
+
+# test 阶段，进行单元测试， 可单独执行命令: make test
+# cover 平台会优先执行此命令
+test: prepare
+	go test -race -timeout=300s -v -cover $(GOPKGS) -coverprofile=coverage.out | tee unittest.txt
+
+# package 阶段，对编译产出进行打包，输出到 output 目录， 可单独执行命令: make package
+package:
+	$(shell rm -rf $(OUTDIR))
+	$(shell mkdir -p $(OUTDIR))
+	$(shell mkdir -p $(OUTDIR)/var/)
+	$(shell cp -a bin $(OUTDIR)/bin)
+	$(shell cp -a conf $(OUTDIR)/conf)
+	$(shell if [ -d "data" ]; then cp -r data $(OUTDIR)/data; fi)
+	$(shell if [ -d "script" ]; then cp -r script $(OUTDIR)/script; fi)
+	$(shell if [ -d "webroot" ]; then cp -r webroot $(OUTDIR)/; fi)
+	tree $(OUTDIR)
+
+# clean 阶段，清除过程中的输出， 可单独执行命令: make clean
+clean:
+	rm -rf $(OUTDIR)
+
+# avoid filename conflict and speed up build
+.PHONY: all prepare compile test package  clean build`

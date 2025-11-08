@@ -82,6 +82,48 @@ func handleNewProject(projectName string) {
 		fmt.Println("err occured: ", err)
 		return
 	}
+	makefileTpl, ok := metadata.LoadTpl("makefile")
+	if !ok {
+		fmt.Println("undefined template" + "makefile")
+		return
+	}
+	err = RenderingTemplate(makefileTpl, projectMeta, filepath.Join(projectDir, "Makefile"), true)
+	if err != nil {
+		fmt.Println("err occured: ", err)
+		return
+	}
+	logPath := filepath.Join(confPath, "log")
+	err = os.MkdirAll(logPath, 0644)
+	if err != nil {
+		fmt.Println("err occured: ", err)
+		return
+	}
+	logTpl, ok := metadata.LoadTpl("log")
+	if !ok {
+		fmt.Println("undefined template" + "log")
+		return
+	}
+	err = RenderingTemplate(logTpl, projectMeta, filepath.Join(logPath, "service.yaml"), true)
+	if err != nil {
+		fmt.Println("err occured: ", err)
+		return
+	}
+	servicerPath := filepath.Join(confPath, "servicer")
+	err = os.MkdirAll(servicerPath, 0644)
+	if err != nil {
+		fmt.Println("err occured: ", err)
+		return
+	}
+	servicerTpl, ok := metadata.LoadTpl("servicer")
+	if !ok {
+		fmt.Println("undefined template" + "servicer")
+		return
+	}
+	err = RenderingTemplate(servicerTpl, projectMeta, filepath.Join(servicerPath, "demo.yaml"), true)
+	if err != nil {
+		fmt.Println("err occured: ", err)
+		return
+	}
 	schemaPath := filepath.Join(confPath, "schema")
 	err = os.MkdirAll(schemaPath, 0644)
 	if err != nil {
@@ -351,11 +393,11 @@ func handleNewProject(projectName string) {
 		fmt.Println("err occured: ", err)
 		return
 	}
-	//mainTpl, ok := metadata.LoadTpl("main")
-	//if !ok {
+	// mainTpl, ok := metadata.LoadTpl("main")
+	// if !ok {
 	//	fmt.Println("undefined template" + "main")
 	//	return
-	//}
+	// }
 	err = RenderingTemplate(mainTpl, projectMeta, filepath.Join(projectDir, "main.go"), true)
 	if err != nil {
 		fmt.Println("err occured: ", err)
@@ -371,5 +413,4 @@ func handleNewProject(projectName string) {
 		fmt.Println("err occured: ", err)
 		return
 	}
-
 }

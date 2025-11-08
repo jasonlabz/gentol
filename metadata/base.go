@@ -270,4 +270,7 @@ func init() {
 	StoreTpl("gomod", GOMOD)
 	StoreTpl("conf", Conf)
 	StoreTpl("resource", Resource)
+	StoreTpl("makefile", MAKEFILE)
+	StoreTpl("log", LOG)
+	StoreTpl("servicer", SERVICER)
 }
