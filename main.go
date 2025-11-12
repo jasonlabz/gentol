@@ -26,7 +26,7 @@ func main() {
 		if projectName == "" {
 			projectName = "demo"
 		}
-		match, _ := regexp.MatchString("^[/a-zA-Z0-9_-]+$", projectName)
+		match, _ := regexp.MatchString("^[/.a-zA-Z0-9_-]+$", projectName)
 		if !match {
 			log.Fatalf("项目名称无效，只允许字母、数字、斜杠、下划线和连字符")
 		}
