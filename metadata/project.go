@@ -923,7 +923,7 @@ func getContentType(fileName string) string {
 }
 `
 
-const Page = `package base
+const Page = `package ginx
 
 import "math"
 
