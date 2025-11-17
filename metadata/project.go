@@ -101,6 +101,8 @@ func initDB(_ context.Context) {
 		panic(err)
 	}
 	gormConfig.DBName = gormx.DefaultDBNameMaster
+	gormConfig.Logger =
+		gormx.LoggerAdapter(resource.Logger.WithCallerSkip(3))
 	_, err = gormx.InitConfig(gormConfig)
 	if err != nil {
 		panic(err)
@@ -328,7 +330,7 @@ func InitApiRouter() *gin.Engine {
 		middleware.RecoveryLog(true), middleware.SetContext(), middleware.RequestMiddleware())
 
 	// base api
-	registerBaseAPI(serverGroup)
+	registerBaseAPI(apiGroup)
 
 	// v1 group api
 	v1Group := apiGroup.Group("/v1")
@@ -372,6 +374,8 @@ import (
 	"github.com/jasonlabz/potato/consts"
 	"github.com/jasonlabz/potato/log"
 	"github.com/jasonlabz/potato/utils"
+
+	"{{.ModulePath}}/global/resource"
 )
 
 const (
@@ -412,7 +416,7 @@ func RequestMiddleware() gin.HandlerFunc {
 		c.Writer = bodyLog
 
 		start := time.Now() // Start timer
-		log.GetLogger().Info(c, "	[GIN] request",
+		resource.Logger.Info(c, "	[GIN] request",
 			log.String("proto", c.Request.Proto),
 			log.String("client_ip", c.ClientIP()),
 			log.Int64("content_length", c.Request.ContentLength),
@@ -423,7 +427,7 @@ func RequestMiddleware() gin.HandlerFunc {
 
 		c.Next()
 
-		log.GetLogger().Info(c, "	[GIN] response",
+		resource.Logger.Info(c, "	[GIN] response",
 			log.Int("status_code", c.Writer.Status()),
 			log.String("error_message", c.Errors.ByType(gin.ErrorTypePrivate).String()),
 			log.String("response_body", string(logBytes(bodyLog.body.Bytes(), requestBodyMaxLen))),
@@ -1067,7 +1071,7 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/google/uuid v1.6.0
 	github.com/jasonlabz/knife4go v1.0.1-0.20241118142759-6386e3973279
-	github.com/jasonlabz/potato v1.0.3-0.20251115162246-a5ca1bca7a31
+	github.com/jasonlabz/potato v1.0.4
 )
 
 require (
@@ -1200,9 +1204,16 @@ kafka:
 database:
   enable: false
   db_type: "mysql"
-  dsn: "user:passwd@tcp(*******:8306)/lg_server?charset=utf8mb4&parseTime=True&loc=Local&timeout=20s"
+#  dsn: "user:passwd@tcp(*******:8306)/lg_server?charset=utf8mb4&parseTime=True&loc=Local&timeout=20s"
 #  dsn: "user=postgres password=halojeff host=127.0.0.1 port=8432 dbname=lg_server sslmode=disable TimeZone=Asia/Shanghai"
-  charset: "utf-8"
+  host: *******
+  port: 8306
+  user: root
+  password: *******
+  database: dbname
+  args:
+    - name: charset
+      value: utf8mb4
   log_mode: "info"
   max_idle_conn: 10
   max_open_conn: 100

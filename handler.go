@@ -184,7 +184,7 @@ func handleNewProject(projectName string) {
 		fmt.Println("undefined template" + "ginx")
 		return
 	}
-	err = RenderingTemplate(ginxTpl, projectMeta, filepath.Join(ginxPath, "ginx.go"), true)
+	err = RenderingTemplate(ginxTpl, projectMeta, filepath.Join(ginxPath, "response.go"), true)
 	if err != nil {
 		fmt.Println("err occured: ", err)
 		return
@@ -211,7 +211,7 @@ func handleNewProject(projectName string) {
 		fmt.Println("undefined template" + "helper")
 		return
 	}
-	err = RenderingTemplate(helperTpl, projectMeta, filepath.Join(helperPath, "helper.go"), true)
+	err = RenderingTemplate(helperTpl, projectMeta, filepath.Join(helperPath, "context.go"), true)
 	if err != nil {
 		fmt.Println("err occured: ", err)
 		return
