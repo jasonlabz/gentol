@@ -50,11 +50,23 @@ type ColumnInfo struct {
 	DefaultValue       string
 }
 
+// IndexTagInfo 存储索引标签信息
+type IndexTagInfo struct {
+	UniqueIndexTags      map[string][]string // 唯一索引: 索引名 -> 字段列表
+	IndexTags            map[string][]string // 普通索引: 索引名 -> 字段列表
+	IndexColumnMap       map[string][]string // 字段->所在索引名列表
+	UniqueIndexColumnMap map[string][]string // 字段->所在索引名列表
+}
+
 func (m *ModelMeta) GenRenderData() map[string]any {
 	if m == nil {
 		return map[string]any{}
 	}
 	useSQLNullable := m.UseSQLNullable
+
+	// 解析索引信息
+	indexTagInfo := m.parseIndexTags()
+
 	for index, columnInfo := range m.ColumnList {
 		columnInfo.Index = index + 1
 		metaType := GetMetaType(gormx.DBType(m.DBType), columnInfo.DataBaseType)
@@ -99,6 +111,10 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 			}()
 		}
 		columnInfo.ValueFormat = metaType.ValueFormat
+
+		// 生成索引标签
+		indexTags := m.generateIndexTagsForColumn(columnInfo.ColumnName, indexTagInfo)
+
 		gormTag := fmt.Sprintf("%s%s%s%s%s%s",
 			func() string {
 				var tag string
@@ -126,12 +142,13 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 			func() string {
 				return fmt.Sprintf("type:%s;", columnInfo.ColumnType)
 			}(),
-			func() string {
-				if columnInfo.Length != 0 {
-					return fmt.Sprintf("size:%d;", columnInfo.Length)
-				}
-				return ""
-			}(),
+			indexTags, // 添加索引标签
+			// func() string {
+			//	if columnInfo.Length != 0 {
+			//		return fmt.Sprintf("size:%d;", columnInfo.Length)
+			//	}
+			//	return ""
+			// }(),
 			func() string {
 				if strings.Contains(columnInfo.DefaultValue, "\"") {
 					return ""
@@ -143,7 +160,8 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 					return fmt.Sprintf("default:%s;", columnInfo.DefaultValue)
 				}
 				return ""
-			}())
+			}(),
+		)
 
 		jsonTag := fmt.Sprintf("json:\"%s\"", func() string {
 			switch m.JsonFormat {
@@ -198,6 +216,89 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 		}(),
 	}
 	return result
+}
+
+// parseIndexTags 解析 gorm.Index 信息为索引标签
+func (m *ModelMeta) parseIndexTags() *IndexTagInfo {
+	info := &IndexTagInfo{
+		UniqueIndexTags:      make(map[string][]string),
+		IndexTags:            make(map[string][]string),
+		IndexColumnMap:       make(map[string][]string),
+		UniqueIndexColumnMap: make(map[string][]string),
+	}
+
+	if m.Indexs == nil {
+		return info
+	}
+
+	for _, indexInfo := range m.Indexs {
+		// 跳过主键索引，因为已经在 primaryKey 标签中处理
+		if isPrimary, ok := indexInfo.PrimaryKey(); isPrimary && ok {
+			continue
+		}
+
+		indexName := indexInfo.Name()
+		columns := indexInfo.Columns()
+
+		if isUnique, ok := indexInfo.Unique(); isUnique && ok {
+			info.UniqueIndexTags[indexName] = columns
+
+			for _, column := range columns {
+				info.UniqueIndexColumnMap[column] = append(info.UniqueIndexColumnMap[column], indexName)
+			}
+		} else {
+			info.IndexTags[indexName] = columns
+
+			for _, column := range columns {
+				info.IndexColumnMap[column] = append(info.IndexColumnMap[column], indexName)
+			}
+		}
+	}
+
+	return info
+}
+
+// generateIndexTagsForColumn 为指定列生成索引标签
+func (m *ModelMeta) generateIndexTagsForColumn(columnName string, indexInfo *IndexTagInfo) string {
+	var indexTags strings.Builder
+
+	// 处理唯一索引
+	for indexName, columns := range indexInfo.UniqueIndexTags {
+		if contains(columns, columnName) {
+			if len(columns) == 1 {
+				// 单列唯一索引
+				indexTags.WriteString(fmt.Sprintf("uniqueIndex:%s;", indexName))
+			} else {
+				// 联合唯一索引
+				indexTags.WriteString(fmt.Sprintf("uniqueIndex:%s;", indexName))
+			}
+		}
+	}
+
+	// 处理普通索引
+	for indexName, columns := range indexInfo.IndexTags {
+		if contains(columns, columnName) {
+			if len(columns) == 1 {
+				// 单列索引
+				indexTags.WriteString(fmt.Sprintf("index:%s;", indexName))
+			} else {
+				// 联合索引
+				indexTags.WriteString(fmt.Sprintf("index:%s;", indexName))
+			}
+		}
+	}
+
+	return indexTags.String()
+}
+
+// contains 检查字符串切片是否包含指定字符串
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
 }
 
 // Model used as a variable because it cannot load template file after packed, params still can pass file
