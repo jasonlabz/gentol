@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"gorm.io/gorm"
+
 	"github.com/jasonlabz/gentol/gormx"
 )
 
@@ -13,6 +15,7 @@ type ModelMeta struct {
 	ModelStructName  string
 	ImportPkgList    []string
 	ColumnList       []*ColumnInfo
+	Indexs           []gorm.Index
 }
 
 type ColumnInfo struct {
@@ -72,9 +75,15 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 
 		columnInfo.ColumnQuota = func() bool {
 			if m.DBType == string(gormx.DBTypePostgres) ||
-				m.DBType == string(gormx.DBTypeGreenplum) ||
-				m.DBType == string(gormx.DBTypeDM) {
+				m.DBType == string(gormx.DBTypeGreenplum) {
 				if ToLower(columnInfo.ColumnName) == columnInfo.ColumnName {
+					return false
+				}
+				return true
+			}
+			if m.DBType == string(gormx.DBTypeOracle) ||
+				m.DBType == string(gormx.DBTypeDM) {
+				if ToUpper(columnInfo.ColumnName) == columnInfo.ColumnName {
 					return false
 				}
 				return true
@@ -90,7 +99,7 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 			}()
 		}
 		columnInfo.ValueFormat = metaType.ValueFormat
-		gormTag := fmt.Sprintf("gorm:\"%s%s%s%s%s%s\"",
+		gormTag := fmt.Sprintf("%s%s%s%s%s%s",
 			func() string {
 				var tag string
 				if columnInfo.IsPrimaryKey {
@@ -115,7 +124,7 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 				return tag
 			}(),
 			func() string {
-				return fmt.Sprintf("type:%s;", columnInfo.DataBaseType)
+				return fmt.Sprintf("type:%s;", columnInfo.ColumnType)
 			}(),
 			func() string {
 				if columnInfo.Length != 0 {
@@ -139,16 +148,20 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 		jsonTag := fmt.Sprintf("json:\"%s\"", func() string {
 			switch m.JsonFormat {
 			case "snake":
-				return CamelCaseToUnderscore(columnInfo.ColumnName)
+				name := CamelCaseToUnderscore(columnInfo.ColumnName)
+				// 清理连续的下划线
+				return cleanConsecutiveUnderscores(name)
 			case "upper_camel":
 				return UnderscoreToUpperCamelCase(columnInfo.ColumnName)
 			case "lower_camel":
 				return UnderscoreToLowerCamelCase(columnInfo.ColumnName)
 			default:
-				return CamelCaseToUnderscore(columnInfo.ColumnName)
+				name := CamelCaseToUnderscore(columnInfo.ColumnName)
+				// 清理连续的下划线
+				return cleanConsecutiveUnderscores(name)
 			}
 		}())
-
+		gormTag = fmt.Sprintf("gorm:\"%s\"", strings.TrimSuffix(gormTag, ";"))
 		columnInfo.Tags = fmt.Sprintf("%s %s", gormTag, jsonTag)
 	}
 	result := map[string]any{

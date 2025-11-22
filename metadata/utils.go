@@ -2,7 +2,6 @@ package metadata
 
 import (
 	"fmt"
-	"github.com/jasonlabz/gentol/gormx"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -11,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+
+	"github.com/jasonlabz/gentol/gormx"
 )
 
 func GetMetaType(dbType gormx.DBType, columnType string) (metaType MetaType) {
@@ -564,22 +565,42 @@ func UnderscoreToLowerCamelCase(s string) string {
 	return string(unicode.ToLower(rune(s[0]))) + s[1:]
 }
 
+// 清理连续下划线的辅助函数
+func cleanConsecutiveUnderscores(s string) string {
+	return regexp.MustCompile("_{2,}").ReplaceAllString(s, "_")
+}
+
 // CamelCaseToUnderscore 驼峰单词转下划线单词
 func CamelCaseToUnderscore(s string) string {
-	var output []rune
-	for i, r := range s {
-		// 如果当前字符是大写字母
+	if s == "" {
+		return s
+	}
+
+	var result strings.Builder
+	runes := []rune(s)
+
+	for i, r := range runes {
 		if unicode.IsUpper(r) {
-			// 如果不是第一个字符，并且前一个字符不是大写字母，或者下一个字符是小写字母
-			if i > 0 && (!unicode.IsUpper(rune(s[i-1])) || (i+1 < len(s) && unicode.IsLower(rune(s[i+1])))) {
-				output = append(output, '_')
+			// 如果不是第一个字符
+			if i > 0 {
+				// 只在需要时添加下划线：当前是大写，前一个不是大写，或者下一个是小写
+				prevIsUpper := i > 0 && unicode.IsUpper(runes[i-1])
+				nextIsLower := i+1 < len(runes) && unicode.IsLower(runes[i+1])
+
+				if !prevIsUpper || nextIsLower {
+					// 确保不会添加连续下划线
+					if result.Len() > 0 && result.String()[result.Len()-1] != '_' {
+						result.WriteByte('_')
+					}
+				}
 			}
-			output = append(output, unicode.ToLower(r))
+			result.WriteRune(unicode.ToLower(r))
 		} else {
-			output = append(output, r)
+			result.WriteRune(r)
 		}
 	}
-	return string(output)
+
+	return result.String()
 }
 
 // ListDir 获取指定目录下文件
@@ -592,7 +613,7 @@ func ListDir(dirPth string, suffix string) (files []string, err error) {
 	}
 
 	PthSep := string(os.PathSeparator)
-	suffix = strings.ToUpper(suffix) //忽略后缀匹配的大小写
+	suffix = strings.ToUpper(suffix) // 忽略后缀匹配的大小写
 
 	for _, fi := range dir {
 		if fi.IsDir() { // 忽略目录
@@ -602,7 +623,7 @@ func ListDir(dirPth string, suffix string) (files []string, err error) {
 			files = append(files, dirPth+PthSep+fi.Name())
 			continue
 		}
-		if strings.HasSuffix(strings.ToUpper(fi.Name()), suffix) { //匹配文件
+		if strings.HasSuffix(strings.ToUpper(fi.Name()), suffix) { // 匹配文件
 			files = append(files, dirPth+PthSep+fi.Name())
 		}
 	}
@@ -613,10 +634,9 @@ func ListDir(dirPth string, suffix string) (files []string, err error) {
 // WalkDir 获取指定目录及所有子目录下的所有文件，可以匹配后缀过滤。
 func WalkDir(dirPth, suffix string) (files []string, err error) {
 	files = make([]string, 0)
-	suffix = strings.ToUpper(suffix) //忽略后缀匹配的大小写
+	suffix = strings.ToUpper(suffix) // 忽略后缀匹配的大小写
 
-	err = filepath.Walk(dirPth, func(filename string, fi os.FileInfo, err error) error { //遍历目录
-
+	err = filepath.Walk(dirPth, func(filename string, fi os.FileInfo, err error) error { // 遍历目录
 		if fi.IsDir() { // 忽略目录
 			return nil
 		}
@@ -635,7 +655,7 @@ func WalkDir(dirPth, suffix string) (files []string, err error) {
 }
 
 // GetFuncNamePath 获取函数所在模块路劲
-func GetFuncNamePath(fn interface{}) string {
+func GetFuncNamePath(fn any) string {
 	value := reflect.ValueOf(fn)
 	ptr := value.Pointer()
 	ffp := runtime.FuncForPC(ptr)

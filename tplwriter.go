@@ -3,13 +3,13 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"runtime"
 	"go/format"
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"text/template"
-	
+
 	"gorm.io/gorm"
 
 	"github.com/jasonlabz/gentol/configx"
@@ -104,7 +104,8 @@ func CRLFNewlines(d []byte) []byte {
 	return d
 }
 
-func WriteModel(dbInfo *configx.DBTableInfo, schemaName, tableName string, columnTypes []gorm.ColumnType) {
+func WriteModel(dbInfo *configx.DBTableInfo, schemaName, tableName string,
+	columnTypes []gorm.ColumnType, indexs []gorm.Index) {
 	modelData := &metadata.ModelMeta{
 		ModelPackageName: func() string {
 			if dbInfo.ModelPath == "" {
@@ -120,6 +121,7 @@ func WriteModel(dbInfo *configx.DBTableInfo, schemaName, tableName string, colum
 	modelData.DBType = dbInfo.DBType
 	modelData.SchemaName = schemaName
 	modelData.TableName = tableName
+	modelData.Indexs = indexs
 	modelData.ModelPath = dbInfo.ModelPath
 	modelData.UseSQLNullable = dbInfo.UseSQLNullable
 	modelTpl, ok := metadata.LoadTpl("model")
@@ -246,9 +248,9 @@ func WriteDao(dbInfo *configx.DBTableInfo, schemaName, tableName string, columnT
 			return
 		}
 	}
-	//baseFile := filepath.Join(daoData.DaoPath, "impl", "db.go")
+	// baseFile := filepath.Join(daoData.DaoPath, "impl", "db.go")
 	baseFile := filepath.Join(daoData.DaoPath, "db.go")
-	//baseFileExist := IsExist(baseFile)
+	// baseFileExist := IsExist(baseFile)
 	ff, _ = filepath.Abs(baseFile)
 	daoBaseTpl, ok := metadata.LoadTpl("database")
 	if !ok {
