@@ -6,6 +6,8 @@ import (
 	"sync"
 
 	dm "github.com/jasonlabz/gorm-dm-driver"
+	"github.com/jasonlabz/oracle"
+	"github.com/jasonlabz/sqlite"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlserver"
@@ -46,8 +48,10 @@ func LoadDBInstance(config *Config) (*gorm.DB, error) {
 		fallthrough
 	case DBTypePostgres:
 		dialect = postgres.Open(config.DSN)
-	//case DBTypeOracle:
-	//	dialect = oracle.Open(config.DSN)
+	case DBTypeOracle:
+		dialect = oracle.Open(config.DSN)
+	case DBTypeSQLite:
+		dialect = sqlite.Open(config.DSN)
 	case DBTypeSqlserver:
 		dialect = sqlserver.Open(config.DSN)
 	case DBTypeDM:

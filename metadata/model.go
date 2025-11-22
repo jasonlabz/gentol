@@ -72,7 +72,8 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 
 		columnInfo.ColumnQuota = func() bool {
 			if m.DBType == string(gormx.DBTypePostgres) ||
-				m.DBType == string(gormx.DBTypeGreenplum) {
+				m.DBType == string(gormx.DBTypeGreenplum) ||
+				m.DBType == string(gormx.DBTypeDM) {
 				if ToLower(columnInfo.ColumnName) == columnInfo.ColumnName {
 					return false
 				}
@@ -162,7 +163,8 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 		"ImportPkgList":    []string{},
 		"SchemaQuota": func() bool {
 			if m.DBType == string(gormx.DBTypePostgres) ||
-				m.DBType == string(gormx.DBTypeGreenplum) {
+				m.DBType == string(gormx.DBTypeGreenplum) ||
+				m.DBType == string(gormx.DBTypeDM) {
 				if ToLower(m.SchemaName) == m.SchemaName {
 					return false
 				}
@@ -172,7 +174,8 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 		}(),
 		"TableQuota": func() bool {
 			if m.DBType == string(gormx.DBTypePostgres) ||
-				m.DBType == string(gormx.DBTypeGreenplum) {
+				m.DBType == string(gormx.DBTypeGreenplum) ||
+				m.DBType == string(gormx.DBTypeDM) {
 				if ToLower(m.TableName) == m.TableName {
 					return false
 				}
@@ -190,7 +193,6 @@ package {{.ModelPackageName}}
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 
 	"github.com/jasonlabz/null"
@@ -205,24 +207,6 @@ var (
 	_ = uuid.UUID{}
 )
 
-{{if .TableName -}}
-	{{if eq .DBType "postgres" -}}
-		{{if and .SchemaName (ne .SchemaName "public") -}}
-const TableName{{.ModelStructName}} = "{{if .SchemaQuota -}}\"{{.SchemaName}}\"{{- else}}{{.SchemaName}}{{- end}}.{{if .TableQuota -}}\"{{.TableName}}\"{{- else}}{{.TableName}}{{- end}}"
-		{{- else -}}
-const TableName{{.ModelStructName}} = "{{if .TableQuota -}}\"{{.TableName}}\"{{- else}}{{.TableName}}{{- end}}"
-		{{ end }}
-	{{- else if eq .DBType "sqlserver" -}}
- 		{{if ne .SchemaName "dbo" -}}
-const TableName{{.ModelStructName}} = "{{.SchemaName}}.{{.TableName}}"
-		{{- else -}}
-const TableName{{.ModelStructName}} = "{{.TableName}}"
-		{{end}}
-	{{- else}}
-const TableName{{.ModelStructName}} = "{{.TableName}}"	
-	{{- end}}
-{{- end}}
-
 type {{.TitleTableName}}Field string
 
 // {{.ModelStructName}} struct is mapping to the {{.TableName}} table
@@ -235,7 +219,35 @@ type {{.ModelStructName}} struct {
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}) TableName() string {
+{{- if .TableName -}}
+	{{- if eq .DBType "postgres" -}}
+		{{- if and .SchemaName (ne .SchemaName "public") -}}
+	return "{{if .SchemaQuota -}}\"{{.SchemaName}}\"{{- else}}{{.SchemaName}}{{- end}}.{{if .TableQuota -}}\"{{.TableName}}\"{{- else}}{{.TableName}}{{- end}}"
+		{{- else -}}
+	return "{{if .TableQuota -}}\"{{.TableName}}\"{{- else}}{{.TableName}}{{- end}}"
+		{{ end }}
+	{{- else if eq .DBType "oracle" -}}
+ 		{{if .SchemaName -}}
+	return "{{.SchemaName}}.{{.TableName}}"
+		{{- else -}}
 	return "{{.TableName}}"
+		{{ end }}
+ 	{{- else if eq .DBType "dm" -}}
+ 		{{if .SchemaName -}}
+	return "{{if .SchemaQuota -}}\"{{.SchemaName}}\"{{- else}}{{.SchemaName}}{{- end}}.{{if .TableQuota -}}\"{{.TableName}}\"{{- else}}{{.TableName}}{{- end}}"
+		{{- else -}}
+	return "{{if .TableQuota -}}\"{{.TableName}}\"{{- else}}{{.TableName}}{{- end}}"
+		{{ end }}
+ 	{{- else if eq .DBType "sqlserver" -}}
+ 		{{if ne .SchemaName "dbo" -}}
+	return "{{.SchemaName}}.{{.TableName}}"
+		{{- else -}}
+	return "{{.TableName}}"
+		{{end}}
+	{{- else}}
+	return "{{.TableName}}"	
+	{{- end}}
+{{- end}}
 }
 
 type {{.ModelStructName}}TableColumn struct {
@@ -258,8 +270,12 @@ func ({{.ModelShortName}} *{{.ModelStructName}}Condition) ColumnInfo() {{.ModelS
 
 {{range .ColumnList}}
 {{if eq .GoColumnOriginType "string"}}
+func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}PrefixLike(value string) *{{.ModelStructName}}Condition {
+	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} like ?", value+"%")
+}
+
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}IsLike(value string) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} like '%v'", value)
+	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} like ?", "%"+value+"%")
 }
 {{end}}
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}IsNull() *{{.ModelStructName}}Condition {
@@ -271,60 +287,63 @@ func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}IsNot
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}EqualTo(value {{.GoColumnOriginType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} = {{.ValueFormat}}", value)
+	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} = ?", value)
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}NotEqualTo(value {{.GoColumnOriginType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} <> {{.ValueFormat}}", value)
+	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} <> ?", value)
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}GreaterThan(value {{.GoColumnOriginType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} > {{.ValueFormat}}", value)
+	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} > ?", value)
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}GreaterThanOrEqualTo(value {{.GoColumnOriginType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} >= {{.ValueFormat}}", value)
+	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} >= ?", value)
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}LessThan(value {{.GoColumnOriginType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} < {{.ValueFormat}}", value)
+	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} < ?", value)
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}LessThanOrEqualTo(value {{.GoColumnOriginType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} <= {{.ValueFormat}}", value)
+	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} <= ?", value)
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}Between(startValue, endValue  {{.GoColumnOriginType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} between {{.ValueFormat}} and {{.ValueFormat}}", startValue, endValue)
+	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} between ? and ?", startValue, endValue)
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}NotBetween(startValue, endValue  {{.GoColumnOriginType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} not between {{.ValueFormat}} and {{.ValueFormat}}", startValue, endValue)
+	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} not between ? and ?", startValue, endValue)
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}In(inValues []{{.GoColumnOriginType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.Where(TransInCondition("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} in ",inValues))
+	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} in (?)", inValues)
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}NotIn(inValues []{{.GoColumnOriginType}}) *{{.ModelStructName}}Condition {
-	return {{.ModelShortName}}.Where(TransInCondition("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} not in ",inValues))
+	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} not in (?)", inValues)
 }
 {{end}}
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) Where(query any, args ...any) *{{.ModelStructName}}Condition {
-	switch query.(type) {
-	case map[string]any:
-		mapCondition := query.(map[string]any)
-		if {{.ModelShortName}}.MapCondition == nil {
-			{{.ModelShortName}}.MapCondition =mapCondition
-			break
-		}
-		for key, val := range mapCondition {
-			{{.ModelShortName}}.MapCondition[key] = val
-		}
+	switch obj := query.(type) {
 	case string:
-		condition:=query.(string)
-		{{.ModelShortName}}.StringCondition = append({{.ModelShortName}}.StringCondition, fmt.Sprintf(condition, args...))
+		if len(args) > 0 {
+			{{.ModelShortName}}.StringCondition = append({{.ModelShortName}}.StringCondition, obj)
+			{{.ModelShortName}}.Condition.Args = append({{.ModelShortName}}.Condition.Args, args...)
+		} else {
+			{{.ModelShortName}}.StringCondition = append({{.ModelShortName}}.StringCondition, obj)
+		}
+	case map[string]any:
+		if {{.ModelShortName}}.MapCondition == nil {
+			{{.ModelShortName}}.MapCondition = obj
+		} else {
+			for key, val := range obj {
+				{{.ModelShortName}}.MapCondition[key] = val
+			}
+		}
 	}
 	return {{.ModelShortName}}
 }
@@ -340,12 +359,14 @@ func ({{.ModelShortName}} *{{.ModelStructName}}Condition) GroupBy(groupByClause 
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) Having(query string, args ...any) *{{.ModelStructName}}Condition {
-	{{.ModelShortName}}.HavingCondition = fmt.Sprintf(query, args...)
+	{{.ModelShortName}}.HavingCondition = query
+	{{.ModelShortName}}.HavingArgs = args
 	return {{.ModelShortName}}
 }
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) Joins(query string, args ...any) *{{.ModelStructName}}Condition {
-	{{.ModelShortName}}.JoinCondition = append({{.ModelShortName}}.JoinCondition, fmt.Sprintf(query, args...))
+	{{.ModelShortName}}.JoinCondition = append({{.ModelShortName}}.JoinCondition, query)
+	{{.ModelShortName}}.JoinArgs = append({{.ModelShortName}}.JoinArgs, args...)
 	return {{.ModelShortName}}
 }
 
@@ -424,9 +445,7 @@ const ModelBase = NotEditMark + `
 package {{.ModelPackageName}}
 
 import (
-	"fmt"
 	"math"
-	"strings"
 )
 
 type ConditionBuilder interface {
@@ -435,10 +454,13 @@ type ConditionBuilder interface {
 
 type Condition struct {
 	JoinCondition   []string
+	JoinArgs        []any
 	MapCondition    map[string]any
 	StringCondition []string
+	Args            []any
 	GroupByClause   string
 	HavingCondition string
+	HavingArgs      []any
 	OrderByClause   []string
 }
 
@@ -467,32 +489,4 @@ func (p *Pagination) CalculateOffset() (offset int64) {
 	offset = (p.Page - 1) * p.PageSize
 	return
 }
-
-func Values(value any) string {
-	switch value.(type) {
-	case int, int8, int16, int32, int64, bool, float32, float64:
-		return fmt.Sprintf("%v", value)
-	default:
-		return fmt.Sprintf("'%v'", value)
-	}
-}
-
-func TransInCondition[T any](prefix string, values []T) string {
-	res := make([]string, 0)
-	numbers := len(values) / 1000
-	for i := 0; i < numbers; i++ {
-		items := make([]string, 0)
-		for j := i * 1000; j < (i+1)*1000; j++ {
-			items = append(items, Values(values[j]))
-		}
-		res = append(res, fmt.Sprintf("%s (%s)", prefix, strings.Join(items, ",")))
-	}
-	items := make([]string, 0)
-	for i := numbers * 1000; i < numbers*1000+len(values)%1000; i++ {
-		items = append(items, Values(values[i]))
-	}
-	res = append(res, fmt.Sprintf("%s (%s)", prefix, strings.Join(items, ",")))
-	return strings.Join(res, " or ")
-}
-
 `

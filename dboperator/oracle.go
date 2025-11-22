@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	
 	"github.com/jasonlabz/gentol/gormx"
 )
 
@@ -71,9 +72,9 @@ func (o OracleOperator) GetTablesUnderDB(ctx context.Context, dbName string) (db
 		return
 	}
 	err = db.WithContext(ctx).
-		Raw("SELECT OWNER as table_schema, " +
-			"TABLE_NAME as table_name, " +
-			"COMMENTS as comments " +
+		Raw("SELECT OWNER as \"table_schema\", " +
+			"TABLE_NAME as \"table_name\", " +
+			"COMMENTS as \"comments\" " +
 			"FROM all_tab_comments " +
 			"WHERE OWNER IN " +
 			"(select SYS_CONTEXT('USERENV','CURRENT_SCHEMA') CURRENT_SCHEMA from dual) " +
@@ -117,11 +118,11 @@ func (o OracleOperator) GetColumns(ctx context.Context, dbName string) (dbTableC
 		return
 	}
 	err = db.WithContext(ctx).
-		Raw("SELECT atc.OWNER as table_schema, " +
-			"atc.TABLE_NAME as table_name, " +
-			"atc.Column_Name as column_name," +
-			" acc.COMMENTS as comments," +
-			"atc.Data_TYPE  as data_type " +
+		Raw("SELECT atc.OWNER as \"table_schema\", " +
+			"atc.TABLE_NAME as \"table_name\", " +
+			"atc.Column_Name as \"column_name\"," +
+			" acc.COMMENTS as \"comments\"," +
+			"atc.Data_TYPE  as \"data_type\" " +
 			"FROM ALL_TAB_COLUMNS atc " +
 			"left join all_col_comments acc " +
 			"on acc.TABLE_NAME = atc.TABLE_NAME and acc.COLUMN_NAME = atc.COLUMN_NAME " +
@@ -184,11 +185,11 @@ func (o OracleOperator) GetColumnsUnderTables(ctx context.Context, dbName, logic
 		return
 	}
 	err = db.WithContext(ctx).
-		Raw("SELECT atc.OWNER as table_schema, "+
-			"atc.TABLE_NAME as table_name, "+
-			"atc.Column_Name as column_name,"+
-			" acc.COMMENTS as comments,"+
-			"atc.Data_TYPE  as data_type "+
+		Raw("SELECT atc.OWNER as \"table_schema\", "+
+			"atc.TABLE_NAME as \"table_name\", "+
+			"atc.Column_Name as \"column_name\","+
+			" acc.COMMENTS as \"comments\","+
+			"atc.Data_TYPE  as \"data_type\" "+
 			"FROM ALL_TAB_COLUMNS atc "+
 			"left join all_col_comments acc "+
 			"on acc.TABLE_NAME = atc.TABLE_NAME and acc.COLUMN_NAME = atc.COLUMN_NAME "+

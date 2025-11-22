@@ -86,6 +86,12 @@ import (
 )
 
 type {{.ModelStructName}}Dao interface {
+	// 可编辑自定义dao层逻辑
+	{{.ModelStructName}}DaoExt
+
+	// SelectByRawSQL 自定义SQL查询，满足连表查询场景
+	SelectByRawSQL(ctx context.Context, rawSQL string, result any) (err error)
+
 	// SelectAll 查询所有记录
 	SelectAll(ctx context.Context, selectFields ...{{.ModelPackageName}}.{{.ModelStructName}}Field) (records []*{{.ModelPackageName}}.{{.ModelStructName}}, err error)
 	
@@ -108,11 +114,11 @@ type {{.ModelStructName}}Dao interface {
 	// DeleteByPrimaryKey 通过主键删除记录，返回删除记录数量
 	DeleteByPrimaryKey(ctx context.Context{{range .PrimaryKeyList}}, {{.GoColumnName}} {{.GoColumnOriginType}}{{end}}) (affect int64, err error)
 
-	// UpdateRecord 更新记录
-	UpdateRecord(ctx context.Context, record *{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error)
+	// UpsertRecord 更新记录
+	UpsertRecord(ctx context.Context, record *{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error)
 
-	// UpdateRecords 批量更新记录
-	UpdateRecords(ctx context.Context, records []*{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error)
+	// UpsertRecords 批量更新记录
+	UpsertRecords(ctx context.Context, records []*{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error)
 
 	// UpdateByCondition 更新指定条件下的记录
 	UpdateByCondition(ctx context.Context, condition *{{.ModelPackageName}}.Condition, updateField {{.ModelPackageName}}.UpdateField) (affect int64, err error)
@@ -134,7 +140,13 @@ type {{.ModelStructName}}Dao interface {
 	BatchInsertOrUpdateOnDuplicateKey(ctx context.Context, records []*{{.ModelPackageName}}.{{.ModelStructName}},
 	uniqueKeys ...{{.ModelPackageName}}.{{.ModelStructName}}Field) (affect int64, err error)
 }
+`
 
+const DaoExt = `
+package dao
+
+type {{.ModelStructName}}DaoExt interface {
+}
 `
 
 const DaoImpl = NotEditMark + `
@@ -144,6 +156,7 @@ import (
 	"context"
 	"strings"
 
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
 	"{{.DaoModulePath}}"
@@ -158,9 +171,23 @@ func Get{{.ModelStructName}}Dao() {{.DaoPackageName}}.{{.ModelStructName}}Dao {
 
 type {{.ModelLowerCamelName}}DaoImpl struct{}
 
+func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) tx(ctx context.Context) *gorm.DB {
+	tx, ok := ctx.Value("transactionDB").(*gorm.DB)
+	if ok {
+		return tx
+	}
+	return {{.DaoPackageName}}.DB()
+}
+
+func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectByRawSQL(ctx context.Context, rawSQL string, result any) (err error) {
+	err = {{.ModelShortName}}.tx(ctx).WithContext(ctx).
+		Raw(rawSQL).Scan(result).Error
+	return
+}
+
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectAll(ctx context.Context, selectFields ...{{.ModelPackageName}}.{{.ModelStructName}}Field) (records []*{{.ModelPackageName}}.{{.ModelStructName}}, err error) {
-	tx := DB().WithContext(ctx).
-		Table({{.ModelPackageName}}.TableName{{.ModelStructName}})
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
+		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{})
 	if len(selectFields) > 0 {
 		columns := make([]string, 0)
 		for _, field := range selectFields {
@@ -173,8 +200,8 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectAll(ctx context
 }
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectOneByPrimaryKey(ctx context.Context, {{range .PrimaryKeyList}}{{.GoColumnName}} {{.GoColumnOriginType}}, {{end}}selectFields ...{{.ModelPackageName}}.{{.ModelStructName}}Field) (record *{{.ModelPackageName}}.{{.ModelStructName}}, err error) {
-	tx := DB().WithContext(ctx).
-		Table({{.ModelPackageName}}.TableName{{.ModelStructName}})
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
+		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{})
 	if len(selectFields) > 0 {
 		columns := make([]string, 0)
 		for _, field := range selectFields {
@@ -195,8 +222,8 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectRecordByConditi
 	if condition == nil {
 		return {{.ModelShortName}}.SelectAll(ctx, selectFields...)
 	}
-	tx := DB().WithContext(ctx).
-		Table({{.ModelPackageName}}.TableName{{.ModelStructName}})
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
+		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{})
 	if len(selectFields) > 0 {
 		columns := make([]string, 0)
 		for _, field := range selectFields {
@@ -204,11 +231,33 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectRecordByConditi
 		}
 		tx = tx.Select(strings.Join(columns, ","))
 	}
-	for _, strCondition := range condition.StringCondition {
-		tx = tx.Where(strCondition)
+	if len(condition.StringCondition) > 0 {
+		paramIndex := 0
+		for _, strCondition := range condition.StringCondition {
+			paramCount := strings.Count(strCondition, "?")
+			var args []interface{}
+			if paramIndex + paramCount <= len(condition.Args) {
+				args = condition.Args[paramIndex : paramIndex + paramCount]
+				paramIndex += paramCount
+			}
+			tx = tx.Where(strCondition, args...)
+		}
 	}
 	if len(condition.MapCondition) > 0 {
 		tx = tx.Where(condition.MapCondition)
+	}
+	for i, join := range condition.JoinCondition {
+		if i < len(condition.JoinArgs) {
+			tx = tx.Joins(join, condition.JoinArgs[i])
+		} else {
+			tx = tx.Joins(join)
+		}
+	}
+	if condition.GroupByClause != "" {
+		tx = tx.Group(condition.GroupByClause)
+	}
+	if condition.HavingCondition != "" {
+		tx = tx.Having(condition.HavingCondition, condition.HavingArgs...)
 	}
 	for _, order := range condition.OrderByClause {
 		tx = tx.Order(order)
@@ -219,8 +268,8 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectRecordByConditi
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectPageRecordByCondition(ctx context.Context, condition *{{.ModelPackageName}}.Condition, pageParam *{{.ModelPackageName}}.Pagination,
 	selectFields ...{{.ModelPackageName}}.{{.ModelStructName}}Field) (records []*{{.ModelPackageName}}.{{.ModelStructName}}, err error) {
-	tx := DB().WithContext(ctx).
-		Table({{.ModelPackageName}}.TableName{{.ModelStructName}})
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
+		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{})
 	if len(selectFields) > 0 {
 		columns := make([]string, 0)
 		for _, field := range selectFields {
@@ -228,10 +277,18 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectPageRecordByCon
 		}
 		tx = tx.Select(strings.Join(columns, ","))
 	}
-
 	if condition != nil {
-		for _, strCondition := range condition.StringCondition {
-			tx = tx.Where(strCondition)
+		if len(condition.StringCondition) > 0 {
+			paramIndex := 0
+			for _, strCondition := range condition.StringCondition {
+				paramCount := strings.Count(strCondition, "?")
+				var args []interface{}
+				if paramIndex+paramCount <= len(condition.Args) {
+					args = condition.Args[paramIndex : paramIndex+paramCount]
+					paramIndex += paramCount
+				}
+				tx = tx.Where(strCondition, args...)
+			}
 		}
 		if len(condition.MapCondition) > 0 {
 			tx = tx.Where(condition.MapCondition)
@@ -253,11 +310,20 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectPageRecordByCon
 }
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) CountByCondition(ctx context.Context, condition *{{.ModelPackageName}}.Condition) (count int64, err error) {
-	tx := DB().WithContext(ctx).
-		Table({{.ModelPackageName}}.TableName{{.ModelStructName}})
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
+		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{})
 	if condition != nil {
-		for _, strCondition := range condition.StringCondition {
-			tx = tx.Where(strCondition)
+		if len(condition.StringCondition) > 0 {
+			paramIndex := 0
+			for _, strCondition := range condition.StringCondition {
+				paramCount := strings.Count(strCondition, "?")
+				var args []interface{}
+				if paramIndex+paramCount <= len(condition.Args) {
+					args = condition.Args[paramIndex : paramIndex+paramCount]
+					paramIndex += paramCount
+				}
+				tx = tx.Where(strCondition, args...)
+			}
 		}
 		if len(condition.MapCondition) > 0 {
 			tx = tx.Where(condition.MapCondition)
@@ -268,10 +334,19 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) CountByCondition(ctx 
 }
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) DeleteByCondition(ctx context.Context, condition *{{.ModelPackageName}}.Condition) (affect int64, err error) {
-	tx := DB().WithContext(ctx)
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx)
 	if condition != nil {
-		for _, strCondition := range condition.StringCondition {
-			tx = tx.Where(strCondition)
+		if len(condition.StringCondition) > 0 {
+			paramIndex := 0
+			for _, strCondition := range condition.StringCondition {
+				paramCount := strings.Count(strCondition, "?")
+				var args []interface{}
+				if paramIndex+paramCount <= len(condition.Args) {
+					args = condition.Args[paramIndex : paramIndex+paramCount]
+					paramIndex += paramCount
+				}
+				tx = tx.Where(strCondition, args...)
+			}
 		}
 		if len(condition.MapCondition) > 0 {
 			tx = tx.Where(condition.MapCondition)
@@ -289,24 +364,22 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) DeleteByPrimaryKey(ct
 		"{{- .GoFieldName -}}": {{- .GoColumnName }},
 		{{ end }}
 	}	
-	tx := DB().WithContext(ctx).Where(whereCondition).Delete(&{{.ModelPackageName}}.{{.ModelStructName}}{})
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).Where(whereCondition).Delete(&{{.ModelPackageName}}.{{.ModelStructName}}{})
 	affect = tx.RowsAffected
 	err = tx.Error
 	return
 }
 
-func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateRecord(ctx context.Context, record *{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error) {
-	tx := DB().WithContext(ctx).
-		Table({{.ModelPackageName}}.TableName{{.ModelStructName}}).
+func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpsertRecord(ctx context.Context, record *{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error) {
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
 		Save(record)
 	affect = tx.RowsAffected
 	err = tx.Error
 	return
 }
 
-func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateRecords(ctx context.Context, records []*{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error) {
-	tx := DB().WithContext(ctx).
-		Table({{.ModelPackageName}}.TableName{{.ModelStructName}}).
+func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpsertRecords(ctx context.Context, records []*{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error) {
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
 		Save(records)
 	affect = tx.RowsAffected
 	err = tx.Error
@@ -314,11 +387,20 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateRecords(ctx con
 }
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateByCondition(ctx context.Context, condition *{{.ModelPackageName}}.Condition, updateField {{.ModelPackageName}}.UpdateField) (affect int64, err error) {
-	tx := DB().WithContext(ctx).
-		Table({{.ModelPackageName}}.TableName{{.ModelStructName}})
-		if condition != nil {
-		for _, strCondition := range condition.StringCondition {
-			tx = tx.Where(strCondition)
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
+		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{})
+	if condition != nil {
+		if len(condition.StringCondition) > 0 {
+			paramIndex := 0
+			for _, strCondition := range condition.StringCondition {
+				paramCount := strings.Count(strCondition, "?")
+				var args []interface{}
+				if paramIndex+paramCount <= len(condition.Args) {
+					args = condition.Args[paramIndex : paramIndex+paramCount]
+					paramIndex += paramCount
+				}
+				tx = tx.Where(strCondition, args...)
+			}
 		}
 		if len(condition.MapCondition) > 0 {
 			tx = tx.Where(condition.MapCondition)
@@ -336,8 +418,8 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateByPrimaryKey(ct
 		"{{- .GoFieldName -}}": {{- .GoColumnName }},
 		{{ end }}
 	}
-	tx := DB().WithContext(ctx).
-		Table({{.ModelPackageName}}.TableName{{.ModelStructName}}).
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
+		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{}).
 		Where(whereCondition)
 	tx = tx.Updates(map[string]any(updateField))
 	affect = tx.RowsAffected
@@ -346,8 +428,8 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) UpdateByPrimaryKey(ct
 }
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) Insert(ctx context.Context, record *{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error) {
-	tx := DB().WithContext(ctx).
-		Table({{.ModelPackageName}}.TableName{{.ModelStructName}}).
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
+		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{}).
 		Create(&record)
 	affect = tx.RowsAffected
 	err = tx.Error
@@ -355,8 +437,8 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) Insert(ctx context.Co
 }
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) BatchInsert(ctx context.Context, records []*{{.ModelPackageName}}.{{.ModelStructName}}) (affect int64, err error) {
-	tx := DB().WithContext(ctx).
-		Table({{.ModelPackageName}}.TableName{{.ModelStructName}}).
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
+		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{}).
 		Create(&records)
 	affect = tx.RowsAffected
 	err = tx.Error
@@ -371,8 +453,8 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) InsertOrUpdateOnDupli
 			Name: string(field),
 		})
 	}
-	tx := DB().WithContext(ctx).
-		Table({{.ModelPackageName}}.TableName{{.ModelStructName}}).
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
+		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{}).
 		Clauses(clause.OnConflict{
 			Columns:   columns,
 			UpdateAll: true,
@@ -390,8 +472,8 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) BatchInsertOrUpdateOn
 			Name: string(field),
 		})
 	}
-	tx := DB().WithContext(ctx).
-		Table({{.ModelPackageName}}.TableName{{.ModelStructName}}).
+	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
+		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{}).
 		Clauses(clause.OnConflict{
 			Columns:   columns,
 			UpdateAll: true,
@@ -404,10 +486,24 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) BatchInsertOrUpdateOn
 
 
 `
-const Database = NotEditMark + `
+
+const DaoExtImpl = `
 package impl
 
-import "gorm.io/gorm"
+// CustomMethod 自定义方法, 该文件不会被覆盖
+// func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) CustomMethod(ctx context.Context, rawSQL string, result any) (err error) {
+//		return
+// }
+`
+
+const Database = NotEditMark + `
+package dao
+
+import (
+	"context"
+
+	"gorm.io/gorm"
+)
 
 var gormDB *gorm.DB
 
@@ -424,5 +520,17 @@ func DB() *gorm.DB {
 		panic("db connection is nil")
 	}
 	return gormDB
+}
+
+func RunTransaction(ctx context.Context, f func(ctx context.Context) error) error {
+	// 使用 Transaction 方法并绑定上下文
+	return DB().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		transCtx := context.WithValue(ctx, "transactionDB", tx)
+		// 在事务中创建用户
+		if err := f(transCtx); err != nil {
+			return err // 返回错误，事务会回滚
+		}
+		return nil // 返回 nil，事务会提交
+	})
 }
 `

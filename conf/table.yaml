@@ -6,18 +6,31 @@ addProtobufAnnotation: true
 
 #module: lg_server
 configs:
-  - db_name: "postgres"
-    db_type: "postgres"
-    dsn: "user=postgres password=halojeff host=127.0.0.1 port=8432 dbname=lg_server sslmode=disable TimeZone=Asia/Shanghai"
-    model_path: F:\baidu\aiib-go\lg_server\dal\db\model
-    dao_path: F:\baidu\aiib-go\lg_server\dal\db\dao
+  - db_name: "sqlite"
+    db_type: "sqlite"
+    dsn: "F:/baidu/aiib-go/dagine/data/dagine.db"
+#    dsn: "F:/baidu/aiib-go/dagine/etl/test/dao/data/dagine.db"
+    model_path: F:\baidu\aiib-go\dagine\etl\dal\db\model
+    dao_path: F:\baidu\aiib-go\dagine\etl\dal\db\dao
     only_model: false
     gen_hook: true
-    use_sql_nullable: true
-    tables:
-      - schema_name:
-        table_list:
-          - user
+    use_sql_nullable: false
+#    tables:
+#      - schema_name:
+#        table_list:
+#          - user
+#  - db_name: "postgres"
+#    db_type: "postgres"
+#    dsn: "user=postgres password=halojeff host=127.0.0.1 port=8432 dbname=lg_server sslmode=disable TimeZone=Asia/Shanghai"
+#    model_path: F:\baidu\aiib-go\lg_server\dal\db\model
+#    dao_path: F:\baidu\aiib-go\lg_server\dal\db\dao
+#    only_model: false
+#    gen_hook: true
+#    use_sql_nullable: true
+#    tables:
+#      - schema_name:
+#        table_list:
+#          - user
 #  - db_type: "mysql"
 #    db_name: "mysql"
 #    dsn: "root:halojeff@tcp(127.0.0.1:3306)/lg_server?parseTime=True&loc=Local"

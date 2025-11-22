@@ -25,8 +25,174 @@ func GetMetaType(dbType gormx.DBType, columnType string) (metaType MetaType) {
 		metaType = SQLServerTrans(columnType)
 	case gormx.DBTypeOracle:
 		metaType = OracleTrans(columnType)
+	case gormx.DBTypeDM:
+		metaType = DmTrans(columnType)
+	case gormx.DBTypeSQLite:
+		metaType = SQLiteTrans(columnType)
 	default:
 		panic(fmt.Errorf("unsupported db_type: %s ", dbType))
+	}
+	return
+}
+
+func DmTrans(columnType string) (metaType MetaType) {
+	columnType = strings.ToLower(columnType)
+	switch columnType {
+	case "bit", "bool", "boolean":
+		metaType.GoType = "bool"
+		metaType.SQLNullableType = "sql.NullBool"
+		metaType.GureguNullableType = "null.Bool"
+		metaType.ValueFormat = "%v"
+	case "tinyint", "int1":
+		metaType.GoType = "int8"
+		metaType.SQLNullableType = "sql.NullInt32"
+		metaType.GureguNullableType = "null.Int"
+		metaType.ValueFormat = "%v"
+	case "smallint", "int2":
+		metaType.GoType = "int16"
+		metaType.SQLNullableType = "sql.NullInt32"
+		metaType.GureguNullableType = "null.Int"
+		metaType.ValueFormat = "%v"
+	case "int", "int4", "integer":
+		metaType.GoType = "int32"
+		metaType.SQLNullableType = "sql.NullInt32"
+		metaType.GureguNullableType = "null.Int"
+		metaType.ValueFormat = "%v"
+	case "bigint", "int8":
+		metaType.GoType = "int64"
+		metaType.SQLNullableType = "sql.NullInt64"
+		metaType.GureguNullableType = "null.Int"
+		metaType.ValueFormat = "%v"
+	case "real", "float", "float4":
+		metaType.GoType = "float32"
+		metaType.SQLNullableType = "sql.NullFloat32"
+		metaType.GureguNullableType = "null.Float"
+		metaType.ValueFormat = "%v"
+	case "double", "float8", "number", "decimal", "numeric":
+		metaType.GoType = "float64"
+		metaType.SQLNullableType = "sql.NullFloat64"
+		metaType.GureguNullableType = "null.Float"
+		metaType.ValueFormat = "%v"
+	case "char", "varchar", "varchar2", "text", "clob", "long":
+		metaType.GoType = "string"
+		metaType.SQLNullableType = "sql.NullString"
+		metaType.GureguNullableType = "null.String"
+		metaType.ValueFormat = "'%v'"
+	case "date", "time", "timestamp", "datetime":
+		metaType.GoType = "time.Time"
+		metaType.SQLNullableType = "sql.NullTime"
+		metaType.GureguNullableType = "null.Time"
+		metaType.ValueFormat = "'%v'"
+	case "blob", "raw", "byte", "binary":
+		metaType.GoType = "[]byte"
+		metaType.SQLNullableType = "sql.RawBytes"
+		metaType.GureguNullableType = "[]byte"
+		metaType.ValueFormat = "'%v'"
+	default:
+		if strings.Contains(columnType, "number") ||
+			strings.Contains(columnType, "decimal") ||
+			strings.Contains(columnType, "numeric") {
+			metaType.GoType = "float64"
+			metaType.SQLNullableType = "sql.NullFloat64"
+			metaType.GureguNullableType = "null.Float"
+			metaType.ValueFormat = "%v"
+		} else if strings.Contains(columnType, "char") ||
+			strings.Contains(columnType, "text") {
+			metaType.GoType = "string"
+			metaType.SQLNullableType = "sql.NullString"
+			metaType.GureguNullableType = "null.String"
+			metaType.ValueFormat = "'%v'"
+		} else if strings.Contains(columnType, "time") ||
+			strings.Contains(columnType, "date") {
+			metaType.GoType = "time.Time"
+			metaType.SQLNullableType = "sql.NullTime"
+			metaType.GureguNullableType = "null.Time"
+			metaType.ValueFormat = "'%v'"
+		} else {
+			fmt.Printf("unknown DM column type: %s, default to string\n", columnType)
+			metaType.GoType = "string"
+			metaType.SQLNullableType = "sql.NullString"
+			metaType.GureguNullableType = "null.String"
+			metaType.ValueFormat = "'%v'"
+		}
+	}
+	return
+}
+
+func SQLiteTrans(columnType string) (metaType MetaType) {
+	columnType = strings.ToLower(columnType)
+	switch columnType {
+	case "boolean", "bool":
+		metaType.GoType = "bool"
+		metaType.SQLNullableType = "sql.NullBool"
+		metaType.GureguNullableType = "null.Bool"
+		metaType.ValueFormat = "%v"
+	case "tinyint", "int1":
+		metaType.GoType = "int8"
+		metaType.SQLNullableType = "sql.NullInt32"
+		metaType.GureguNullableType = "null.Int"
+		metaType.ValueFormat = "%v"
+	case "smallint", "int2":
+		metaType.GoType = "int16"
+		metaType.SQLNullableType = "sql.NullInt32"
+		metaType.GureguNullableType = "null.Int"
+		metaType.ValueFormat = "%v"
+	case "integer", "int", "int4":
+		metaType.GoType = "int32"
+		metaType.SQLNullableType = "sql.NullInt32"
+		metaType.GureguNullableType = "null.Int"
+		metaType.ValueFormat = "%v"
+	case "bigint", "int8":
+		metaType.GoType = "int64"
+		metaType.SQLNullableType = "sql.NullInt64"
+		metaType.GureguNullableType = "null.Int"
+		metaType.ValueFormat = "%v"
+	case "real", "float":
+		metaType.GoType = "float64"
+		metaType.SQLNullableType = "sql.NullFloat64"
+		metaType.GureguNullableType = "null.Float"
+		metaType.ValueFormat = "%v"
+	case "text", "varchar", "nchar", "clob":
+		metaType.GoType = "string"
+		metaType.SQLNullableType = "sql.NullString"
+		metaType.GureguNullableType = "null.String"
+		metaType.ValueFormat = "'%v'"
+	case "blob", "binary":
+		metaType.GoType = "[]byte"
+		metaType.SQLNullableType = "sql.RawBytes"
+		metaType.GureguNullableType = "[]byte"
+		metaType.ValueFormat = "'%v'"
+	case "date", "datetime", "timestamp":
+		metaType.GoType = "time.Time"
+		metaType.SQLNullableType = "sql.NullTime"
+		metaType.GureguNullableType = "null.Time"
+		metaType.ValueFormat = "'%v'"
+	default:
+		if strings.Contains(columnType, "int") {
+			metaType.GoType = "int64"
+			metaType.SQLNullableType = "sql.NullInt64"
+			metaType.GureguNullableType = "null.Int"
+			metaType.ValueFormat = "%v"
+		} else if strings.Contains(columnType, "real") ||
+			strings.Contains(columnType, "float") ||
+			strings.Contains(columnType, "double") {
+			metaType.GoType = "float64"
+			metaType.SQLNullableType = "sql.NullFloat64"
+			metaType.GureguNullableType = "null.Float"
+			metaType.ValueFormat = "%v"
+		} else if strings.Contains(columnType, "char") ||
+			strings.Contains(columnType, "text") {
+			metaType.GoType = "string"
+			metaType.SQLNullableType = "sql.NullString"
+			metaType.GureguNullableType = "null.String"
+			metaType.ValueFormat = "'%v'"
+		} else {
+			fmt.Printf("unknown SQLite column type: %s, default to string\n", columnType)
+			metaType.GoType = "string"
+			metaType.SQLNullableType = "sql.NullString"
+			metaType.GureguNullableType = "null.String"
+			metaType.ValueFormat = "'%v'"
+		}
 	}
 	return
 }
@@ -64,7 +230,12 @@ func PostgresTrans(columnType string) (metaType MetaType) {
 		metaType.SQLNullableType = "sql.NullFloat64"
 		metaType.GureguNullableType = "null.Float"
 		metaType.ValueFormat = "%v"
-	case "bytea", "char", "varchar", "character", "text", "json", "xml", "jsonb":
+	case "bytea":
+		metaType.GoType = "[]byte"
+		metaType.SQLNullableType = "sql.RawBytes"
+		metaType.GureguNullableType = "[]byte"
+		metaType.ValueFormat = "'%v'"
+	case "char", "varchar", "character", "text", "json", "xml", "jsonb":
 		metaType.GoType = "string"
 		metaType.SQLNullableType = "sql.NullString"
 		metaType.GureguNullableType = "null.String"
@@ -93,7 +264,7 @@ func PostgresTrans(columnType string) (metaType MetaType) {
 			metaType.SQLNullableType = "sql.NullTime"
 			metaType.ValueFormat = "'%v'"
 		} else {
-			fmt.Printf("unknow column type : %s, replace it with \"string\"", columnType)
+			fmt.Printf("unknow column type : %s, replace it with \"string\"\n", columnType)
 			metaType.GoType = "string"
 			metaType.SQLNullableType = "sql.NullString"
 			metaType.GureguNullableType = "null.String"
@@ -141,11 +312,16 @@ func MySQLTrans(columnType string) (metaType MetaType) {
 		metaType.SQLNullableType = "sql.NullFloat64"
 		metaType.GureguNullableType = "null.Float"
 		metaType.ValueFormat = "%v"
-	case "set", "enum", "json", "binary", "varbinary", "tinytext", "mediumtext", "longtext",
-		"char", "nchar", "varchar", "character", "text", "blob":
+	case "set", "enum", "json", "tinytext", "mediumtext", "longtext",
+		"char", "nchar", "varchar", "character", "text":
 		metaType.GoType = "string"
 		metaType.SQLNullableType = "sql.NullString"
 		metaType.GureguNullableType = "null.String"
+		metaType.ValueFormat = "'%v'"
+	case "binary", "varbinary", "blob":
+		metaType.GoType = "[]byte"
+		metaType.SQLNullableType = "sql.RawBytes"
+		metaType.GureguNullableType = "[]byte"
 		metaType.ValueFormat = "'%v'"
 	case "year", "date", "time", "timestamp", "datetime":
 		metaType.GoType = "time.Time"
@@ -171,7 +347,7 @@ func MySQLTrans(columnType string) (metaType MetaType) {
 			metaType.SQLNullableType = "sql.NullTime"
 			metaType.ValueFormat = "'%v'"
 		} else {
-			fmt.Printf("unknow column type : %s, replace it with \"string\"", columnType)
+			fmt.Printf("unknow column type : %s, replace it with \"string\"\n", columnType)
 			metaType.GoType = "string"
 			metaType.SQLNullableType = "sql.NullString"
 			metaType.GureguNullableType = "null.String"
@@ -233,7 +409,7 @@ func SQLServerTrans(columnType string) (metaType MetaType) {
 			metaType.GureguNullableType = "null.Float"
 			metaType.ValueFormat = "%v"
 		} else {
-			fmt.Printf("unknow column type : %s, replace it with \"string\"", columnType)
+			fmt.Printf("unknow column type : %s, replace it with \"string\"\n", columnType)
 			metaType.GoType = "string"
 			metaType.SQLNullableType = "sql.NullString"
 			metaType.GureguNullableType = "null.String"
@@ -302,7 +478,7 @@ func OracleTrans(columnType string) (metaType MetaType) {
 			metaType.SQLNullableType = "sql.NullTime"
 			metaType.ValueFormat = "'%v'"
 		} else {
-			fmt.Printf("unknow column type : %s, replace it with \"string\"", columnType)
+			fmt.Printf("unknow column type : %s, replace it with \"string\"\n", columnType)
 			metaType.GoType = "string"
 			metaType.SQLNullableType = "sql.NullString"
 			metaType.GureguNullableType = "null.String"
@@ -337,6 +513,42 @@ func UnderscoreToUpperCamelCase(s string) string {
 	return s
 }
 
+// LowerCamelCaseToUpperCamelCase 小写驼峰单词转为大写驼峰单词
+func LowerCamelCaseToUpperCamelCase(s string) string {
+	if len(s) == 0 {
+		return s
+	}
+
+	// 检查是否匹配特殊单词
+	for word := range lowerAbbreviationMap {
+		if strings.HasPrefix(s, word) {
+			// 如果匹配特殊单词，直接返回小写形式
+			return strings.ToUpper(word) + s[len(word):]
+		}
+	}
+
+	// 将第一个字符转换为大写
+	return string(unicode.ToUpper(rune(s[0]))) + s[1:]
+}
+
+// UpperCamelCaseToLowerCamelCase 大写驼峰单词转为小写驼峰单词
+func UpperCamelCaseToLowerCamelCase(s string) string {
+	if len(s) == 0 {
+		return s
+	}
+
+	// 检查是否匹配特殊单词
+	for word := range abbreviationMap {
+		if strings.HasPrefix(s, word) {
+			// 如果匹配特殊单词，直接返回小写形式
+			return strings.ToLower(word) + s[len(word):]
+		}
+	}
+
+	// 将第一个字符转换为小写
+	return string(unicode.ToLower(rune(s[0]))) + s[1:]
+}
+
 // UnderscoreToLowerCamelCase 下划线单词转为小写驼峰单词
 func UnderscoreToLowerCamelCase(s string) string {
 	for key := range abbreviationMap {
@@ -355,17 +567,16 @@ func UnderscoreToLowerCamelCase(s string) string {
 // CamelCaseToUnderscore 驼峰单词转下划线单词
 func CamelCaseToUnderscore(s string) string {
 	var output []rune
-	var next int
 	for i, r := range s {
-		if i == 0 {
-			output = append(output, unicode.ToLower(r))
-		} else {
-			if i > next && unicode.IsUpper(r) {
-				next = i + 1
+		// 如果当前字符是大写字母
+		if unicode.IsUpper(r) {
+			// 如果不是第一个字符，并且前一个字符不是大写字母，或者下一个字符是小写字母
+			if i > 0 && (!unicode.IsUpper(rune(s[i-1])) || (i+1 < len(s) && unicode.IsLower(rune(s[i+1])))) {
 				output = append(output, '_')
 			}
-
 			output = append(output, unicode.ToLower(r))
+		} else {
+			output = append(output, r)
 		}
 	}
 	return string(output)

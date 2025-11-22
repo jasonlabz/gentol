@@ -16,15 +16,19 @@ import (
 )
 
 func main() {
+	if len(os.Args) < 2 {
+		process()
+		return
+	}
 	switch os.Args[1] {
 	case "init", "new":
 		projectName := os.Args[2]
 		if projectName == "" {
 			projectName = "demo"
 		}
-		match, _ := regexp.MatchString("^[a-zA-Z0-9]+$", projectName)
+		match, _ := regexp.MatchString("^[/.a-zA-Z0-9_-]+$", projectName)
 		if !match {
-			log.Fatalf("project name is not valid, only in [a-zA-Z0-9]")
+			log.Fatalf("项目名称无效，只允许字母、数字、斜杠、下划线和连字符")
 		}
 		handleNewProject(projectName)
 	//case "update":
@@ -32,13 +36,16 @@ func main() {
 	//	if version == "" {
 	//		version = "master"
 	//	}
-
 	default:
-		// 参数获取
-		argHandler()
-		// 分析数据库
-		handleDB()
+		process()
 	}
+}
+
+func process() {
+	// 参数获取
+	argHandler()
+	// 分析数据库
+	handleDB()
 }
 
 func handleDB() {

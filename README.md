@@ -7,7 +7,7 @@
 ## 功能特点
 
 - 支持初始化gin项目代码，简化项目搭建成本。
-- 支持多种数据库类型，如达梦数据库、MySQL、PostgreSQL、Oracle、SqlServer、sqlite(为不受CGO编译影响，oracle&sqlite支持在 oracle_sqlite分支)
+- 支持多种数据库类型，如达梦数据库、MySQL、PostgreSQL、Oracle、SqlServer、sqlite
 - 支持以shell命令的方式使用，或者下载源码，通过配置table.yaml生成代码
 - 根据数据库表结构自动生成相应的model和dao层代码
 - 支持生成符合项目规范的代码，如命名规范、注释等
@@ -17,9 +17,6 @@
 #### 1. 下载并安装该工具。
 ```shell
 go install github.com/jasonlabz/gentol@master
-
-或者额外支持 oracle & sqlite 
-go install github.com/jasonlabz/gentol@oracle_sqlite
 ```
 #### 2. 使用工具。
 ##### 用法一：生成gin项目
@@ -116,6 +113,17 @@ tips: 当提供`--dsn`选项后，无需`--host --port --username --password`；
 
 `gentol --db_type="mysql" --dsn="%s:%s@tcp(%s:%d)/%s?parseTime=True&loc=Local" --table="table1,table2" --only_model`
 
+3、sqlite
+`gentol --db_type="sqlite" --dsn="/path/dagine.db" --table="table1,table2" --dao=/etl/dal/db/dao --model=/etl/dal/db/model --gen_hook`
+
+4、dm
+`gentol --db_type="dm" --dsn="dm://%s:%s@%s:%d?schema=%s" --table="table1,table2" --gen_hook`
+
+5、oracle
+`gentol --db_type="oracle" --dsn="%s/%s@%s:%d/%s" --table="table1,table2" --gen_hook`
+
+6、sqlserver
+`gentol --db_type="sqlserver" --dsn="user id=%s;password=%s;server=%s;port=%d;database=%s;encrypt=disable" --table="table1,table2"  --gen_hook`
 
 - gentol工具在提供`db_type、dsn`参数情况下会生成当前数据库（当前模式）下所有表的model以及dao层代码，默认生成路径为`dal/db/dao,dal/model`,
 可以通过参数`--model \ --dao`修改， `--table="table1,table2"`可以指定表列表生成(不提供该参数时生成当前schema下所有table)。
