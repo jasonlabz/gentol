@@ -559,7 +559,9 @@ const ModelBase = NotEditMark + `
 package {{.ModelPackageName}}
 
 import (
+	"fmt"
 	"math"
+	"strings"
 )
 
 type ConditionBuilder interface {
@@ -602,5 +604,32 @@ func (p *Pagination) CalculateOffset() (offset int64) {
 	}
 	offset = (p.Page - 1) * p.PageSize
 	return
+}
+
+func Values(value any) string {
+	switch value.(type) {
+	case int, int8, int16, int32, int64, bool, float32, float64:
+		return fmt.Sprintf("%v", value)
+	default:
+		return fmt.Sprintf("'%v'", value)
+	}
+}
+
+func TransInCondition[T any](prefix string, values []T) string {
+	res := make([]string, 0)
+	numbers := len(values) / 1000
+	for i := 0; i < numbers; i++ {
+		items := make([]string, 0)
+		for j := i * 1000; j < (i+1)*1000; j++ {
+			items = append(items, Values(values[j]))
+		}
+		res = append(res, fmt.Sprintf("%s (%s)", prefix, strings.Join(items, ",")))
+	}
+	items := make([]string, 0)
+	for i := numbers * 1000; i < numbers*1000+len(values)%1000; i++ {
+		items = append(items, Values(values[i]))
+	}
+	res = append(res, fmt.Sprintf("%s (%s)", prefix, strings.Join(items, ",")))
+	return strings.Join(res, " or ")
 }
 `
