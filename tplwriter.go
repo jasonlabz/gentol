@@ -178,6 +178,9 @@ func WriteDao(dbInfo *configx.DBTableInfo, schemaName, tableName string, columnT
 		DaoModulePath:    dbInfo.DaoModule,
 		ModelStructName:  metadata.UnderscoreToUpperCamelCase(tableName),
 	}
+	if dbInfo.DaoPath == "" {
+		dbInfo.DaoPath = "dal/db/dao"
+	}
 	columnTempList := make([]*metadata.ColumnInfo, 0)
 	getColumnInfo(columnTypes, &columnTempList)
 	daoData.ColumnList = columnTempList
