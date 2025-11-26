@@ -339,25 +339,25 @@ func ({{.ModelShortName}} *{{.ModelStructName}}) TableName() string {
 	return "{{if .SchemaQuota -}}\"{{.SchemaName}}\"{{- else}}{{.SchemaName}}{{- end}}.{{if .TableQuota -}}\"{{.TableName}}\"{{- else}}{{.TableName}}{{- end}}"
 		{{- else -}}
 	return "{{if .TableQuota -}}\"{{.TableName}}\"{{- else}}{{.TableName}}{{- end}}"
-		{{ end }}
+		{{- end }}
 	{{- else if eq .DBType "oracle" -}}
  		{{if .SchemaName -}}
 	return "{{.SchemaName}}.{{.TableName}}"
 		{{- else -}}
 	return "{{.TableName}}"
-		{{ end }}
+		{{- end }}
  	{{- else if eq .DBType "dm" -}}
  		{{if .SchemaName -}}
 	return "{{if .SchemaQuota -}}\"{{.SchemaName}}\"{{- else}}{{.SchemaName}}{{- end}}.{{if .TableQuota -}}\"{{.TableName}}\"{{- else}}{{.TableName}}{{- end}}"
 		{{- else -}}
 	return "{{if .TableQuota -}}\"{{.TableName}}\"{{- else}}{{.TableName}}{{- end}}"
-		{{ end }}
+		{{- end }}
  	{{- else if eq .DBType "sqlserver" -}}
  		{{if ne .SchemaName "dbo" -}}
 	return "{{.SchemaName}}.{{.TableName}}"
 		{{- else -}}
 	return "{{.TableName}}"
-		{{end}}
+		{{- end }}
 	{{- else}}
 	return "{{.TableName}}"	
 	{{- end}}
