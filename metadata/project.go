@@ -1,9 +1,3 @@
-// Package metadata -----------------------------
-// @file      : project.go
-// @author    : jasonlabz
-// @contact   : 1783022886@qq.com
-// @time      : 2024/11/29 22:08
-// -------------------------------------------
 package metadata
 
 type ProjectMeta struct {
@@ -1208,7 +1202,7 @@ database:
 #  dsn: "user=postgres password=halojeff host=127.0.0.1 port=8432 dbname=lg_server sslmode=disable TimeZone=Asia/Shanghai"
   host: "*******"
   port: 8306
-  user: root
+  username: root
   password: "*******"
   database: dbname
   args:
