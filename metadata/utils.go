@@ -501,7 +501,7 @@ func ToLower(s string) string {
 
 // UnderscoreToUpperCamelCase 下划线单词转为大写驼峰单词
 func UnderscoreToUpperCamelCase(s string) string {
-	s = strings.ReplaceAll(s, " ", "_")
+	s = handleOtherCase(s)
 	splitList := strings.Split(s, "_")
 	for index, item := range splitList {
 		_, ok := abbreviationMap[ToUpper(item)]
@@ -551,9 +551,23 @@ func UpperCamelCaseToLowerCamelCase(s string) string {
 	return string(unicode.ToLower(rune(s[0]))) + s[1:]
 }
 
+func handleOtherCase(s string) string {
+	return strings.Map(func(r rune) rune {
+		// 允许的字符：0-9, a-z, A-Z, _, 以及中文字符
+		if (r >= '0' && r <= '9') ||
+			(r >= 'a' && r <= 'z') ||
+			(r >= 'A' && r <= 'Z') ||
+			r == '_' ||
+			(r >= 0x4E00 && r <= 0x9FA5) { // 中文字符范围
+			return r
+		}
+		return '_'
+	}, s)
+}
+
 // UnderscoreToLowerCamelCase 下划线单词转为小写驼峰单词
 func UnderscoreToLowerCamelCase(s string) string {
-	s = strings.ReplaceAll(s, " ", "_")
+	s = handleOtherCase(s)
 	for key := range abbreviationMap {
 		lowKey := strings.ToLower(key)
 		if strings.HasPrefix(s, key) || strings.HasPrefix(s, lowKey) {
