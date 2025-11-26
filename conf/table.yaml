@@ -33,7 +33,7 @@ configs:
 #          - user
   - db_type: "mysql"
     db_name: "mysql"
-    dsn: "root:ji7N6FGy!~04@tcp(1.117.232.208:8306)/lg_server?parseTime=True&loc=Local"
+    dsn: "root:**************@tcp(***********:8306)/lg_server?parseTime=True&loc=Local"
     model_path: F:\baidu\aiib-go\lg_server\dal\db\model
     dao_path: F:\baidu\aiib-go\lg_server\dal\db\dao
     only_model: false
