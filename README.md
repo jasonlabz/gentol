@@ -20,6 +20,7 @@ go install github.com/jasonlabz/gentol@master
 ```
 #### 2. 使用工具。
 ##### 用法一：生成gin项目
+生成项目：[generate-example-project](https://github.com/jasonlabz/generate-example-project)
 ```shell
 gentol new|init [project_name|module_name]
 
