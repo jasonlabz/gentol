@@ -1,9 +1,3 @@
-// Package main -----------------------------
-// @file      : handler.go
-// @author    : jasonlabz
-// @contact   : 1783022886@qq.com
-// @time      : 2024/11/29 22:02
-// -------------------------------------------
 package main
 
 import (
@@ -15,15 +9,66 @@ import (
 	"github.com/jasonlabz/gentol/metadata"
 )
 
+// TemplateConfig 模板配置结构体
+type TemplateConfig struct {
+	TemplateName string
+	FilePath     string
+}
+
+// PathConfig 路径配置结构体
+type PathConfig struct {
+	Path  string
+	Files []TemplateConfig
+}
+
+// handleNewProject 处理新项目创建
 func handleNewProject(projectName string) {
-	projectMeta := &metadata.ProjectMeta{
-		ModulePath: projectName,
-	}
-	splitProjects := strings.Split(projectName, "/")
-	if len(splitProjects) == 0 {
+	// 初始化项目元数据
+	projectMeta := initProjectMeta(projectName)
+	if projectMeta == nil {
 		return
 	}
 
+	// 创建项目根目录
+	if !createProjectRoot(projectMeta.ProjectName) {
+		return
+	}
+
+	// 执行各模块的创建步骤
+	createSteps := []func(*metadata.ProjectMeta) bool{
+		createCmdStructure,
+		createConfStructure,
+		createBootstrap,
+		createCommonStructure,
+		createDocs,
+		createGlobalResource,
+		createServerStructure,
+		createIDL,
+		createScriptFile,
+		createRootFiles,
+	}
+
+	for _, step := range createSteps {
+		if !step(projectMeta) {
+			return
+		}
+	}
+
+	fmt.Println("Project created successfully!")
+}
+
+// initProjectMeta 初始化项目元数据
+func initProjectMeta(projectName string) *metadata.ProjectMeta {
+	projectMeta := &metadata.ProjectMeta{
+		ModulePath: projectName,
+	}
+
+	splitProjects := strings.Split(projectName, "/")
+	if len(splitProjects) == 0 {
+		return nil
+	}
+
+	// 从路径中提取项目名
 	for i := len(splitProjects) - 1; i >= 0; i-- {
 		if len(splitProjects[i]) > 0 {
 			projectMeta.ProjectName = splitProjects[i]
@@ -31,386 +76,284 @@ func handleNewProject(projectName string) {
 		}
 	}
 
-	projectDir := filepath.Base(projectMeta.ProjectName)
+	return projectMeta
+}
+
+// createProjectRoot 创建项目根目录
+func createProjectRoot(projectName string) bool {
+	projectDir := filepath.Base(projectName)
 
 	if IsExist(projectDir) {
-		fmt.Println("[tips] project is already exist, please clear dir: ", projectDir, ", and try again")
-		return
-	}
-	err := os.MkdirAll(projectDir, 0644)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
+		fmt.Printf("[tips] project is already exist, please clear dir: %s, and try again\n", projectDir)
+		return false
 	}
 
-	cmdPath := filepath.Join(projectDir, "cmd")
-	err = os.MkdirAll(cmdPath, 0644)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
+	if err := os.MkdirAll(projectDir, 0755); err != nil {
+		fmt.Printf("Error creating project directory: %v\n", err)
+		return false
 	}
+
+	return true
+}
+
+// createDirectory 创建目录
+func createDirectory(path string) bool {
+	if err := os.MkdirAll(path, 0755); err != nil {
+		fmt.Printf("Error creating directory %s: %v\n", path, err)
+		return false
+	}
+	return true
+}
+
+// renderTemplate 渲染模板到文件
+func renderTemplate(templateName string, meta *metadata.ProjectMeta, filePath string) bool {
+	tpl, ok := metadata.LoadTpl(templateName)
+	if !ok {
+		fmt.Printf("Undefined template: %s\n", templateName)
+		return false
+	}
+
+	if err := RenderingTemplate(tpl, meta, filePath, true); err != nil {
+		fmt.Printf("Error rendering template %s to %s: %v\n", templateName, filePath, err)
+		return false
+	}
+
+	return true
+}
+
+// createCmdStructure 创建cmd目录结构
+func createCmdStructure(meta *metadata.ProjectMeta) bool {
+	basePath := filepath.Base(meta.ProjectName)
+	cmdPath := filepath.Join(basePath, "cmd")
 	demoPath := filepath.Join(cmdPath, "demo_program")
-	err = os.MkdirAll(demoPath, 0644)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
-	}
-	mainTpl, ok := metadata.LoadTpl("main")
-	if !ok {
-		fmt.Println("undefined template" + "conf")
-		return
-	}
-	err = RenderingTemplate(mainTpl, projectMeta, filepath.Join(demoPath, "main.go"), true)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
+
+	if !createDirectory(demoPath) {
+		return false
 	}
 
-	confPath := filepath.Join(projectDir, "conf")
-	err = os.MkdirAll(confPath, 0644)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
-	}
-	confTpl, ok := metadata.LoadTpl("conf")
-	if !ok {
-		fmt.Println("undefined template" + "conf")
-		return
-	}
-	err = RenderingTemplate(confTpl, projectMeta, filepath.Join(confPath, "application.yaml"), true)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
-	}
-	makefileTpl, ok := metadata.LoadTpl("makefile")
-	if !ok {
-		fmt.Println("undefined template" + "makefile")
-		return
-	}
-	err = RenderingTemplate(makefileTpl, projectMeta, filepath.Join(projectDir, "Makefile"), true)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
-	}
-	logPath := filepath.Join(confPath, "log")
-	err = os.MkdirAll(logPath, 0644)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
-	}
-	logTpl, ok := metadata.LoadTpl("log")
-	if !ok {
-		fmt.Println("undefined template" + "log")
-		return
-	}
-	err = RenderingTemplate(logTpl, projectMeta, filepath.Join(logPath, "service.yaml"), true)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
-	}
-	servicerPath := filepath.Join(confPath, "servicer")
-	err = os.MkdirAll(servicerPath, 0644)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
-	}
-	servicerTpl, ok := metadata.LoadTpl("servicer")
-	if !ok {
-		fmt.Println("undefined template" + "servicer")
-		return
-	}
-	err = RenderingTemplate(servicerTpl, projectMeta, filepath.Join(servicerPath, "demo.yaml"), true)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
-	}
-	schemaPath := filepath.Join(confPath, "schema")
-	err = os.MkdirAll(schemaPath, 0644)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
+	return renderTemplate("main", meta, filepath.Join(demoPath, "main.go"))
+}
+
+// createConfStructure 创建conf目录结构
+func createConfStructure(meta *metadata.ProjectMeta) bool {
+	basePath := filepath.Base(meta.ProjectName)
+	confPath := filepath.Join(basePath, "conf")
+
+	// 创建conf子目录
+	confDirs := []string{
+		confPath,
+		filepath.Join(confPath, "log"),
+		filepath.Join(confPath, "servicer"),
+		filepath.Join(confPath, "schema"),
 	}
 
-	// bootstrap 写入
-	bootstrapPath := filepath.Join(projectDir, "bootstrap")
-	err = os.MkdirAll(bootstrapPath, 0644)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
-	}
-	bootstrapTpl, ok := metadata.LoadTpl("bootstrap")
-	if !ok {
-		fmt.Println("undefined template" + "bootstrap")
-		return
-	}
-	err = RenderingTemplate(bootstrapTpl, projectMeta, filepath.Join(bootstrapPath, "bootstrap.go"), true)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
+	for _, dir := range confDirs {
+		if !createDirectory(dir) {
+			return false
+		}
 	}
 
-	// common 写入
-	commonPath := filepath.Join(projectDir, "common")
-	err = os.MkdirAll(bootstrapPath, 0644)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
-	}
-	constsPath := filepath.Join(commonPath, "consts")
-	err = os.MkdirAll(constsPath, 0644)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
-	}
-	constantTpl, ok := metadata.LoadTpl("constant")
-	if !ok {
-		fmt.Println("undefined template" + "constant")
-		return
-	}
-	err = RenderingTemplate(constantTpl, projectMeta, filepath.Join(constsPath, "constant.go"), true)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
+	// 创建conf目录下的文件
+	confFiles := []TemplateConfig{
+		{"conf", filepath.Join(confPath, "application.yaml")},
+		{"log", filepath.Join(confPath, "log", "service.yaml")},
+		{"servicer", filepath.Join(confPath, "servicer", "demo.yaml")},
 	}
 
-	ginxPath := filepath.Join(commonPath, "ginx")
-	err = os.MkdirAll(ginxPath, 0644)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
-	}
-	ginxTpl, ok := metadata.LoadTpl("ginx")
-	if !ok {
-		fmt.Println("undefined template" + "ginx")
-		return
-	}
-	err = RenderingTemplate(ginxTpl, projectMeta, filepath.Join(ginxPath, "response.go"), true)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
-	}
-	pageTpl, ok := metadata.LoadTpl("page")
-	if !ok {
-		fmt.Println("undefined template" + "page")
-		return
-	}
-	err = RenderingTemplate(pageTpl, projectMeta, filepath.Join(ginxPath, "page.go"), true)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
+	for _, file := range confFiles {
+		if !renderTemplate(file.TemplateName, meta, file.FilePath) {
+			return false
+		}
 	}
 
-	helperPath := filepath.Join(commonPath, "helper")
-	err = os.MkdirAll(helperPath, 0644)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
-	}
-	helperTpl, ok := metadata.LoadTpl("helper")
-	if !ok {
-		fmt.Println("undefined template" + "helper")
-		return
-	}
-	err = RenderingTemplate(helperTpl, projectMeta, filepath.Join(helperPath, "context.go"), true)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
+	return true
+}
+
+// createBootstrap 创建bootstrap
+func createBootstrap(meta *metadata.ProjectMeta) bool {
+	basePath := filepath.Base(meta.ProjectName)
+	bootstrapPath := filepath.Join(basePath, "bootstrap")
+
+	if !createDirectory(bootstrapPath) {
+		return false
 	}
 
-	// docs 写入
-	docsPath := filepath.Join(projectDir, "docs")
-	err = os.MkdirAll(docsPath, 0644)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
-	}
-	docsTpl, ok := metadata.LoadTpl("docs")
-	if !ok {
-		fmt.Println("undefined template" + "docs")
-		return
-	}
-	err = RenderingTemplate(docsTpl, projectMeta, filepath.Join(docsPath, "docs.go"), true)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
+	return renderTemplate("bootstrap", meta, filepath.Join(bootstrapPath, "bootstrap.go"))
+}
+
+// createCommonStructure 创建common目录结构
+func createCommonStructure(meta *metadata.ProjectMeta) bool {
+	basePath := filepath.Base(meta.ProjectName)
+	commonPath := filepath.Join(basePath, "common")
+
+	// 创建common子目录
+	commonDirs := []string{
+		commonPath,
+		filepath.Join(commonPath, "consts"),
+		filepath.Join(commonPath, "ginx"),
+		filepath.Join(commonPath, "helper"),
 	}
 
-	// resource 写入
-	resourcePath := filepath.Join(projectDir, "global", "resource")
-	err = os.MkdirAll(resourcePath, 0644)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
-	}
-	resourceTpl, ok := metadata.LoadTpl("resource")
-	if !ok {
-		fmt.Println("undefined template" + "resource")
-		return
-	}
-	err = RenderingTemplate(resourceTpl, projectMeta, filepath.Join(resourcePath, "resource.go"), true)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
+	for _, dir := range commonDirs {
+		if !createDirectory(dir) {
+			return false
+		}
 	}
 
-	// server 写入
-	serverPath := filepath.Join(projectDir, "server")
-	err = os.MkdirAll(serverPath, 0644)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
+	// 创建common目录下的文件
+	commonFiles := []TemplateConfig{
+		{"constant", filepath.Join(commonPath, "consts", "constant.go")},
+		{"ginx", filepath.Join(commonPath, "ginx", "response.go")},
+		{"page", filepath.Join(commonPath, "ginx", "page.go")},
+		{"helper", filepath.Join(commonPath, "helper", "context.go")},
 	}
 
-	controllerPath := filepath.Join(serverPath, "controller")
-	err = os.MkdirAll(controllerPath, 0644)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
-	}
-	controllerTpl, ok := metadata.LoadTpl("controller")
-	if !ok {
-		fmt.Println("undefined template" + "controller")
-		return
-	}
-	err = RenderingTemplate(controllerTpl, projectMeta, filepath.Join(controllerPath, "health_check.go"), true)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
+	for _, file := range commonFiles {
+		if !renderTemplate(file.TemplateName, meta, file.FilePath) {
+			return false
+		}
 	}
 
-	middlewarePath := filepath.Join(serverPath, "middleware")
-	err = os.MkdirAll(middlewarePath, 0644)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
-	}
-	loggerMiddlewareTpl, ok := metadata.LoadTpl("loggerMiddleware")
-	if !ok {
-		fmt.Println("undefined template" + "loggerMiddleware")
-		return
-	}
-	err = RenderingTemplate(loggerMiddlewareTpl, projectMeta, filepath.Join(middlewarePath, "logger.go"), true)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
-	}
-	contextMiddlewareTpl, ok := metadata.LoadTpl("contextMiddleware")
-	if !ok {
-		fmt.Println("undefined template" + "contextMiddleware")
-		return
-	}
-	err = RenderingTemplate(contextMiddlewareTpl, projectMeta, filepath.Join(middlewarePath, "context.go"), true)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
+	return true
+}
+
+// createDocs 创建docs
+func createDocs(meta *metadata.ProjectMeta) bool {
+	basePath := filepath.Base(meta.ProjectName)
+	docsPath := filepath.Join(basePath, "docs")
+
+	if !createDirectory(docsPath) {
+		return false
 	}
 
-	routerPath := filepath.Join(serverPath, "routers")
-	err = os.MkdirAll(routerPath, 0644)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
-	}
-	routerTpl, ok := metadata.LoadTpl("router")
-	if !ok {
-		fmt.Println("undefined template" + "router")
-		return
-	}
-	err = RenderingTemplate(routerTpl, projectMeta, filepath.Join(routerPath, "router.go"), true)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
+	return renderTemplate("docs", meta, filepath.Join(docsPath, "docs.go"))
+}
+
+// createGlobalResource 创建global/resource
+func createGlobalResource(meta *metadata.ProjectMeta) bool {
+	basePath := filepath.Base(meta.ProjectName)
+	resourcePath := filepath.Join(basePath, "global", "resource")
+
+	if !createDirectory(resourcePath) {
+		return false
 	}
 
-	servicePath := filepath.Join(serverPath, "service")
-	err = os.MkdirAll(servicePath, 0644)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
-	}
-	serviceTpl, ok := metadata.LoadTpl("service")
-	if !ok {
-		fmt.Println("undefined template" + "service")
-		return
-	}
-	err = RenderingTemplate(serviceTpl, projectMeta, filepath.Join(servicePath, "health_check.go"), true)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
+	return renderTemplate("resource", meta, filepath.Join(resourcePath, "resource.go"))
+}
+
+// createIDL 创建idl/client、idl/server
+func createIDL(meta *metadata.ProjectMeta) bool {
+	basePath := filepath.Base(meta.ProjectName)
+	idlPath := filepath.Join(basePath, "idl")
+	// 创建idl子目录
+	idlDirs := []string{
+		idlPath,
+		filepath.Join(idlPath, "client"),
+		filepath.Join(idlPath, "server"),
 	}
 
-	healthCheckPath := filepath.Join(servicePath, "health_check")
-	err = os.MkdirAll(healthCheckPath, 0644)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
+	for _, dir := range idlDirs {
+		if !createDirectory(dir) {
+			return false
+		}
 	}
-	serviceImplTpl, ok := metadata.LoadTpl("serviceImpl")
-	if !ok {
-		fmt.Println("undefined template" + "serviceImpl")
-		return
-	}
-	err = RenderingTemplate(serviceImplTpl, projectMeta, filepath.Join(healthCheckPath, "health_check_impl.go"), true)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
+	// 创建idl目录下的文件
+	idlFiles := []TemplateConfig{
+		{"idl_client", filepath.Join(idlPath, "client", "demo.thrift")},
+		{"idl_server", filepath.Join(idlPath, "server", "demo.thrift")},
 	}
 
-	dtoPath := filepath.Join(healthCheckPath, "dto")
-	err = os.MkdirAll(dtoPath, 0644)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
+	for _, file := range idlFiles {
+		if !renderTemplate(file.TemplateName, meta, file.FilePath) {
+			return false
+		}
 	}
-	reqDTOTpl, ok := metadata.LoadTpl("reqDTO")
-	if !ok {
-		fmt.Println("undefined template" + "reqDTO")
-		return
+	return true
+}
+
+// createScriptFile 创建script
+func createScriptFile(meta *metadata.ProjectMeta) bool {
+	basePath := filepath.Base(meta.ProjectName)
+	scriptPath := filepath.Join(basePath, "script")
+
+	if !createDirectory(scriptPath) {
+		return false
 	}
-	err = RenderingTemplate(reqDTOTpl, projectMeta, filepath.Join(dtoPath, "request.go"), true)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
-	}
-	resDtoTpl, ok := metadata.LoadTpl("resDto")
-	if !ok {
-		fmt.Println("undefined template" + "resDto")
-		return
-	}
-	err = RenderingTemplate(resDtoTpl, projectMeta, filepath.Join(dtoPath, "response.go"), true)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
+	// 创建script目录下的文件
+	scriptFiles := []TemplateConfig{
+		{"script_gentol", filepath.Join(scriptPath, "gentol.sh")},
+		{"script_kitex", filepath.Join(scriptPath, "generate_idl.sh")},
+		{"script_swag", filepath.Join(scriptPath, "swag.sh")},
+		{"script_readme", filepath.Join(scriptPath, "README.md")},
 	}
 
-	gomodTpl, ok := metadata.LoadTpl("gomod")
-	if !ok {
-		fmt.Println("undefined template" + "gomod")
-		return
+	for _, file := range scriptFiles {
+		if !renderTemplate(file.TemplateName, meta, file.FilePath) {
+			return false
+		}
 	}
-	err = RenderingTemplate(gomodTpl, projectMeta, filepath.Join(projectDir, "go.mod"), true)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
+	return true
+}
+
+// createServerStructure 创建server目录结构
+func createServerStructure(meta *metadata.ProjectMeta) bool {
+	basePath := filepath.Base(meta.ProjectName)
+	serverPath := filepath.Join(basePath, "server")
+
+	// 创建server子目录
+	serverDirs := []string{
+		serverPath,
+		filepath.Join(serverPath, "controller"),
+		filepath.Join(serverPath, "middleware"),
+		filepath.Join(serverPath, "routers"),
+		filepath.Join(serverPath, "service"),
+		filepath.Join(serverPath, "service", "health_check"),
+		filepath.Join(serverPath, "service", "health_check", "dto"),
 	}
-	// mainTpl, ok := metadata.LoadTpl("main")
-	// if !ok {
-	//	fmt.Println("undefined template" + "main")
-	//	return
-	// }
-	err = RenderingTemplate(mainTpl, projectMeta, filepath.Join(projectDir, "main.go"), true)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
+
+	for _, dir := range serverDirs {
+		if !createDirectory(dir) {
+			return false
+		}
 	}
-	readmeTpl, ok := metadata.LoadTpl("readme")
-	if !ok {
-		fmt.Println("undefined template" + "readme")
-		return
+
+	// 创建server目录下的文件
+	serverFiles := []TemplateConfig{
+		{"controller", filepath.Join(serverPath, "controller", "health_check.go")},
+		{"loggerMiddleware", filepath.Join(serverPath, "middleware", "logger.go")},
+		{"contextMiddleware", filepath.Join(serverPath, "middleware", "context.go")},
+		{"router", filepath.Join(serverPath, "routers", "router.go")},
+		{"service", filepath.Join(serverPath, "service", "health_check.go")},
+		{"serviceImpl", filepath.Join(serverPath, "service", "health_check", "health_check_impl.go")},
+		{"reqDTO", filepath.Join(serverPath, "service", "health_check", "dto", "request.go")},
+		{"resDto", filepath.Join(serverPath, "service", "health_check", "dto", "response.go")},
 	}
-	err = RenderingTemplate(readmeTpl, projectMeta, filepath.Join(projectDir, "README.md"), true)
-	if err != nil {
-		fmt.Println("err occured: ", err)
-		return
+
+	for _, file := range serverFiles {
+		if !renderTemplate(file.TemplateName, meta, file.FilePath) {
+			return false
+		}
 	}
+
+	return true
+}
+
+// createRootFiles 创建根目录文件
+func createRootFiles(meta *metadata.ProjectMeta) bool {
+	basePath := filepath.Base(meta.ProjectName)
+
+	rootFiles := []TemplateConfig{
+		{"makefile", filepath.Join(basePath, "Makefile")},
+		{"gomod", filepath.Join(basePath, "go.mod")},
+		{"main", filepath.Join(basePath, "main.go")},
+		{"readme", filepath.Join(basePath, "README.md")},
+	}
+
+	for _, file := range rootFiles {
+		if !renderTemplate(file.TemplateName, meta, file.FilePath) {
+			return false
+		}
+	}
+
+	return true
 }

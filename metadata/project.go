@@ -121,7 +121,7 @@ func initConfig(_ context.Context) {
 func initServicer(_ context.Context) {
 	filePaths, _ := utils.ListDir(filepath.Join("conf", "servicer"), ".yaml")
 	for _, filePath := range filePaths {
-		info := &httpx.ServerInfo{}
+		info := &httpx.Config{}
 		err := configx.ParseConfigByViper(filePath, info)
 		if err != nil {
 			continue
@@ -1065,7 +1065,7 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/google/uuid v1.6.0
 	github.com/jasonlabz/knife4go v1.0.1-0.20241118142759-6386e3973279
-	github.com/jasonlabz/potato v1.0.5
+	github.com/jasonlabz/potato v1.0.6
 )
 
 require (
@@ -1101,13 +1101,13 @@ require (
 	github.com/godror/knownpb v0.1.1 // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
-	github.com/golang/snappy v0.0.4 // indirect
+	github.com/golang/snappy v1.0.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/pgx/v5 v5.6.0 // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
-	github.com/jasonlabz/gorm-dm-driver v0.1.1 // indirect
+	github.com/jasonlabz/gorm-dm-driver v0.1.5 // indirect
 	github.com/jasonlabz/oracle v1.1.1-0.20240609161033-cf780c860ebb // indirect
 	github.com/jasonlabz/sqlite v1.11.1 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
@@ -1164,7 +1164,8 @@ require (
 	modernc.org/mathutil v1.5.0 // indirect
 	modernc.org/memory v1.5.0 // indirect
 	modernc.org/sqlite v1.23.1 // indirect
-)`
+)
+`
 
 const Conf = `application:
   name: {{.ProjectName}}    # 应用名
@@ -1217,7 +1218,10 @@ es:
     - "*******:8776"
   username: elastic
   password: "*************"
+  api_key: # 认证方式2（可选）
   is_https: true
+  ca_cert: # CA证书
+  insecure_skip_verify: false   # 跳过证书认证，生产应为false
 redis:
   enable: false
   endpoints:
@@ -1279,13 +1283,15 @@ compress: false
 
 const SERVICER = `# service名
 Name: demo
-# 连接协议
+# 调试模式 true|false
+Debug: false
+# 连接协议 http|https
 Protocol: http
 # 重试次数
 RetryCount: 3
-# 重试等待时间
+# 重试等待时间 单位：毫秒
 RetryWaitTime: 1000
-# 请求超时时间
+# 请求超时时间 单位：毫秒
 Timeout: 5000
 # service ip地址
 Host: 127.0.0.1
@@ -1293,6 +1299,14 @@ Host: 127.0.0.1
 Port: 8080
 # service basepath
 BasePath: /
+# 客户端证书, 例如："certs/client.pem"
+CertFile:
+# 客户端证书, 例如："certs/client.key"
+KeyFile:
+# 根证书, 例如："/path/to/root/pemFile.pem"
+RootCertFile:
+# 跳过证书认证，生产应为false
+InsecureSkipVerify: false
 `
 
 const MAKEFILE = `# 工作目录变量

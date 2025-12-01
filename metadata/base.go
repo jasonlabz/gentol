@@ -273,4 +273,10 @@ func init() {
 	StoreTpl("makefile", MAKEFILE)
 	StoreTpl("log", LOG)
 	StoreTpl("servicer", SERVICER)
+	StoreTpl("script_gentol", SCRIPT_GENTOL)
+	StoreTpl("script_kitex", SCRIPT_KITEX)
+	StoreTpl("script_swag", SCRIPT_SWAG)
+	StoreTpl("script_readme", SCRIPT_README)
+	StoreTpl("idl_client", IDL_CLIENT)
+	StoreTpl("idl_server", IDL_SERVER)
 }
