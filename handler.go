@@ -26,11 +26,13 @@ type PathConfig struct {
 func updateProject(projectName string) {
 	var isProjectDir bool
 	currentDir, _ := os.Getwd()
-	if projectName == "" {
-		modFile := filepath.Join(currentDir, "go.mod")
+
+	// 提取重复的 go.mod 读取逻辑为函数
+	readModuleName := func(modFile string) (string, bool) {
 		if !IsExist(modFile) {
-			log.Fatal("project name is needed or go.mod not found")
+			return "", false
 		}
+
 		file, err := os.Open(modFile)
 		if err != nil {
 			log.Fatal(fmt.Sprintf("open go.mod error: %s", err))
@@ -41,15 +43,42 @@ func updateProject(projectName string) {
 		for scanner.Scan() {
 			line := strings.TrimSpace(scanner.Text())
 			if strings.HasPrefix(line, "module ") {
-				projectName = strings.TrimPrefix(line, "module ")
-				isProjectDir = true
-				break
+				return strings.TrimPrefix(line, "module "), true
 			}
 		}
+		return "", false
 	}
+
+	// 确定项目名称和位置
+	if projectName == "" {
+		// 当前目录模式
+		modFile := filepath.Join(currentDir, "go.mod")
+		if moduleName, found := readModuleName(modFile); found {
+			projectName = moduleName
+			isProjectDir = true
+		} else {
+			log.Fatal("project name is needed or go.mod not found")
+		}
+	} else {
+		// 指定项目名称模式
+		projectMeta := initProjectMeta(projectName)
+		if projectMeta == nil {
+			return
+		}
+
+		modFile := filepath.Join(currentDir, projectMeta.ProjectName, "go.mod")
+		if moduleName, found := readModuleName(modFile); found {
+			projectName = moduleName
+		} else {
+			log.Fatal(fmt.Errorf("[%s] is not a project, because [%s] not found, use gentol init|new first",
+				projectMeta.ProjectName, modFile))
+		}
+	}
+
+	// 切换到父目录（如果需要）
 	if isProjectDir {
-		err := os.Chdir(getParentPath(currentDir))
-		if err != nil {
+		parentDir := getParentPath(currentDir)
+		if err := os.Chdir(parentDir); err != nil {
 			log.Fatal(fmt.Errorf("chdir error: %s", err))
 		}
 	}
@@ -85,7 +114,7 @@ func updateProject(projectName string) {
 		}
 	}
 
-	fmt.Println("Project created successfully!")
+	fmt.Println("Project updated successfully!")
 }
 
 // handleNewProject 处理新项目创建
