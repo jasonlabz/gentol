@@ -240,6 +240,14 @@ check_kitex() {
             exit 1
         fi
     fi
+
+    if go list -m all | grep "github.com/cloudwego/kitex" &> /dev/null; then
+        log_info "module kitex already exist, skipping go get ..."
+    else
+        log_info "module kitex not exist，ready get it..."
+        go get -u github.com/cloudwego/kitex@latest
+    fi
+
     log_info "Using kitex: $(which $KITEX_CMD)"
 }
 
@@ -280,6 +288,7 @@ gen_kitex() {
     fi
 
     log_info "Generating from: $idl_file"
+    log_info "Run command: $KITEX_CMD $base_args $extra_args "$idl_file""
 
     if ! $KITEX_CMD $base_args $extra_args "$idl_file"; then
         log_error "Failed to generate $type from $idl_file"
@@ -296,7 +305,7 @@ gen_thrift() {
 
     if [[ ! -d "$IDL_DIR/client" ]]; then
         log_warn "IDL directory '$IDL_DIR/client' not found, skipping thrift generation"
-        return 1
+        return 0
     fi
 
     if [[ ! -d "$CLIENT_DIR" ]]; then
@@ -310,7 +319,7 @@ gen_thrift() {
 
     if [[ ${#thrift_files[@]} -eq 0 ]]; then
         log_warn "No thrift files found in $IDL_DIR/client"
-        return 1
+        return 0
     fi
 
     log_info "Found ${#thrift_files[@]} thrift file(s):"
@@ -345,7 +354,7 @@ gen_thrift_service() {
 
     if [[ ! -d "$IDL_DIR/server" ]]; then
         log_warn "IDL directory '$IDL_DIR/server' not found, skipping thrift service generation"
-        return 1
+        return 0
     fi
 
     if [[ ! -d "$SERVER_DIR" ]]; then
@@ -359,7 +368,7 @@ gen_thrift_service() {
 
     if [[ ${#thrift_files[@]} -eq 0 ]]; then
         log_warn "No thrift files found in $IDL_DIR/server for service generation"
-        return 1
+        return 0
     fi
 
     local success_count=0
@@ -389,7 +398,7 @@ gen_thrift_slim() {
 
     if [[ ! -d "$IDL_DIR/client" ]]; then
         log_warn "IDL directory '$IDL_DIR/client' not found, skipping slim thrift generation"
-        return 1
+        return 0
     fi
 
     if [[ ! -d "$CLIENT_DIR" ]]; then
@@ -403,7 +412,7 @@ gen_thrift_slim() {
 
     if [[ ${#thrift_files[@]} -eq 0 ]]; then
         log_warn "No thrift files found in $IDL_DIR/client for slim generation"
-        return 1
+        return 0
     fi
 
     local success_count=0
@@ -433,7 +442,7 @@ gen_thrift_slim_service() {
 
     if [[ ! -d "$IDL_DIR/server" ]]; then
         log_warn "IDL directory '$IDL_DIR/server' not found, skipping slim thrift service generation"
-        return 1
+        return 0
     fi
 
     if [[ ! -d "$SERVER_DIR" ]]; then
@@ -447,7 +456,7 @@ gen_thrift_slim_service() {
 
     if [[ ${#thrift_files[@]} -eq 0 ]]; then
         log_warn "No thrift files found in $IDL_DIR/server for slim service generation"
-        return 1
+        return 0
     fi
 
     local success_count=0
@@ -477,7 +486,7 @@ gen_protobuf() {
 
     if [[ ! -d "$IDL_DIR/client" ]]; then
         log_warn "IDL directory '$IDL_DIR/client' not found, skipping protobuf generation"
-        return 1
+        return 0
     fi
 
     if [[ ! -d "$CLIENT_DIR" ]]; then
@@ -491,7 +500,7 @@ gen_protobuf() {
 
     if [[ ${#proto_files[@]} -eq 0 ]]; then
         log_warn "No proto files found in $IDL_DIR/client"
-        return 1
+        return 0
     fi
 
     log_info "Found ${#proto_files[@]} proto file(s):"
@@ -526,7 +535,7 @@ gen_protobuf_service() {
 
     if [[ ! -d "$IDL_DIR/server" ]]; then
         log_warn "IDL directory '$IDL_DIR/server' not found, skipping protobuf service generation"
-        return 1
+        return 0
     fi
 
     if [[ ! -d "$SERVER_DIR" ]]; then
@@ -540,7 +549,7 @@ gen_protobuf_service() {
 
     if [[ ${#proto_files[@]} -eq 0 ]]; then
         log_warn "No proto files found in $IDL_DIR/server for service generation"
-        return 1
+        return 0
     fi
 
     local success_count=0
@@ -583,7 +592,7 @@ regenerate_submod() {
     if [[ ! -f "$thrift_file" ]]; then
         log_warn "Thrift file not found: $thrift_file in $path, skipping..."
         cd "$original_dir"
-        return 1
+        return 0
     fi
 
     # 构建 kitex 命令
@@ -591,7 +600,6 @@ regenerate_submod() {
     if [[ "$use_service" == "true" ]]; then
         local service_name=$(get_service_name "$thrift_file")
         kitex_cmd="$kitex_cmd -service $service_name"
-        log_info "Generating service: $service_name"
     fi
     kitex_cmd="$kitex_cmd $thrift_file"
 
@@ -618,14 +626,14 @@ main() {
     check_kitex
 
     # 生成主 IDL 文件（默认不加 -service）
-    gen_thrift
-#    gen_thrift_slim
-    gen_protobuf
+    gen_thrift || log_warn "Thrift generation had issues, continuing..."
+#    gen_thrift_slim || log_warn "Thrift slim generation had issues, continuing..."
+    gen_protobuf || log_warn "Protobuf generation had issues, continuing..."
 
     # 如果需要生成服务端代码，取消注释下面的调用：
-     gen_thrift_service           # 生成 thrift 服务端（基于文件名）
-     gen_thrift_slim_service      # 生成 slim thrift 服务端（基于文件名）
-     gen_protobuf_service         # 生成 protobuf 服务端（基于文件名）
+     gen_thrift_service || log_warn "Thrift service generation had issues, continuing..."  # 生成 thrift 服务端（基于文件名）
+#     gen_thrift_slim_service || log_warn "Thrift slim service generation had issues, continuing..."  # 生成 slim thrift 服务端（基于文件名）
+     gen_protobuf_service || log_warn "Protobuf service generation had issues, continuing..." # 生成 protobuf 服务端（基于文件名）
 
     # 子模块配置数组
     declare -a submodules=(
@@ -634,11 +642,15 @@ main() {
         # 例如："basic/example_shop:example_shop:idl/item.thrift:true"      # 服务端（基于文件名）
     )
 
-    # 遍历所有子模块
-    for submod in "${submodules[@]}"; do
-        IFS=':' read -r path module thrift_file use_service <<< "$submod"
-        regenerate_submod "$path" "$module" "$thrift_file" "$use_service"
-    done
+    # 遍历所有子模块（仅在数组非空时执行）
+    if [[ ${#submodules[@]} -gt 0 ]]; then
+       for submod in "${submodules[@]}"; do
+           IFS=':' read -r path module thrift_file use_service <<< "$submod"
+           regenerate_submod "$path" "$module" "$thrift_file" "$use_service"
+       done
+    else
+       log_info "No submodules configured, skipping submodule generation."
+    fi
 
     log_info "All IDL code generation completed!"
 }
