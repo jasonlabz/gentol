@@ -26,7 +26,12 @@ func main() {
 	switch os.Args[1] {
 	case "init", "new":
 		projectName := getProjectName()
+		if !isValidProjectName(projectName) {
+			log.Fatal("项目名称无效，只允许字母、数字、斜杠、下划线和连字符")
+		}
 		handleNewProject(projectName)
+	case "update":
+		updateProject(getProjectName())
 	default:
 		process()
 	}
@@ -34,20 +39,18 @@ func main() {
 
 // getProjectName 获取并验证项目名称
 func getProjectName() string {
-	projectName := "demo"
+	projectName := ""
 	if len(os.Args) > 2 {
 		projectName = os.Args[2]
 	}
-
-	if !isValidProjectName(projectName) {
-		log.Fatal("项目名称无效，只允许字母、数字、斜杠、下划线和连字符")
-	}
-
 	return projectName
 }
 
 // isValidProjectName 验证项目名称格式
 func isValidProjectName(name string) bool {
+	if len(name) == 0 {
+		return false
+	}
 	match, _ := regexp.MatchString("^[/.a-zA-Z0-9_-]+$", name)
 	return match
 }

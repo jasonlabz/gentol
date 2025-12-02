@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,8 +23,37 @@ type PathConfig struct {
 	Files []TemplateConfig
 }
 
-// handleNewProject 处理新项目创建
-func handleNewProject(projectName string) {
+func updateProject(projectName string) {
+	var isProjectDir bool
+	currentDir, _ := os.Getwd()
+	if projectName == "" {
+		modFile := filepath.Join(currentDir, "go.mod")
+		if !IsExist(modFile) {
+			log.Fatal("project name is needed or go.mod not found")
+		}
+		file, err := os.Open(modFile)
+		if err != nil {
+			log.Fatal(fmt.Sprintf("open go.mod error: %s", err))
+		}
+		defer file.Close()
+
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			line := strings.TrimSpace(scanner.Text())
+			if strings.HasPrefix(line, "module ") {
+				projectName = strings.TrimPrefix(line, "module ")
+				isProjectDir = true
+				break
+			}
+		}
+	}
+	if isProjectDir {
+		err := os.Chdir(getParentPath(currentDir))
+		if err != nil {
+			log.Fatal(fmt.Errorf("chdir error: %s", err))
+		}
+	}
+
 	// 初始化项目元数据
 	projectMeta := initProjectMeta(projectName)
 	if projectMeta == nil {
@@ -30,12 +61,12 @@ func handleNewProject(projectName string) {
 	}
 
 	// 创建项目根目录
-	if !createProjectRoot(projectMeta.ProjectName) {
+	if !createProjectRoot(projectMeta.ProjectName, true) {
 		return
 	}
 
 	// 执行各模块的创建步骤
-	createSteps := []func(*metadata.ProjectMeta) bool{
+	createSteps := []func(*metadata.ProjectMeta, bool) bool{
 		createCmdStructure,
 		createConfStructure,
 		createBootstrap,
@@ -49,7 +80,43 @@ func handleNewProject(projectName string) {
 	}
 
 	for _, step := range createSteps {
-		if !step(projectMeta) {
+		if !step(projectMeta, true) {
+			return
+		}
+	}
+
+	fmt.Println("Project created successfully!")
+}
+
+// handleNewProject 处理新项目创建
+func handleNewProject(projectName string) {
+	// 初始化项目元数据
+	projectMeta := initProjectMeta(projectName)
+	if projectMeta == nil {
+		return
+	}
+
+	// 创建项目根目录
+	if !createProjectRoot(projectMeta.ProjectName, false) {
+		return
+	}
+
+	// 执行各模块的创建步骤
+	createSteps := []func(*metadata.ProjectMeta, bool) bool{
+		createCmdStructure,
+		createConfStructure,
+		createBootstrap,
+		createCommonStructure,
+		createDocs,
+		createGlobalResource,
+		createServerStructure,
+		createIDL,
+		createScriptFile,
+		createRootFiles,
+	}
+
+	for _, step := range createSteps {
+		if !step(projectMeta, false) {
 			return
 		}
 	}
@@ -80,10 +147,10 @@ func initProjectMeta(projectName string) *metadata.ProjectMeta {
 }
 
 // createProjectRoot 创建项目根目录
-func createProjectRoot(projectName string) bool {
+func createProjectRoot(projectName string, update bool) bool {
 	projectDir := filepath.Base(projectName)
 
-	if IsExist(projectDir) {
+	if IsExist(projectDir) && !update {
 		fmt.Printf("[tips] project is already exist, please clear dir: %s, and try again\n", projectDir)
 		return false
 	}
@@ -106,14 +173,14 @@ func createDirectory(path string) bool {
 }
 
 // renderTemplate 渲染模板到文件
-func renderTemplate(templateName string, meta *metadata.ProjectMeta, filePath string) bool {
+func renderTemplate(templateName string, meta *metadata.ProjectMeta, filePath string, update bool) bool {
 	tpl, ok := metadata.LoadTpl(templateName)
 	if !ok {
 		fmt.Printf("Undefined template: %s\n", templateName)
 		return false
 	}
 
-	if err := RenderingTemplate(tpl, meta, filePath, true); err != nil {
+	if err := RenderingTemplate(tpl, meta, filePath, update); err != nil {
 		fmt.Printf("Error rendering template %s to %s: %v\n", templateName, filePath, err)
 		return false
 	}
@@ -122,7 +189,7 @@ func renderTemplate(templateName string, meta *metadata.ProjectMeta, filePath st
 }
 
 // createCmdStructure 创建cmd目录结构
-func createCmdStructure(meta *metadata.ProjectMeta) bool {
+func createCmdStructure(meta *metadata.ProjectMeta, update bool) bool {
 	basePath := filepath.Base(meta.ProjectName)
 	cmdPath := filepath.Join(basePath, "cmd")
 	demoPath := filepath.Join(cmdPath, "demo_program")
@@ -131,11 +198,11 @@ func createCmdStructure(meta *metadata.ProjectMeta) bool {
 		return false
 	}
 
-	return renderTemplate("main", meta, filepath.Join(demoPath, "main.go"))
+	return renderTemplate("main", meta, filepath.Join(demoPath, "main.go"), update)
 }
 
 // createConfStructure 创建conf目录结构
-func createConfStructure(meta *metadata.ProjectMeta) bool {
+func createConfStructure(meta *metadata.ProjectMeta, update bool) bool {
 	basePath := filepath.Base(meta.ProjectName)
 	confPath := filepath.Join(basePath, "conf")
 
@@ -161,7 +228,7 @@ func createConfStructure(meta *metadata.ProjectMeta) bool {
 	}
 
 	for _, file := range confFiles {
-		if !renderTemplate(file.TemplateName, meta, file.FilePath) {
+		if !renderTemplate(file.TemplateName, meta, file.FilePath, update) {
 			return false
 		}
 	}
@@ -170,7 +237,7 @@ func createConfStructure(meta *metadata.ProjectMeta) bool {
 }
 
 // createBootstrap 创建bootstrap
-func createBootstrap(meta *metadata.ProjectMeta) bool {
+func createBootstrap(meta *metadata.ProjectMeta, update bool) bool {
 	basePath := filepath.Base(meta.ProjectName)
 	bootstrapPath := filepath.Join(basePath, "bootstrap")
 
@@ -178,11 +245,11 @@ func createBootstrap(meta *metadata.ProjectMeta) bool {
 		return false
 	}
 
-	return renderTemplate("bootstrap", meta, filepath.Join(bootstrapPath, "bootstrap.go"))
+	return renderTemplate("bootstrap", meta, filepath.Join(bootstrapPath, "bootstrap.go"), update)
 }
 
 // createCommonStructure 创建common目录结构
-func createCommonStructure(meta *metadata.ProjectMeta) bool {
+func createCommonStructure(meta *metadata.ProjectMeta, update bool) bool {
 	basePath := filepath.Base(meta.ProjectName)
 	commonPath := filepath.Join(basePath, "common")
 
@@ -209,7 +276,7 @@ func createCommonStructure(meta *metadata.ProjectMeta) bool {
 	}
 
 	for _, file := range commonFiles {
-		if !renderTemplate(file.TemplateName, meta, file.FilePath) {
+		if !renderTemplate(file.TemplateName, meta, file.FilePath, update) {
 			return false
 		}
 	}
@@ -218,7 +285,7 @@ func createCommonStructure(meta *metadata.ProjectMeta) bool {
 }
 
 // createDocs 创建docs
-func createDocs(meta *metadata.ProjectMeta) bool {
+func createDocs(meta *metadata.ProjectMeta, update bool) bool {
 	basePath := filepath.Base(meta.ProjectName)
 	docsPath := filepath.Join(basePath, "docs")
 
@@ -226,11 +293,11 @@ func createDocs(meta *metadata.ProjectMeta) bool {
 		return false
 	}
 
-	return renderTemplate("docs", meta, filepath.Join(docsPath, "docs.go"))
+	return renderTemplate("docs", meta, filepath.Join(docsPath, "docs.go"), update)
 }
 
 // createGlobalResource 创建global/resource
-func createGlobalResource(meta *metadata.ProjectMeta) bool {
+func createGlobalResource(meta *metadata.ProjectMeta, update bool) bool {
 	basePath := filepath.Base(meta.ProjectName)
 	resourcePath := filepath.Join(basePath, "global", "resource")
 
@@ -238,11 +305,11 @@ func createGlobalResource(meta *metadata.ProjectMeta) bool {
 		return false
 	}
 
-	return renderTemplate("resource", meta, filepath.Join(resourcePath, "resource.go"))
+	return renderTemplate("resource", meta, filepath.Join(resourcePath, "resource.go"), update)
 }
 
 // createIDL 创建idl/client、idl/server
-func createIDL(meta *metadata.ProjectMeta) bool {
+func createIDL(meta *metadata.ProjectMeta, update bool) bool {
 	basePath := filepath.Base(meta.ProjectName)
 	idlPath := filepath.Join(basePath, "idl")
 	// 创建idl子目录
@@ -264,7 +331,7 @@ func createIDL(meta *metadata.ProjectMeta) bool {
 	}
 
 	for _, file := range idlFiles {
-		if !renderTemplate(file.TemplateName, meta, file.FilePath) {
+		if !renderTemplate(file.TemplateName, meta, file.FilePath, update) {
 			return false
 		}
 	}
@@ -272,7 +339,7 @@ func createIDL(meta *metadata.ProjectMeta) bool {
 }
 
 // createScriptFile 创建script
-func createScriptFile(meta *metadata.ProjectMeta) bool {
+func createScriptFile(meta *metadata.ProjectMeta, update bool) bool {
 	basePath := filepath.Base(meta.ProjectName)
 	scriptPath := filepath.Join(basePath, "script")
 
@@ -288,7 +355,7 @@ func createScriptFile(meta *metadata.ProjectMeta) bool {
 	}
 
 	for _, file := range scriptFiles {
-		if !renderTemplate(file.TemplateName, meta, file.FilePath) {
+		if !renderTemplate(file.TemplateName, meta, file.FilePath, update) {
 			return false
 		}
 	}
@@ -296,7 +363,7 @@ func createScriptFile(meta *metadata.ProjectMeta) bool {
 }
 
 // createServerStructure 创建server目录结构
-func createServerStructure(meta *metadata.ProjectMeta) bool {
+func createServerStructure(meta *metadata.ProjectMeta, update bool) bool {
 	basePath := filepath.Base(meta.ProjectName)
 	serverPath := filepath.Join(basePath, "server")
 
@@ -330,7 +397,7 @@ func createServerStructure(meta *metadata.ProjectMeta) bool {
 	}
 
 	for _, file := range serverFiles {
-		if !renderTemplate(file.TemplateName, meta, file.FilePath) {
+		if !renderTemplate(file.TemplateName, meta, file.FilePath, update) {
 			return false
 		}
 	}
@@ -339,7 +406,7 @@ func createServerStructure(meta *metadata.ProjectMeta) bool {
 }
 
 // createRootFiles 创建根目录文件
-func createRootFiles(meta *metadata.ProjectMeta) bool {
+func createRootFiles(meta *metadata.ProjectMeta, update bool) bool {
 	basePath := filepath.Base(meta.ProjectName)
 
 	rootFiles := []TemplateConfig{
@@ -350,7 +417,7 @@ func createRootFiles(meta *metadata.ProjectMeta) bool {
 	}
 
 	for _, file := range rootFiles {
-		if !renderTemplate(file.TemplateName, meta, file.FilePath) {
+		if !renderTemplate(file.TemplateName, meta, file.FilePath, update) {
 			return false
 		}
 	}
