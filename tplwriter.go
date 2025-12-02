@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go/format"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -20,15 +21,21 @@ import (
 func RenderingTemplate(templateInfo *metadata.Template, dataGen metadata.IBaseData, outFilePath string, overwrite bool) (err error) {
 	var file *os.File
 	data := dataGen.GenRenderData()
+	ext := filepath.Ext(outFilePath)
+	perm := fs.FileMode(0644)
+	if ext == ".sh" {
+		perm = fs.FileMode(0755)
+	}
+
 	if !IsExist(outFilePath) && !overwrite {
-		file, err = os.OpenFile(outFilePath, os.O_CREATE|os.O_RDWR, 0644)
+		file, err = os.OpenFile(outFilePath, os.O_CREATE|os.O_RDWR, perm)
 		if err != nil {
 			fmt.Printf("open file error %s\n", err.Error())
 			return
 		}
 	} else {
 		if overwrite {
-			file, err = os.OpenFile(outFilePath, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0644)
+			file, err = os.OpenFile(outFilePath, os.O_CREATE|os.O_TRUNC|os.O_RDWR, perm)
 			if err != nil {
 				fmt.Printf("overwrite true: open file error %s\n", err.Error())
 				return
