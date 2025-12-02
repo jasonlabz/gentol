@@ -22,10 +22,15 @@ go install github.com/jasonlabz/gentol@master
 ##### 用法一：生成gin项目
 生成项目：[generate-example-project](https://github.com/jasonlabz/generate-example-project)
 ```shell
-gentol new|init [project_name|module_name]
+gentol new|init [project_name|module_name] # 新生成gin项目，需提供项目名或模块名
+gentol uptate [project_name|module_name] # 更新gin项目，可在项目目录下或者在外层指定项目名称
 
 例如：gentol new projectA
      gentol new github.com/XXX/projectB
+     
+     gentol update
+     gentol update projectB
+     gentol update github.com/XXX/projectB
      
      
 生成项目：
