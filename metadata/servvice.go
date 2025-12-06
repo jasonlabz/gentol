@@ -28,7 +28,7 @@ import (
 	"{{.ModulePath}}/server/{{.ServicePackageName}}"
 )
 
-var svc *service
+var svc *Service
 var once sync.Once
 
 func GetService() {{.ServicePackageName}}.{{.ServiceStructName}} {
@@ -37,13 +37,13 @@ func GetService() {{.ServicePackageName}}.{{.ServiceStructName}} {
 	}
 	once.Do(func() {
 		// init service
-		svc = &service{}
+		svc = &Service{}
 	})
 
 	return svc
 }
 
-type service struct {
+type Service struct {
    // add properties, eg: userDao dao.UserDao
 }
 `
