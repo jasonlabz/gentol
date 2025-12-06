@@ -23,37 +23,36 @@ type PathConfig struct {
 	Files []TemplateConfig
 }
 
+func getModuleName(modFile string) (string, bool) {
+	if !IsExist(modFile) {
+		return "", false
+	}
+
+	file, err := os.Open(modFile)
+	if err != nil {
+		log.Fatal(fmt.Sprintf("open go.mod error: %s", err))
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if strings.HasPrefix(line, "module ") {
+			return strings.TrimPrefix(line, "module "), true
+		}
+	}
+	return "", false
+}
+
 func updateProject(projectName string) {
 	var isProjectDir bool
 	currentDir, _ := os.Getwd()
-
-	// 提取重复的 go.mod 读取逻辑为函数
-	readModuleName := func(modFile string) (string, bool) {
-		if !IsExist(modFile) {
-			return "", false
-		}
-
-		file, err := os.Open(modFile)
-		if err != nil {
-			log.Fatal(fmt.Sprintf("open go.mod error: %s", err))
-		}
-		defer file.Close()
-
-		scanner := bufio.NewScanner(file)
-		for scanner.Scan() {
-			line := strings.TrimSpace(scanner.Text())
-			if strings.HasPrefix(line, "module ") {
-				return strings.TrimPrefix(line, "module "), true
-			}
-		}
-		return "", false
-	}
 
 	// 确定项目名称和位置
 	if projectName == "" {
 		// 当前目录模式
 		modFile := filepath.Join(currentDir, "go.mod")
-		if moduleName, found := readModuleName(modFile); found {
+		if moduleName, found := getModuleName(modFile); found {
 			projectName = moduleName
 			isProjectDir = true
 		} else {
@@ -67,7 +66,7 @@ func updateProject(projectName string) {
 		}
 
 		modFile := filepath.Join(currentDir, projectMeta.ProjectName, "go.mod")
-		if moduleName, found := readModuleName(modFile); found {
+		if moduleName, found := getModuleName(modFile); found {
 			projectName = moduleName
 		} else {
 			log.Fatal(fmt.Errorf("[%s] is not a project, because [%s] not found, use gentol init|new first",
@@ -114,7 +113,7 @@ func updateProject(projectName string) {
 		}
 	}
 
-	fmt.Println("Project updated successfully!")
+	log.Println("Project updated successfully!")
 }
 
 // handleNewProject 处理新项目创建
@@ -150,7 +149,7 @@ func handleNewProject(projectName string) {
 		}
 	}
 
-	fmt.Println("Project created successfully!")
+	log.Println("Project created successfully!")
 }
 
 // initProjectMeta 初始化项目元数据
@@ -161,7 +160,9 @@ func initProjectMeta(projectName string) *metadata.ProjectMeta {
 
 	splitProjects := strings.Split(projectName, "/")
 	if len(splitProjects) == 0 {
-		return nil
+		projectMeta.ModulePath = "generate_example"
+		projectMeta.ProjectName = projectMeta.ModulePath
+		return projectMeta
 	}
 
 	// 从路径中提取项目名
@@ -180,12 +181,12 @@ func createProjectRoot(projectName string, update bool) bool {
 	projectDir := filepath.Base(projectName)
 
 	if IsExist(projectDir) && !update {
-		fmt.Printf("[tips] project is already exist, please clear dir: %s, and try again\n", projectDir)
+		log.Printf("[tips] project is already exist, please clear dir: %s, and try again\n", projectDir)
 		return false
 	}
 
 	if err := os.MkdirAll(projectDir, 0755); err != nil {
-		fmt.Printf("Error creating project directory: %v\n", err)
+		log.Printf("Error creating project directory: %v\n", err)
 		return false
 	}
 
@@ -194,8 +195,11 @@ func createProjectRoot(projectName string, update bool) bool {
 
 // createDirectory 创建目录
 func createDirectory(path string) bool {
+	if IsExist(path) {
+		return true
+	}
 	if err := os.MkdirAll(path, 0755); err != nil {
-		fmt.Printf("Error creating directory %s: %v\n", path, err)
+		log.Printf("Error creating directory %s: %v\n", path, err)
 		return false
 	}
 	return true
@@ -205,12 +209,12 @@ func createDirectory(path string) bool {
 func renderTemplate(templateName string, meta *metadata.ProjectMeta, filePath string, update bool) bool {
 	tpl, ok := metadata.LoadTpl(templateName)
 	if !ok {
-		fmt.Printf("Undefined template: %s\n", templateName)
+		log.Printf("Undefined template: %s\n", templateName)
 		return false
 	}
 
 	if err := RenderingTemplate(tpl, meta, filePath, update); err != nil {
-		fmt.Printf("Error rendering template %s to %s: %v\n", templateName, filePath, err)
+		log.Printf("Error rendering template %s to %s: %v\n", templateName, filePath, err)
 		return false
 	}
 
@@ -404,7 +408,7 @@ func createServerStructure(meta *metadata.ProjectMeta, update bool) bool {
 		filepath.Join(serverPath, "routers"),
 		filepath.Join(serverPath, "service"),
 		filepath.Join(serverPath, "service", "health_check"),
-		filepath.Join(serverPath, "service", "health_check", "dto"),
+		filepath.Join(serverPath, "service", "health_check", "body"),
 	}
 
 	for _, dir := range serverDirs {
@@ -421,8 +425,8 @@ func createServerStructure(meta *metadata.ProjectMeta, update bool) bool {
 		{"router", filepath.Join(serverPath, "routers", "router.go")},
 		{"service", filepath.Join(serverPath, "service", "health_check.go")},
 		{"serviceImpl", filepath.Join(serverPath, "service", "health_check", "health_check_impl.go")},
-		{"reqDTO", filepath.Join(serverPath, "service", "health_check", "dto", "request.go")},
-		{"resDto", filepath.Join(serverPath, "service", "health_check", "dto", "response.go")},
+		{"reqDTO", filepath.Join(serverPath, "service", "health_check", "body", "request.go")},
+		{"resDto", filepath.Join(serverPath, "service", "health_check", "body", "response.go")},
 	}
 
 	for _, file := range serverFiles {

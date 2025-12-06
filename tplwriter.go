@@ -6,6 +6,7 @@ import (
 	"go/format"
 	"io"
 	"io/fs"
+	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -22,26 +23,30 @@ func RenderingTemplate(templateInfo *metadata.Template, dataGen metadata.IBaseDa
 	var file *os.File
 	data := dataGen.GenRenderData()
 	ext := filepath.Ext(outFilePath)
+	dir := filepath.Dir(outFilePath)
+	if !IsExist(dir) {
+		_ = createDirectory(dir)
+	}
 	perm := fs.FileMode(0644)
 	if ext == ".sh" {
 		perm = fs.FileMode(0755)
 	}
-
 	if !IsExist(outFilePath) && !overwrite {
 		file, err = os.OpenFile(outFilePath, os.O_CREATE|os.O_RDWR, perm)
 		if err != nil {
-			fmt.Printf("open file error %s\n", err.Error())
+			log.Printf("open file error %s\n", err.Error())
 			return
 		}
 	} else {
 		if overwrite {
 			file, err = os.OpenFile(outFilePath, os.O_CREATE|os.O_TRUNC|os.O_RDWR, perm)
 			if err != nil {
-				fmt.Printf("overwrite true: open file error %s\n", err.Error())
+				log.Printf("overwrite true: open file error %s\n", err.Error())
 				return
 			}
 		} else {
 			// skip
+			log.Printf("file is exist, please delete it before generate: %s\n", outFilePath)
 			return
 		}
 	}
@@ -68,7 +73,7 @@ func RenderingTemplate(templateInfo *metadata.Template, dataGen metadata.IBaseDa
 		return fmt.Errorf("error writing %s - error: %v", outFilePath, err)
 	}
 
-	fmt.Printf("writing %s\n", outFilePath)
+	log.Printf("writing %s\n", outFilePath)
 
 	return nil
 }
@@ -133,7 +138,7 @@ func WriteModel(dbInfo *configx.DBTableInfo, schemaName, tableName string,
 	modelData.UseSQLNullable = dbInfo.UseSQLNullable
 	modelTpl, ok := metadata.LoadTpl("model")
 	if !ok {
-		fmt.Println("undefined template" + "model")
+		log.Println("undefined template" + "model")
 		return
 	}
 	exist := IsExist(modelData.ModelPath)
@@ -143,7 +148,7 @@ func WriteModel(dbInfo *configx.DBTableInfo, schemaName, tableName string,
 	ff, _ := filepath.Abs(filepath.Join(modelData.ModelPath, modelData.TableName+".go"))
 	err := RenderingTemplate(modelTpl, modelData, ff, true)
 	if err != nil {
-		fmt.Println("err occured: ", err)
+		log.Println("err occured: ", err)
 		return
 	}
 
@@ -153,12 +158,12 @@ func WriteModel(dbInfo *configx.DBTableInfo, schemaName, tableName string,
 		ff, _ = filepath.Abs(hookFile)
 		modelHookTpl, ok := metadata.LoadTpl("model_hook")
 		if !ok {
-			fmt.Println("undefined template" + "model_hook")
+			log.Println("undefined template" + "model_hook")
 			return
 		}
 		err = RenderingTemplate(modelHookTpl, modelData, ff, true)
 		if err != nil {
-			fmt.Println("err occured: ", err)
+			log.Println("err occured: ", err)
 			return
 		}
 	}
@@ -166,12 +171,12 @@ func WriteModel(dbInfo *configx.DBTableInfo, schemaName, tableName string,
 	ff, _ = filepath.Abs(baseFile)
 	modelBaseTpl, ok := metadata.LoadTpl("model_base")
 	if !ok {
-		fmt.Println("undefined template" + "model_base")
+		log.Println("undefined template" + "model_base")
 		return
 	}
 	err = RenderingTemplate(modelBaseTpl, modelData, ff, true)
 	if err != nil {
-		fmt.Println("err occured: ", err)
+		log.Println("err occured: ", err)
 		return
 	}
 	return
@@ -198,7 +203,7 @@ func WriteDao(dbInfo *configx.DBTableInfo, schemaName, tableName string, columnT
 	daoData.DaoPath = dbInfo.DaoPath
 	daoTpl, ok := metadata.LoadTpl("dao")
 	if !ok {
-		fmt.Println("undefined template" + "dao")
+		log.Println("undefined template" + "dao")
 		return
 	}
 	daoInterfacePath := daoData.DaoPath
@@ -209,7 +214,7 @@ func WriteDao(dbInfo *configx.DBTableInfo, schemaName, tableName string, columnT
 	ff, _ := filepath.Abs(filepath.Join(daoInterfacePath, daoData.TableName+"_dao.go"))
 	err := RenderingTemplate(daoTpl, daoData, ff, true)
 	if err != nil {
-		fmt.Println("err occured: ", err)
+		log.Println("err occured: ", err)
 		return
 	}
 
@@ -218,12 +223,12 @@ func WriteDao(dbInfo *configx.DBTableInfo, schemaName, tableName string, columnT
 	if !IsExist(daoExtInterface) {
 		daoExtTpl, ok := metadata.LoadTpl("daoExt")
 		if !ok {
-			fmt.Println("undefined template" + "daoExt")
+			log.Println("undefined template" + "daoExt")
 			return
 		}
 		err = RenderingTemplate(daoExtTpl, daoData, daoExtInterface, true)
 		if err != nil {
-			fmt.Println("err occured: ", err)
+			log.Println("err occured: ", err)
 			return
 		}
 	}
@@ -236,12 +241,12 @@ func WriteDao(dbInfo *configx.DBTableInfo, schemaName, tableName string, columnT
 	ff, _ = filepath.Abs(daoImplFile)
 	daoImplTpl, ok := metadata.LoadTpl("dao_impl")
 	if !ok {
-		fmt.Println("undefined template" + "dao_impl")
+		log.Println("undefined template" + "dao_impl")
 		return
 	}
 	err = RenderingTemplate(daoImplTpl, daoData, ff, true)
 	if err != nil {
-		fmt.Println("err occured: ", err)
+		log.Println("err occured: ", err)
 		return
 	}
 	daoExtImplFile := filepath.Join(implDir, daoData.TableName+"_dao_ext_impl.go")
@@ -249,12 +254,12 @@ func WriteDao(dbInfo *configx.DBTableInfo, schemaName, tableName string, columnT
 	if !IsExist(ff) {
 		daoExtImplTpl, ok := metadata.LoadTpl("daoExtImpl")
 		if !ok {
-			fmt.Println("undefined template" + "daoExtImpl")
+			log.Println("undefined template" + "daoExtImpl")
 			return
 		}
 		err = RenderingTemplate(daoExtImplTpl, daoData, ff, true)
 		if err != nil {
-			fmt.Println("err occured: ", err)
+			log.Println("err occured: ", err)
 			return
 		}
 	}
@@ -264,12 +269,12 @@ func WriteDao(dbInfo *configx.DBTableInfo, schemaName, tableName string, columnT
 	ff, _ = filepath.Abs(baseFile)
 	daoBaseTpl, ok := metadata.LoadTpl("database")
 	if !ok {
-		fmt.Println("undefined template" + "database")
+		log.Println("undefined template" + "database")
 		return
 	}
 	err = RenderingTemplate(daoBaseTpl, daoData, ff, true)
 	if err != nil {
-		fmt.Println("err occured: ", err)
+		log.Println("err occured: ", err)
 		return
 	}
 	return

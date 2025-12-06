@@ -1,14 +1,20 @@
 package metadata
 
 type ProjectMeta struct {
-	ModulePath  string
-	ProjectName string
+	ModulePath         string
+	ProjectName        string
+	ServiceName        string
+	ServicePackageName string
+	ServiceStructName  string
 }
 
 func (p *ProjectMeta) GenRenderData() map[string]any {
 	result := map[string]any{
-		"ModulePath":  p.ModulePath,
-		"ProjectName": p.ProjectName,
+		"ModulePath":         p.ModulePath,
+		"ProjectName":        p.ProjectName,
+		"ServiceName":        p.ServiceName,
+		"ServiceStructName":  p.ServiceStructName,
+		"ServicePackageName": p.ServicePackageName,
 	}
 	return result
 }
@@ -577,7 +583,7 @@ func HealthCheck(c *gin.Context) {
 }
 `
 
-const ReqDTO = `package dto
+const ReqDTO = `package body
 
 type HealthCheckReqDto struct {
 	FieldName string` + " `json:" + `"field_name"` + "` // 属性名" + `
@@ -585,7 +591,7 @@ type HealthCheckReqDto struct {
 
 `
 
-const ResDto = `package dto
+const ResDto = `package body
 
 type HealthCheckResDto struct {
 	FieldName string` + " `json:" + `"field_name"` + "` // 属性名" + `
@@ -945,8 +951,6 @@ func (p *Pagination) GetOffset() (offset int64) {
 
 const Constant = `
 package consts
-
-import "os"
 
 const APIVersionV1 = "v1"
 

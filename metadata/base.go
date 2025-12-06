@@ -279,4 +279,7 @@ func init() {
 	StoreTpl("script_readme", SCRIPT_README)
 	StoreTpl("idl_client", IDL_CLIENT)
 	StoreTpl("idl_server", IDL_SERVER)
+	StoreTpl("add_service", AddService)
+	StoreTpl("add_service_impl", AddServiceImpl)
+	StoreTpl("empty", EmptyMeta)
 }
