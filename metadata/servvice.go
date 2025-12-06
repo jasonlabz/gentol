@@ -16,15 +16,11 @@ package metadata
 
 const AddService = `package {{.ServicePackageName}}
 
-import (
-	"context"
-)
-
 type {{.ServiceStructName}} interface {
 	// TODO: add definition of method
 }`
 
-const AddServiceImpl = `package health_check
+const AddServiceImpl = `package {{.ServiceName}}
 
 import (
 	"sync"
