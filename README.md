@@ -24,6 +24,7 @@ go install github.com/jasonlabz/gentol@master
 ```shell
 gentol new|init [project_name|module_name] # 新生成gin项目，需提供项目名或模块名
 gentol uptate [project_name|module_name] # 更新gin项目，可在项目目录下或者在外层指定项目名称
+gentol add service_name|manager_name # 新增一个service目录模板，如果_manager结尾则新增manager目录模板（manager主要可以调用多个service逻辑，在service上层，controller下层）
 
 例如：gentol new projectA
      gentol new github.com/XXX/projectB
@@ -32,7 +33,8 @@ gentol uptate [project_name|module_name] # 更新gin项目，可在项目目录�
      gentol update projectB
      gentol update github.com/XXX/projectB
      
-     
+     gentol add user 和 gentol add user_service 一样
+     gentol add user_manager
 生成项目：
 ➜  awesomeProject $ gentol new github.com/jasonlabz/demo
 writing demo/cmd/demo_program/main.go
