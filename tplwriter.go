@@ -28,7 +28,7 @@ func RenderingTemplate(templateInfo *metadata.Template, dataGen metadata.IBaseDa
 		_ = createDirectory(dir)
 	}
 	perm := fs.FileMode(0644)
-	if ext == ".sh" {
+	if ext == ".sh" || ext == ".ps1" {
 		perm = fs.FileMode(0755)
 	}
 	if !IsExist(outFilePath) && !overwrite {

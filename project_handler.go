@@ -382,8 +382,11 @@ func createScriptFile(meta *metadata.ProjectMeta, update bool) bool {
 	// 创建script目录下的文件
 	scriptFiles := []TemplateConfig{
 		{"script_gentol", filepath.Join(scriptPath, "gentol.sh")},
+		{"script_gentol_ps1", filepath.Join(scriptPath, "gentol.ps1")},
 		{"script_kitex", filepath.Join(scriptPath, "generate_idl.sh")},
+		{"script_kitex_ps1", filepath.Join(scriptPath, "generate_idl.ps1")},
 		{"script_swag", filepath.Join(scriptPath, "swag.sh")},
+		{"script_swag_ps1", filepath.Join(scriptPath, "swag.ps1")},
 		{"script_readme", filepath.Join(scriptPath, "README.md")},
 	}
 
