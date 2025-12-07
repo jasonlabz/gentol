@@ -323,14 +323,14 @@ func InitApiRouter() *gin.Engine {
 		_ = knife4go.InitSwaggerKnife(serverGroup)
 	}
 
+	// base api
+	registerBaseAPI(serverGroup)
+
 	apiGroup := serverGroup.Group("/api")
 
 	// 中间件拦截器
 	groupMiddleware(apiGroup,
 		middleware.RecoveryLog(true), middleware.SetContext(), middleware.RequestMiddleware())
-
-	// base api
-	registerBaseAPI(apiGroup)
 
 	// v1 group api
 	v1Group := apiGroup.Group("/v1")
