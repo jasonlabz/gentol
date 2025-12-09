@@ -86,12 +86,18 @@ redis:
   sentinel_username:
   sentinel_password:
 rabbitmq:
-  enable: false
-  strict: true
+  enable: false                # 是否启用
+  strict: true                 # 是否为下游必需，如为true则会启动时panic所遇error
   host: "*******"
   port: 8672
   username: lucas
   password: "*******"
+  limit_conf:
+    attempt_times: 3          # 重试次数
+    retry_wait_time: 3000     # 重试等待时间，单位ms
+    prefetch_count: 100       # 队列预读取数量
+    timeout: 5000             # 超时时间
+    queue_limit: 0            # 队列长度限制
 crypto:
   - type: aes
     key: "wrEDGh75pxAUH8Mr"
