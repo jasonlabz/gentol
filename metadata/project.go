@@ -91,7 +91,7 @@ func initCrypto(_ context.Context) {
 }
 
 func initDB(_ context.Context) {
-	dbConf := configx.GetConfig().Database
+	dbConf := configx.GetConfig().DataSource
 	if !dbConf.Enable {
 		return
 	}

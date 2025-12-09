@@ -15,18 +15,6 @@
 package metadata
 
 const Readme = `# 工具介绍
-### 1、 gorm gen使用` +
-	"```shell" + `
-## install gen tool (should be installed to ~/go/bin, make sure ~/go/bin is in your path.
-## go version < 1.17
-$ go get -u github.com/smallnest/gen
-
-## go version == 1.17
-$ go install github.com/smallnest/gen@v0.9.29
-
-## generate code based on the sqlite database (project will be contained within the ./example dir)
-$ gen --sqltype=postgres  --connstr "host=localhost user=postgres password=halojeff dbname=postgres port=8432 sslmode=disable"  --database postgres --table user --out ./dal --json --gorm --guregu --run-gofmt --json-fmt=snake --overwrite
-` + "```" + `
 ### 1、 gentol使用
 ` + "```shell" + `
 ## install gentol

@@ -22,7 +22,7 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/google/uuid v1.6.0
 	github.com/jasonlabz/knife4go v1.0.1-0.20241118142759-6386e3973279
-	github.com/jasonlabz/potato v1.0.6
+	github.com/jasonlabz/potato v1.0.7
 )
 
 require (
@@ -116,7 +116,8 @@ require (
 	gorm.io/driver/mysql v1.5.7 // indirect
 	gorm.io/driver/postgres v1.5.9 // indirect
 	gorm.io/driver/sqlserver v1.5.3 // indirect
-	gorm.io/gorm v1.25.12 // indirect
+	gorm.io/plugin/dbresolver v1.6.2 // indirect
+	gorm.io/gorm v1.26.0 // indirect
 	modernc.org/libc v1.22.5 // indirect
 	modernc.org/mathutil v1.5.0 // indirect
 	modernc.org/memory v1.5.0 // indirect

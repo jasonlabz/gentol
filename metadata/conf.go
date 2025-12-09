@@ -36,6 +36,7 @@ const Conf = `application:
       enabled_endpoints: ["goroutine", "heap"]  # 指定启用的端点
 kafka:
   enable: false
+  strict: true
   topic: ["XXX"]
   group_id: "XXX"
   bootstrap_servers: "XXX:XX,XXX:XX,XXX:XX"
@@ -45,9 +46,9 @@ kafka:
   sasl_password: "XXX"
 database:
   enable: false
+  strict: true
   db_type: "mysql"
 #  dsn: "user:passwd@tcp(*******:8306)/lg_server?charset=utf8mb4&parseTime=True&loc=Local&timeout=20s"
-#  dsn: "user=postgres password=halojeff host=127.0.0.1 port=8432 dbname=lg_server sslmode=disable TimeZone=Asia/Shanghai"
   host: "*******"
   port: 8306
   username: root
@@ -61,6 +62,7 @@ database:
   max_open_conn: 100
 es:
   enable: false
+  strict: true
   endpoints:
     - "*******:8776"
   username: elastic
@@ -71,6 +73,7 @@ es:
   insecure_skip_verify: false   # 跳过证书认证，生产应为false
 redis:
   enable: false
+  strict: true
   endpoints:
     - "*******:8379"
   password: "*******"
@@ -84,6 +87,7 @@ redis:
   sentinel_password:
 rabbitmq:
   enable: false
+  strict: true
   host: "*******"
   port: 8672
   username: lucas
