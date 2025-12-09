@@ -866,6 +866,7 @@ func GetToken(ctx context.Context) string {
 const Resource = `package resource
 
 import (
+	"github.com/jasonlabz/potato/es"
 	"github.com/jasonlabz/potato/goredis"
 	"github.com/jasonlabz/potato/log"
 	"github.com/jasonlabz/potato/rabbitmqx"

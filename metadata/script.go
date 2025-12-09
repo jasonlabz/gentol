@@ -288,8 +288,8 @@ function Build-Dsn {
 function Build-Args {
     $argsList = @(
         "--db_type=$DB_TYPE"
-        "--dsn=` + "`\"$DSN`\"" +
-	`		"--model=$MODEL_DIR"
+        "--dsn=` + "`\"$DSN`\"" + `
+		"--model=$MODEL_DIR"
 		"--dao=$DAO_DIR"
 	)
 
@@ -918,6 +918,7 @@ function Generate-ProtobufService {
             -ExtraArgs ""` + " `" + `
 	      	-IdlFile $protoFile` + " `" + `
             -GenPath $SERVER_DIR` + " `" + `
+			-UseService $true) {
             $successCount++
         }
         else {
