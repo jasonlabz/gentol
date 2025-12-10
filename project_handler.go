@@ -277,8 +277,18 @@ func createBootstrap(meta *metadata.ProjectMeta, update bool) bool {
 	if !createDirectory(bootstrapPath) {
 		return false
 	}
+	// 创建bootstrap目录下的文件
+	bootstrapFiles := []TemplateConfig{
+		{"bootstrap", filepath.Join(bootstrapPath, "bootstrap.go")},
+		{"server_config", filepath.Join(bootstrapPath, "config.go")},
+	}
+	for _, file := range bootstrapFiles {
+		if !renderTemplate(file.TemplateName, meta, file.FilePath, update) {
+			return false
+		}
+	}
 
-	return renderTemplate("bootstrap", meta, filepath.Join(bootstrapPath, "bootstrap.go"), update)
+	return true
 }
 
 // createCommonStructure 创建common目录结构
