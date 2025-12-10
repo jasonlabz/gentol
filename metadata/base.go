@@ -252,6 +252,7 @@ func init() {
 	StoreTpl("daoExtImpl", DaoExtImpl)
 	StoreTpl("database", Database)
 	StoreTpl("bootstrap", Bootstrap)
+	StoreTpl("server_config", SERVER_CONFIG)
 	StoreTpl("main", Main)
 	StoreTpl("router", Router)
 	StoreTpl("loggerMiddleware", LoggerMiddleware)

@@ -44,7 +44,7 @@ kafka:
   sasl_mechanism: "PLAIN"
   sasl_username: "XXX"
   sasl_password: "XXX"
-database:
+datasource:
   enable: false
   strict: true
   db_type: "mysql"
