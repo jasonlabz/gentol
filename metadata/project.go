@@ -97,12 +97,12 @@ func main() {
 
 	if serverConfig.Application.FileServer {
 		go func() {
-			fileServer(serverConfig.Application.Port + 1)
+			fileServer(serverConfig.GetHTTPPort() + 1)
 		}()
 	}
 
 	// start program
-	srv := startServer(r, serverConfig.Application.Port)
+	srv := startServer(r, serverConfig.GetHTTPPort())
 
 	// receive quit signal, ready to exit
 	quit := make(chan os.Signal)
@@ -129,7 +129,6 @@ func startServer(router *gin.Engine, port int) *http.Server {
 			log.Fatalf("listen: %s\n", err)
 		}
 	}()
-
 	return srv
 }
 
@@ -143,7 +142,7 @@ func fileServer(port int) {
 	authMux := basicAuth(mux)
 
 	// 启动 HTTP 服务器
-	// log.Printf("Starting file server at :%d", config.GetConfig().Application.Port+1)
+	// log.Printf("Starting file server at :%d", config.GetConfig().GetHTTPPort()+1)
 	err := http.ListenAndServe(fmt.Sprintf(":%d", port), authMux)
 	if err != nil {
 		log.Fatalf("file server listen: %s\n", err)
@@ -195,8 +194,7 @@ func InitApiRouter() *gin.Engine {
 
 	serverGroup := router.Group(fmt.Sprintf("/%s", serverConfig.GetName()))
 	// debug模式下，注册swagger路由
-	// knife4go: beautify swagger-ui http://ip:port/server_name/doc.html
-	// knife4go: beautify swagger-ui,
+	// knife4go: beautify swagger-ui, http://ip:port/server_name/doc.html
 	if serverConfig.IsDebugMode() {
 		_ = knife4go.InitSwaggerKnife(serverGroup)
 	}
