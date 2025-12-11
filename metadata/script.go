@@ -651,7 +651,7 @@ function Invoke-KitexGeneration {
         }
     }
     catch {
-        Write-ErrorLog "Failed to generate $Type from $IdlFile: $_"
+        Write-ErrorLog "Failed to generate $Type from $IdlFile, error: $_"
         return $false
     }
 
@@ -973,7 +973,7 @@ function Regenerate-Submodule {
         }
     }
     catch {
-        Write-ErrorLog "Failed to generate for $Path: $_"
+        Write-ErrorLog "Failed to generate for $Path, error: $_"
         Set-Location $originalDir
         return $false
     }
@@ -985,7 +985,7 @@ function Regenerate-Submodule {
         go mod tidy
     }
     catch {
-        Write-WarnLog "Failed to update dependencies for $Path: $_"
+        Write-WarnLog "Failed to update dependencies for $Path, error: $_"
     }
 
     Set-Location $originalDir
