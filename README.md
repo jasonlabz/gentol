@@ -23,7 +23,7 @@ go install github.com/jasonlabz/gentol@master
 生成项目：[generate-example-project](https://github.com/jasonlabz/generate-example-project)
 ```shell
 gentol new|init [project_name|module_name] # 新生成gin项目，需提供项目名或模块名
-gentol uptate [project_name|module_name] # 更新gin项目，可在项目目录下或者在外层指定项目名称
+gentol update [project_name|module_name] # 更新gin项目，可在项目目录下或者在外层指定项目名称
 gentol add service_name|manager_name # 新增一个service目录模板，如果_manager结尾则新增manager目录模板（manager主要可以调用多个service逻辑，在service上层，controller下层）
 
 例如：gentol new projectA
