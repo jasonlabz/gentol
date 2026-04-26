@@ -3,9 +3,10 @@ package main
 import (
 	"strings"
 	"sync"
-	
-	"github.com/jasonlabz/gentol/configx"
+
 	"github.com/pborman/getopt/v2"
+
+	"github.com/jasonlabz/gentol/configx"
 )
 
 var once sync.Once
@@ -36,17 +37,17 @@ func argHandler() {
 			module = getopt.StringLong("module", 'm', "", "module name for go project")
 			schema = getopt.StringLong("schema", 's', "", "schema to for db table")
 			table  = getopt.StringLong("table", 't', "", "table name to build struct from")
-			//templateDir = getopt.StringLong("template_dir", 0, "./template", "Template Dir")
+			// templateDir = getopt.StringLong("template_dir", 0, "./template", "Template Dir")
 
 			modelPath   = getopt.StringLong("model", 0, "dal/db/model", "name to set for model package")
 			daoPath     = getopt.StringLong("dao", 0, "dal/db/dao", "name to set for dao package")
 			servicePath = getopt.StringLong("service", 0, "server/service", "name to set for service package")
-			//grpcPath    = getopt.StringLong("grpc", 0, "./grpc", "name to set for grpc package")
-			//outDir      = getopt.StringLong("out", 0, ".", "output dir")
+			// grpcPath    = getopt.StringLong("grpc", 0, "./grpc", "name to set for grpc package")
+			// outDir      = getopt.StringLong("out", 0, ".", "output dir")
 
 			jsonNameFormat  = getopt.StringLong("json_format", 0, "snake", "json name format [snake | upper_camel | lower_camel]")
 			protoNameFormat = getopt.StringLong("protobuf_format", 0, "snake", "proto name format [snake | upper_camel | lower_camel]")
-			//gogoProtoImport = getopt.StringLong("gogoproto", 0, "", "location of gogo import ")
+			// gogoProtoImport = getopt.StringLong("gogoproto", 0, "", "location of gogo import ")
 
 			onlyModel             = getopt.BoolLong("only_model", 0, "overwrite existing files (default)", "disable overwriting files")
 			useHook               = getopt.BoolLong("gen_hook", 0, "disable gorm hook file (default)", "gorm hook file")
@@ -98,5 +99,5 @@ func argHandler() {
 			databaseConfig,
 		}
 	}
-	//handleDB()
+	// handleDB()
 }

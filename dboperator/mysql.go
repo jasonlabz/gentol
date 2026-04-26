@@ -62,7 +62,7 @@ func (m MySQLOperator) GetTableData(ctx context.Context, dbName, schemaName, tab
 func (m MySQLOperator) GetTablesUnderDB(ctx context.Context, dbName string) (dbTableMap map[string]*LogicDBInfo, err error) {
 	dbTableMap = make(map[string]*LogicDBInfo)
 	if dbName == "" {
-		err = errors.New("empty dnName")
+		err = errors.New("empty dbName")
 		return
 	}
 	gormDBTables := make([]*GormDBTable, 0)
@@ -108,7 +108,7 @@ func (m MySQLOperator) GetTablesUnderDB(ctx context.Context, dbName string) (dbT
 func (m MySQLOperator) GetColumns(ctx context.Context, dbName string) (dbTableColMap map[string]map[string]*TableColInfo, err error) {
 	dbTableColMap = make(map[string]map[string]*TableColInfo, 0)
 	if dbName == "" {
-		err = errors.New("empty dnName")
+		err = errors.New("empty dbName")
 		return
 	}
 	gormTableColumns := make([]*GormTableColumn, 0)
@@ -175,7 +175,7 @@ func (m MySQLOperator) GetColumns(ctx context.Context, dbName string) (dbTableCo
 func (m MySQLOperator) GetColumnsUnderTables(ctx context.Context, dbName, logicDBName string, tableNames []string) (tableColMap map[string]*TableColInfo, err error) {
 	tableColMap = make(map[string]*TableColInfo, 0)
 	if dbName == "" {
-		err = errors.New("empty dnName")
+		err = errors.New("empty dbName")
 		return
 	}
 	if len(tableNames) == 0 {
@@ -233,7 +233,7 @@ func (m MySQLOperator) GetColumnsUnderTables(ctx context.Context, dbName, logicD
 
 func (m MySQLOperator) CreateSchema(ctx context.Context, dbName, schemaName, commentInfo string) (err error) {
 	if dbName == "" {
-		err = errors.New("empty dnName")
+		err = errors.New("empty dbName")
 		return
 	}
 	if commentInfo == "" {
@@ -252,7 +252,7 @@ func (m MySQLOperator) CreateSchema(ctx context.Context, dbName, schemaName, com
 
 func (m MySQLOperator) ExecuteDDL(ctx context.Context, dbName, ddlStatement string) (err error) {
 	if dbName == "" {
-		err = errors.New("empty dnName")
+		err = errors.New("empty dbName")
 		return
 	}
 	db, err := gormx.GetDB(dbName)

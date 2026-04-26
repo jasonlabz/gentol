@@ -288,7 +288,7 @@ function Build-Dsn {
 function Build-Args {
     $argsList = @(
         "--db_type=$DB_TYPE"
-        "--dsn=` + "`\"$DSN`\"" + `
+        "--dsn=` + "`\"$DSN`\"\"" + `
 		"--model=$MODEL_DIR"
 		"--dao=$DAO_DIR"
 	)

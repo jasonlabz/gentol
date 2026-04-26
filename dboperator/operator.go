@@ -2,8 +2,9 @@ package dboperator
 
 import (
 	"context"
-	"github.com/jasonlabz/gentol/gormx"
 	"math"
+
+	"github.com/jasonlabz/gentol/gormx"
 )
 
 // IConnector 数据库连接器接口
@@ -17,18 +18,24 @@ type IConnector interface {
 type IDataExplorer interface {
 	// GetTablesUnderDB 获取该库下所有逻辑库及表名
 	GetTablesUnderDB(ctx context.Context, dbName string) (dbTableMap map[string]*LogicDBInfo, err error)
+
 	// GetColumns 获取指定库所有逻辑库及表下字段列表
 	GetColumns(ctx context.Context, dbName string) (dbTableColMap map[string]map[string]*TableColInfo, err error)
+
 	// GetColumnsUnderTables 获取指定库表下字段列表
 	GetColumnsUnderTables(ctx context.Context, dbName, logicDBName string, tableNames []string) (tableColMap map[string]*TableColInfo, err error)
+
 	// CreateSchema 创建逻辑库
 	CreateSchema(ctx context.Context, dbName, schemaName, commentInfo string) (err error)
+
 	// ExecuteDDL 执行DDL
 	ExecuteDDL(ctx context.Context, dbName, ddlStatement string) (err error)
+
 	// GetDataBySQL 执行自定义
-	GetDataBySQL(ctx context.Context, dbName, sqlStatement string) (rows []map[string]interface{}, err error)
+	GetDataBySQL(ctx context.Context, dbName, sqlStatement string) (rows []map[string]any, err error)
+
 	// GetTableData 执行查询表数据, pageInfo为nil时不分页
-	GetTableData(ctx context.Context, dbName, schemaName, tableName string, pageInfo *Pagination) (rows []map[string]interface{}, err error)
+	GetTableData(ctx context.Context, dbName, schemaName, tableName string, pageInfo *Pagination) (rows []map[string]any, err error)
 }
 
 type IOperator interface {
@@ -62,20 +69,23 @@ type LogicDBInfo struct {
 	SchemaName    string
 	TableInfoList []*TableInfo
 }
+
 type TableInfo struct {
 	TableName string // 列名
 	Comment   string // 注释
 }
+
 type TableColInfo struct {
 	TableName      string
 	ColumnInfoList []*ColumnInfo // 列
 }
+
 type ColumnInfo struct {
 	ColumnName string // 列名
 	Comment    string // 注释
 	DataType   string // 数据类型
-	//IsNullable      bool   // 可否为null
-	//OrdinalPosition int    // 字段序号
+	// IsNullable      bool   // 可否为null
+	// OrdinalPosition int    // 字段序号
 }
 
 // Pagination 分页结构体（该分页只适合数据量很少的情况）

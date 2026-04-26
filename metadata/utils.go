@@ -97,8 +97,14 @@ func DmTrans(columnType string) (metaType MetaType) {
 			metaType.SQLNullableType = "sql.NullFloat64"
 			metaType.GureguNullableType = "null.Float"
 			metaType.ValueFormat = "%v"
+		} else if strings.Contains(columnType, "int") {
+			metaType.GoType = "int64"
+			metaType.SQLNullableType = "sql.NullInt64"
+			metaType.GureguNullableType = "null.Int"
+			metaType.ValueFormat = "%v"
 		} else if strings.Contains(columnType, "char") ||
-			strings.Contains(columnType, "text") {
+			strings.Contains(columnType, "text") ||
+			strings.Contains(columnType, "clob") {
 			metaType.GoType = "string"
 			metaType.SQLNullableType = "sql.NullString"
 			metaType.GureguNullableType = "null.String"
@@ -108,6 +114,20 @@ func DmTrans(columnType string) (metaType MetaType) {
 			metaType.GoType = "time.Time"
 			metaType.SQLNullableType = "sql.NullTime"
 			metaType.GureguNullableType = "null.Time"
+			metaType.ValueFormat = "'%v'"
+		} else if strings.Contains(columnType, "float") ||
+			strings.Contains(columnType, "double") ||
+			strings.Contains(columnType, "real") {
+			metaType.GoType = "float64"
+			metaType.SQLNullableType = "sql.NullFloat64"
+			metaType.GureguNullableType = "null.Float"
+			metaType.ValueFormat = "%v"
+		} else if strings.Contains(columnType, "blob") ||
+			strings.Contains(columnType, "raw") ||
+			strings.Contains(columnType, "binary") {
+			metaType.GoType = "[]byte"
+			metaType.SQLNullableType = "sql.RawBytes"
+			metaType.GureguNullableType = "[]byte"
 			metaType.ValueFormat = "'%v'"
 		} else {
 			fmt.Printf("unknown DM column type: %s, default to string\n", columnType)
@@ -176,16 +196,31 @@ func SQLiteTrans(columnType string) (metaType MetaType) {
 			metaType.ValueFormat = "%v"
 		} else if strings.Contains(columnType, "real") ||
 			strings.Contains(columnType, "float") ||
-			strings.Contains(columnType, "double") {
+			strings.Contains(columnType, "double") ||
+			strings.Contains(columnType, "numeric") ||
+			strings.Contains(columnType, "decimal") {
 			metaType.GoType = "float64"
 			metaType.SQLNullableType = "sql.NullFloat64"
 			metaType.GureguNullableType = "null.Float"
 			metaType.ValueFormat = "%v"
 		} else if strings.Contains(columnType, "char") ||
-			strings.Contains(columnType, "text") {
+			strings.Contains(columnType, "text") ||
+			strings.Contains(columnType, "clob") {
 			metaType.GoType = "string"
 			metaType.SQLNullableType = "sql.NullString"
 			metaType.GureguNullableType = "null.String"
+			metaType.ValueFormat = "'%v'"
+		} else if strings.Contains(columnType, "blob") ||
+			strings.Contains(columnType, "binary") {
+			metaType.GoType = "[]byte"
+			metaType.SQLNullableType = "sql.RawBytes"
+			metaType.GureguNullableType = "[]byte"
+			metaType.ValueFormat = "'%v'"
+		} else if strings.Contains(columnType, "date") ||
+			strings.Contains(columnType, "time") {
+			metaType.GoType = "time.Time"
+			metaType.SQLNullableType = "sql.NullTime"
+			metaType.GureguNullableType = "null.Time"
 			metaType.ValueFormat = "'%v'"
 		} else {
 			fmt.Printf("unknown SQLite column type: %s, default to string\n", columnType)
@@ -200,11 +235,18 @@ func SQLiteTrans(columnType string) (metaType MetaType) {
 
 func PostgresTrans(columnType string) (metaType MetaType) {
 	columnType = strings.ToLower(columnType)
+
+	// 处理 PostgreSQL 数组类型（如 bigint[], integer[], text[] 等）
+	if strings.HasSuffix(columnType, "[]") {
+		baseType := strings.TrimSuffix(columnType, "[]")
+		return transPostgresArray(baseType, columnType)
+	}
+
 	switch columnType {
 	case "bool", "boolean", "bit":
 		metaType.GoType = "bool"
 		metaType.SQLNullableType = "sql.NullBool"
-		metaType.GureguNullableType = "null.Int"
+		metaType.GureguNullableType = "null.Bool"
 		metaType.ValueFormat = "%v"
 	case "smallint", "int2":
 		metaType.GoType = "int16"
@@ -236,7 +278,8 @@ func PostgresTrans(columnType string) (metaType MetaType) {
 		metaType.SQLNullableType = "sql.RawBytes"
 		metaType.GureguNullableType = "[]byte"
 		metaType.ValueFormat = "'%v'"
-	case "char", "varchar", "character", "text", "json", "xml", "jsonb":
+	case "char", "varchar", "character", "text", "json", "xml", "jsonb",
+		"uuid", "cidr", "inet", "macaddr", "tsvector", "tsquery", "point", "box", "path", "polygon", "circle", "line", "lseg":
 		metaType.GoType = "string"
 		metaType.SQLNullableType = "sql.NullString"
 		metaType.GureguNullableType = "null.String"
@@ -264,8 +307,12 @@ func PostgresTrans(columnType string) (metaType MetaType) {
 			metaType.GureguNullableType = "null.Time"
 			metaType.SQLNullableType = "sql.NullTime"
 			metaType.ValueFormat = "'%v'"
+		} else if strings.HasSuffix(columnType, "[]") {
+			// 处理带维度的数组类型（如 numeric(10,2)[]）
+			baseType := strings.TrimSuffix(columnType, "[]")
+			return transPostgresArray(baseType, columnType)
 		} else {
-			fmt.Printf("unknow column type : %s, replace it with \"string\"\n", columnType)
+			fmt.Printf("unknown column type : %s, replace it with \"string\"\n", columnType)
 			metaType.GoType = "string"
 			metaType.SQLNullableType = "sql.NullString"
 			metaType.GureguNullableType = "null.String"
@@ -275,13 +322,74 @@ func PostgresTrans(columnType string) (metaType MetaType) {
 	return
 }
 
+// transPostgresArray 将 PostgreSQL 数组类型的元素类型映射为 Go 切片类型
+func transPostgresArray(baseType, fullType string) (metaType MetaType) {
+	switch baseType {
+	case "bool", "boolean", "bit":
+		metaType.GoType = "[]bool"
+		metaType.SQLNullableType = "sql.Null[[]bool]"
+		metaType.GureguNullableType = "null.Value[[]bool]"
+	case "smallint", "int2":
+		metaType.GoType = "[]int16"
+		metaType.SQLNullableType = "sql.Null[[]int16]"
+		metaType.GureguNullableType = "null.Value[[]int16]"
+	case "integer", "int", "int4":
+		metaType.GoType = "[]int32"
+		metaType.SQLNullableType = "sql.Null[[]int32]"
+		metaType.GureguNullableType = "null.Value[[]int32]"
+	case "int8", "bigint":
+		metaType.GoType = "[]int64"
+		metaType.SQLNullableType = "sql.Null[[]int64]"
+		metaType.GureguNullableType = "null.Value[[]int64]"
+	case "real", "float4":
+		metaType.GoType = "[]float32"
+		metaType.SQLNullableType = "sql.Null[[]float32]"
+		metaType.GureguNullableType = "null.Value[[]float32]"
+	case "double precision", "float8", "numeric", "money", "decimal":
+		metaType.GoType = "[]float64"
+		metaType.SQLNullableType = "sql.Null[[]float64]"
+		metaType.GureguNullableType = "null.Value[[]float64]"
+	case "bytea":
+		metaType.GoType = "[][]byte"
+		metaType.SQLNullableType = "sql.Null[[][]byte]"
+		metaType.GureguNullableType = "null.Value[[][]byte]"
+	case "char", "varchar", "character", "text", "json", "xml", "jsonb",
+		"uuid", "cidr", "inet", "macaddr":
+		metaType.GoType = "[]string"
+		metaType.SQLNullableType = "sql.Null[[]string]"
+		metaType.GureguNullableType = "null.Value[[]string]"
+	case "date", "time", "timetz", "timestamp", "timestamptz":
+		metaType.GoType = "[]time.Time"
+		metaType.SQLNullableType = "sql.Null[[]time.Time]"
+		metaType.GureguNullableType = "null.Value[[]time.Time]"
+	default:
+		if strings.Contains(baseType, "numeric") ||
+			strings.Contains(baseType, "decimal") {
+			metaType.GoType = "[]float64"
+			metaType.SQLNullableType = "sql.Null[[]float64]"
+			metaType.GureguNullableType = "null.Value[[]float64]"
+		} else if strings.Contains(baseType, "int") {
+			metaType.GoType = "[]int64"
+			metaType.SQLNullableType = "sql.Null[[]int64]"
+			metaType.GureguNullableType = "null.Value[[]int64]"
+		} else {
+			fmt.Printf("unknown array element type : %s (from %s), default to []string\n", baseType, fullType)
+			metaType.GoType = "[]string"
+			metaType.SQLNullableType = "sql.Null[[]string]"
+			metaType.GureguNullableType = "null.Value[[]string]"
+		}
+	}
+	metaType.ValueFormat = "'%v'"
+	return
+}
+
 func MySQLTrans(columnType string) (metaType MetaType) {
 	columnType = strings.ToLower(columnType)
 	switch columnType {
 	case "bool", "boolean", "bit":
 		metaType.GoType = "bool"
 		metaType.SQLNullableType = "sql.NullBool"
-		metaType.GureguNullableType = "null.Int"
+		metaType.GureguNullableType = "null.Bool"
 		metaType.ValueFormat = "%v"
 	case "int1":
 		metaType.GoType = "int8"
@@ -336,19 +444,40 @@ func MySQLTrans(columnType string) (metaType MetaType) {
 			metaType.SQLNullableType = "sql.NullFloat64"
 			metaType.GureguNullableType = "null.Float"
 			metaType.ValueFormat = "%v"
+		} else if strings.Contains(columnType, "int") {
+			// 处理带长度的整数类型（如 int(11), bigint(20), tinyint(4) 等）
+			metaType.GoType = "int64"
+			metaType.SQLNullableType = "sql.NullInt64"
+			metaType.GureguNullableType = "null.Int"
+			metaType.ValueFormat = "%v"
 		} else if strings.Contains(columnType, "char") {
 			metaType.GoType = "string"
 			metaType.SQLNullableType = "sql.NullString"
 			metaType.GureguNullableType = "null.String"
 			metaType.ValueFormat = "'%v'"
 		} else if strings.Contains(columnType, "timestamp") ||
-			strings.Contains(columnType, "time") {
+			strings.Contains(columnType, "time") ||
+			strings.Contains(columnType, "date") {
 			metaType.GoType = "time.Time"
 			metaType.GureguNullableType = "null.Time"
 			metaType.SQLNullableType = "sql.NullTime"
 			metaType.ValueFormat = "'%v'"
+		} else if strings.Contains(columnType, "float") ||
+			strings.Contains(columnType, "double") ||
+			strings.Contains(columnType, "real") {
+			metaType.GoType = "float64"
+			metaType.SQLNullableType = "sql.NullFloat64"
+			metaType.GureguNullableType = "null.Float"
+			metaType.ValueFormat = "%v"
+		} else if strings.Contains(columnType, "text") ||
+			strings.Contains(columnType, "blob") ||
+			strings.Contains(columnType, "binary") {
+			metaType.GoType = "string"
+			metaType.SQLNullableType = "sql.NullString"
+			metaType.GureguNullableType = "null.String"
+			metaType.ValueFormat = "'%v'"
 		} else {
-			fmt.Printf("unknow column type : %s, replace it with \"string\"\n", columnType)
+			fmt.Printf("unknown column type : %s, replace it with \"string\"\n", columnType)
 			metaType.GoType = "string"
 			metaType.SQLNullableType = "sql.NullString"
 			metaType.GureguNullableType = "null.String"
@@ -364,7 +493,7 @@ func SQLServerTrans(columnType string) (metaType MetaType) {
 	case "bool", "boolean", "bit":
 		metaType.GoType = "bool"
 		metaType.SQLNullableType = "sql.NullBool"
-		metaType.GureguNullableType = "null.Int"
+		metaType.GureguNullableType = "null.Bool"
 		metaType.ValueFormat = "%v"
 	case "tinyint", "smallint":
 		metaType.GoType = "int16"
@@ -391,7 +520,8 @@ func SQLServerTrans(columnType string) (metaType MetaType) {
 		metaType.SQLNullableType = "sql.NullFloat64"
 		metaType.GureguNullableType = "null.Float"
 		metaType.ValueFormat = "%v"
-	case "ntext", "text", "xml", "table", "char", "varchar", "nchar", "nvarchar", "varbinary", "binary", "image":
+	case "ntext", "text", "xml", "table", "char", "varchar", "nchar", "nvarchar", "varbinary", "binary", "image",
+		"uniqueidentifier", "hierarchyid", "sql_variant", "geometry", "geography":
 		metaType.GoType = "string"
 		metaType.SQLNullableType = "sql.NullString"
 		metaType.GureguNullableType = "null.String"
@@ -409,8 +539,32 @@ func SQLServerTrans(columnType string) (metaType MetaType) {
 			metaType.SQLNullableType = "sql.NullFloat64"
 			metaType.GureguNullableType = "null.Float"
 			metaType.ValueFormat = "%v"
+		} else if strings.Contains(columnType, "int") {
+			metaType.GoType = "int64"
+			metaType.SQLNullableType = "sql.NullInt64"
+			metaType.GureguNullableType = "null.Int"
+			metaType.ValueFormat = "%v"
+		} else if strings.Contains(columnType, "char") ||
+			strings.Contains(columnType, "text") ||
+			strings.Contains(columnType, "xml") {
+			metaType.GoType = "string"
+			metaType.SQLNullableType = "sql.NullString"
+			metaType.GureguNullableType = "null.String"
+			metaType.ValueFormat = "'%v'"
+		} else if strings.Contains(columnType, "date") ||
+			strings.Contains(columnType, "time") {
+			metaType.GoType = "time.Time"
+			metaType.GureguNullableType = "null.Time"
+			metaType.SQLNullableType = "sql.NullTime"
+			metaType.ValueFormat = "'%v'"
+		} else if strings.Contains(columnType, "float") ||
+			strings.Contains(columnType, "real") {
+			metaType.GoType = "float64"
+			metaType.SQLNullableType = "sql.NullFloat64"
+			metaType.GureguNullableType = "null.Float"
+			metaType.ValueFormat = "%v"
 		} else {
-			fmt.Printf("unknow column type : %s, replace it with \"string\"\n", columnType)
+			fmt.Printf("unknown column type : %s, replace it with \"string\"\n", columnType)
 			metaType.GoType = "string"
 			metaType.SQLNullableType = "sql.NullString"
 			metaType.GureguNullableType = "null.String"
@@ -426,7 +580,7 @@ func OracleTrans(columnType string) (metaType MetaType) {
 	case "bool", "boolean", "bit":
 		metaType.GoType = "bool"
 		metaType.SQLNullableType = "sql.NullBool"
-		metaType.GureguNullableType = "null.Int"
+		metaType.GureguNullableType = "null.Bool"
 		metaType.ValueFormat = "%v"
 	case "smallint", "int2":
 		metaType.GoType = "int16"
@@ -466,20 +620,44 @@ func OracleTrans(columnType string) (metaType MetaType) {
 			metaType.SQLNullableType = "sql.NullFloat64"
 			metaType.GureguNullableType = "null.Float"
 			metaType.ValueFormat = "%v"
-		} else if strings.Contains(columnType, "character") {
+		} else if strings.Contains(columnType, "int") {
+			metaType.GoType = "int64"
+			metaType.SQLNullableType = "sql.NullInt64"
+			metaType.GureguNullableType = "null.Int"
+			metaType.ValueFormat = "%v"
+		} else if strings.Contains(columnType, "character") ||
+			strings.Contains(columnType, "char") ||
+			strings.Contains(columnType, "text") ||
+			strings.Contains(columnType, "clob") {
 			metaType.GoType = "string"
 			metaType.SQLNullableType = "sql.NullString"
 			metaType.GureguNullableType = "null.String"
 			metaType.ValueFormat = "'%v'"
 		} else if strings.Contains(columnType, "timestamp") ||
 			strings.Contains(columnType, "time") ||
-			strings.Contains(columnType, "interval") {
+			strings.Contains(columnType, "interval") ||
+			strings.Contains(columnType, "date") {
 			metaType.GoType = "time.Time"
 			metaType.GureguNullableType = "null.Time"
 			metaType.SQLNullableType = "sql.NullTime"
 			metaType.ValueFormat = "'%v'"
+		} else if strings.Contains(columnType, "float") ||
+			strings.Contains(columnType, "double") ||
+			strings.Contains(columnType, "real") ||
+			strings.Contains(columnType, "binary") {
+			metaType.GoType = "float64"
+			metaType.SQLNullableType = "sql.NullFloat64"
+			metaType.GureguNullableType = "null.Float"
+			metaType.ValueFormat = "%v"
+		} else if strings.Contains(columnType, "raw") ||
+			strings.Contains(columnType, "blob") ||
+			strings.Contains(columnType, "lob") {
+			metaType.GoType = "string"
+			metaType.SQLNullableType = "sql.NullString"
+			metaType.GureguNullableType = "null.String"
+			metaType.ValueFormat = "'%v'"
 		} else {
-			fmt.Printf("unknow column type : %s, replace it with \"string\"\n", columnType)
+			fmt.Printf("unknown column type : %s, replace it with \"string\"\n", columnType)
 			metaType.GoType = "string"
 			metaType.SQLNullableType = "sql.NullString"
 			metaType.GureguNullableType = "null.String"

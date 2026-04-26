@@ -68,7 +68,7 @@ func (m SQLiteOperator) GetTableData(ctx context.Context, dbName, schemaName, ta
 func (m SQLiteOperator) GetTablesUnderDB(ctx context.Context, dbName string) (dbTableMap map[string]*LogicDBInfo, err error) {
 	dbTableMap = make(map[string]*LogicDBInfo)
 	if dbName == "" {
-		err = errors.New("empty dnName")
+		err = errors.New("empty dbName")
 		return
 	}
 	defaultName := ""
@@ -114,7 +114,7 @@ func (m SQLiteOperator) GetTablesUnderDB(ctx context.Context, dbName string) (db
 func (m SQLiteOperator) GetColumns(ctx context.Context, dbName string) (dbTableColMap map[string]map[string]*TableColInfo, err error) {
 	dbTableColMap = make(map[string]map[string]*TableColInfo, 0)
 	if dbName == "" {
-		err = errors.New("empty dnName")
+		err = errors.New("empty dbName")
 		return
 	}
 	sqliteTableColumn := make([]*SQLiteTableColumn, 0)
@@ -176,7 +176,7 @@ func (m SQLiteOperator) GetColumns(ctx context.Context, dbName string) (dbTableC
 func (m SQLiteOperator) GetColumnsUnderTables(ctx context.Context, dbName, logicDBName string, tableNames []string) (tableColMap map[string]*TableColInfo, err error) {
 	tableColMap = make(map[string]*TableColInfo, 0)
 	if dbName == "" {
-		err = errors.New("empty dnName")
+		err = errors.New("empty dbName")
 		return
 	}
 	if len(tableNames) == 0 {
@@ -225,7 +225,7 @@ func (m SQLiteOperator) CreateSchema(ctx context.Context, dbName, schemaName, co
 
 func (m SQLiteOperator) ExecuteDDL(ctx context.Context, dbName, ddlStatement string) (err error) {
 	if dbName == "" {
-		err = errors.New("empty dnName")
+		err = errors.New("empty dbName")
 		return
 	}
 	db, err := gormx.GetDB(dbName)

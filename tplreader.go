@@ -1,11 +1,15 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"github.com/gobuffalo/packr/v2"
-	"github.com/jasonlabz/gentol/metadata"
+	"io/fs"
 	"os"
 	"path/filepath"
+
+	"github.com/gobuffalo/packr/v2"
+
+	"github.com/jasonlabz/gentol/metadata"
 )
 
 var innerBox *packr.Box
@@ -14,7 +18,7 @@ var innerBox *packr.Box
 func IsExist(path string) bool {
 	_, err := os.Stat(path)
 	if err != nil {
-		return os.IsExist(err)
+		return errors.Is(err, fs.ErrExist)
 	}
 	return true
 }
@@ -64,21 +68,21 @@ func LoadTemplate(filename string, templateDir string) (tpl *metadata.Template, 
 }
 
 func init() {
-	//innerBox = packr.New("gentol", "./template")
-	//_, filename, _, ok := runtime.Caller(1)
-	//if ok {
+	// innerBox = packr.New("gentol", "./template")
+	// _, filename, _, ok := runtime.Caller(1)
+	// if ok {
 	//	fmt.Println(filename)
-	//}
-	//files, err := metadata.ListDir("./template", "")
-	//if err != nil {
+	// }
+	// files, err := metadata.ListDir("./template", "")
+	// if err != nil {
 	//	panic(err)
-	//}
-	//for _, file := range files {
+	// }
+	// for _, file := range files {
 	//	baseName := filepath.Base(file)
 	//	var b []byte
 	//	b, err = os.ReadFile(file)
 	//	if err == nil {
 	//		metadata.StoreTpl(baseName, string(b))
 	//	}
-	//}
+	// }
 }

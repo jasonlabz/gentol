@@ -33,8 +33,10 @@ type DBTableInfo struct {
 
 	ModelModule string
 	DaoModule   string
+
 	// DSN 可选
-	Host     string `json:"host" yaml:"host"`
+	Host string `json:"host" yaml:"host"`
+
 	Port     int    `json:"port" yaml:"port"`
 	User     string `json:"user" yaml:"user"`
 	Password string `json:"password" yaml:"password"`
@@ -91,7 +93,7 @@ func LoadConfigFromYaml(configPath string) {
 	}
 	err = yaml.Unmarshal(file, TableConfigs)
 	if err != nil {
-		fmt.Println("err occured: ", err)
+		fmt.Println("error occurred: ", err)
 		return
 	}
 }
@@ -111,7 +113,7 @@ func ParseConfigByViper(configPath, configName, configType string) {
 			panic(err)
 		}
 	})
-	//直接反序列化为Struct
+	// 直接反序列化为Struct
 	if err := v.Unmarshal(TableConfigs); err != nil {
 		log.Fatal(err)
 	}

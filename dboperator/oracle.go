@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	
+
 	"github.com/jasonlabz/gentol/gormx"
 )
 
@@ -63,7 +63,7 @@ func (o OracleOperator) GetTableData(ctx context.Context, dbName, schemaName, ta
 func (o OracleOperator) GetTablesUnderDB(ctx context.Context, dbName string) (dbTableMap map[string]*LogicDBInfo, err error) {
 	dbTableMap = make(map[string]*LogicDBInfo)
 	if dbName == "" {
-		err = errors.New("empty dnName")
+		err = errors.New("empty dbName")
 		return
 	}
 	gormDBTables := make([]*GormDBTable, 0)
@@ -109,7 +109,7 @@ func (o OracleOperator) GetTablesUnderDB(ctx context.Context, dbName string) (db
 func (o OracleOperator) GetColumns(ctx context.Context, dbName string) (dbTableColMap map[string]map[string]*TableColInfo, err error) {
 	dbTableColMap = make(map[string]map[string]*TableColInfo, 0)
 	if dbName == "" {
-		err = errors.New("empty dnName")
+		err = errors.New("empty dbName")
 		return
 	}
 	gormTableColumns := make([]*GormTableColumn, 0)
@@ -171,7 +171,7 @@ func (o OracleOperator) GetColumns(ctx context.Context, dbName string) (dbTableC
 func (o OracleOperator) GetColumnsUnderTables(ctx context.Context, dbName, logicDBName string, tableNames []string) (tableColMap map[string]*TableColInfo, err error) {
 	tableColMap = make(map[string]*TableColInfo, 0)
 	if dbName == "" {
-		err = errors.New("empty dnName")
+		err = errors.New("empty dbName")
 		return
 	}
 	if len(tableNames) == 0 {
@@ -227,7 +227,7 @@ func (o OracleOperator) GetColumnsUnderTables(ctx context.Context, dbName, logic
 
 func (o OracleOperator) CreateSchema(ctx context.Context, dbName, schemaName, commentInfo string) (err error) {
 	if dbName == "" {
-		err = errors.New("empty dnName")
+		err = errors.New("empty dbName")
 		return
 	}
 	if commentInfo == "" {
@@ -255,7 +255,7 @@ func (o OracleOperator) CreateSchema(ctx context.Context, dbName, schemaName, co
 
 func (o OracleOperator) ExecuteDDL(ctx context.Context, dbName, ddlStatement string) (err error) {
 	if dbName == "" {
-		err = errors.New("empty dnName")
+		err = errors.New("empty dbName")
 		return
 	}
 	db, err := gormx.GetDB(dbName)
