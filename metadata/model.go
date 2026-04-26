@@ -48,6 +48,7 @@ type ColumnInfo struct {
 	Nullable           bool
 	Comment            string
 	DefaultValue       string
+	IsJSONB            bool // 标记是否为 PostgreSQL 数组类型（映射为 jsonb）
 }
 
 // IndexTagInfo 存储索引标签信息
@@ -111,9 +112,17 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 			}()
 		}
 		columnInfo.ValueFormat = metaType.ValueFormat
+		columnInfo.IsJSONB = metaType.IsArray || columnInfo.ColumnType == "jsonb"
 
 		// 生成索引标签
 		indexTags := m.generateIndexTagsForColumn(columnInfo.ColumnName, indexTagInfo)
+
+		// 确定列的 GORM type 标签值
+		gormColumnType := columnInfo.ColumnType
+		if metaType.IsArray {
+			// PostgreSQL 数组类型使用 jsonb，因为 GORM 不支持原生数组类型
+			gormColumnType = "jsonb"
+		}
 
 		gormTag := fmt.Sprintf("%s%s%s%s%s%s",
 			func() string {
@@ -140,7 +149,7 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 				return tag
 			}(),
 			func() string {
-				return fmt.Sprintf("type:%s;", columnInfo.ColumnType)
+				return fmt.Sprintf("type:%s;", gormColumnType)
 			}(),
 			indexTags, // 添加索引标签
 			// func() string {
@@ -399,7 +408,20 @@ func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}IsNul
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}IsNotNull() *{{.ModelStructName}}Condition {
 	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} is not null")
 }
+{{if .IsJSONB}}
+// JSONB 数组类型的条件方法（PostgreSQL 数组列映射为 jsonb）
+func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}Contains(value string) *{{.ModelStructName}}Condition {
+	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} @> ?::jsonb", value)
+}
 
+func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}EqualTo(value string) *{{.ModelStructName}}Condition {
+	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} = ?::jsonb", value)
+}
+
+func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}NotEqualTo(value string) *{{.ModelStructName}}Condition {
+	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} <> ?::jsonb", value)
+}
+{{else}}
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}EqualTo(value {{.GoColumnOriginType}}) *{{.ModelStructName}}Condition {
 	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} = ?", value)
 }
@@ -439,6 +461,7 @@ func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}In(in
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) {{.GoColumnName}}NotIn(inValues []{{.GoColumnOriginType}}) *{{.ModelStructName}}Condition {
 	return {{.ModelShortName}}.Where("{{if .ColumnQuota -}}\"{{.ColumnName}}\"{{- else}}{{.ColumnName}}{{- end}} not in (?)", inValues)
 }
+{{end}}
 {{end}}
 
 func ({{.ModelShortName}} *{{.ModelStructName}}Condition) Where(query any, args ...any) *{{.ModelStructName}}Condition {

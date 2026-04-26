@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 
+	"gorm.io/gorm"
+
 	"github.com/jasonlabz/gentol/gormx"
 )
 
@@ -27,8 +29,8 @@ func (m SQLiteOperator) Close(dbName string) error {
 	return gormx.Close(dbName)
 }
 
-func (m SQLiteOperator) GetDataBySQL(ctx context.Context, dbName, sqlStatement string) (rows []map[string]interface{}, err error) {
-	rows = make([]map[string]interface{}, 0)
+func (m SQLiteOperator) GetDataBySQL(ctx context.Context, dbName, sqlStatement string) (rows []map[string]any, err error) {
+	rows = make([]map[string]any, 0)
 	db, err := gormx.GetDB(dbName)
 	if err != nil {
 		return
@@ -39,8 +41,8 @@ func (m SQLiteOperator) GetDataBySQL(ctx context.Context, dbName, sqlStatement s
 	return
 }
 
-func (m SQLiteOperator) GetTableData(ctx context.Context, dbName, schemaName, tableName string, pageInfo *Pagination) (rows []map[string]interface{}, err error) {
-	rows = make([]map[string]interface{}, 0)
+func (m SQLiteOperator) GetTableData(ctx context.Context, dbName, schemaName, tableName string, pageInfo *Pagination) (rows []map[string]any, err error) {
+	rows = make([]map[string]any, 0)
 	db, err := gormx.GetDB(dbName)
 	if err != nil {
 		return
@@ -53,8 +55,9 @@ func (m SQLiteOperator) GetTableData(ctx context.Context, dbName, schemaName, ta
 	tx := db.WithContext(ctx).
 		Table(queryTable)
 	if pageInfo != nil {
-		tx = tx.Count(&count).
-			Offset(int(pageInfo.GetOffset())).
+		countTx := tx.Session(&gorm.Session{})
+		countTx.Count(&count)
+		tx = tx.Offset(int(pageInfo.GetOffset())).
 			Limit(int(pageInfo.PageSize))
 	}
 	err = tx.Scan(&rows).Error
@@ -168,7 +171,6 @@ func (m SQLiteOperator) GetColumns(ctx context.Context, dbName string) (dbTableC
 				}
 			}
 		}
-
 	}
 	return
 }
@@ -219,7 +221,6 @@ func (m SQLiteOperator) GetColumnsUnderTables(ctx context.Context, dbName, logic
 }
 
 func (m SQLiteOperator) CreateSchema(ctx context.Context, dbName, schemaName, commentInfo string) (err error) {
-
 	return
 }
 

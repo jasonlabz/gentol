@@ -50,6 +50,7 @@ type MetaType struct {
 	SQLNullableType    string
 	GureguNullableType string
 	ValueFormat        string
+	IsArray            bool // 标记是否为 PostgreSQL 数组类型，生成时使用 jsonb 替代原生数组
 }
 
 type BaseConfig struct {

@@ -322,64 +322,20 @@ func PostgresTrans(columnType string) (metaType MetaType) {
 	return
 }
 
-// transPostgresArray 将 PostgreSQL 数组类型的元素类型映射为 Go 切片类型
+// transPostgresArray 将 PostgreSQL 数组类型映射为 JSONB 兼容的 Go 类型
+// GORM 不原生支持 PostgreSQL 数组类型的读写，因此统一使用 null.String + jsonb 类型
+// 应用层负责 JSON 序列化/反序列化
 func transPostgresArray(baseType, fullType string) (metaType MetaType) {
-	switch baseType {
-	case "bool", "boolean", "bit":
-		metaType.GoType = "[]bool"
-		metaType.SQLNullableType = "sql.Null[[]bool]"
-		metaType.GureguNullableType = "null.Value[[]bool]"
-	case "smallint", "int2":
-		metaType.GoType = "[]int16"
-		metaType.SQLNullableType = "sql.Null[[]int16]"
-		metaType.GureguNullableType = "null.Value[[]int16]"
-	case "integer", "int", "int4":
-		metaType.GoType = "[]int32"
-		metaType.SQLNullableType = "sql.Null[[]int32]"
-		metaType.GureguNullableType = "null.Value[[]int32]"
-	case "int8", "bigint":
-		metaType.GoType = "[]int64"
-		metaType.SQLNullableType = "sql.Null[[]int64]"
-		metaType.GureguNullableType = "null.Value[[]int64]"
-	case "real", "float4":
-		metaType.GoType = "[]float32"
-		metaType.SQLNullableType = "sql.Null[[]float32]"
-		metaType.GureguNullableType = "null.Value[[]float32]"
-	case "double precision", "float8", "numeric", "money", "decimal":
-		metaType.GoType = "[]float64"
-		metaType.SQLNullableType = "sql.Null[[]float64]"
-		metaType.GureguNullableType = "null.Value[[]float64]"
-	case "bytea":
-		metaType.GoType = "[][]byte"
-		metaType.SQLNullableType = "sql.Null[[][]byte]"
-		metaType.GureguNullableType = "null.Value[[][]byte]"
-	case "char", "varchar", "character", "text", "json", "xml", "jsonb",
-		"uuid", "cidr", "inet", "macaddr":
-		metaType.GoType = "[]string"
-		metaType.SQLNullableType = "sql.Null[[]string]"
-		metaType.GureguNullableType = "null.Value[[]string]"
-	case "date", "time", "timetz", "timestamp", "timestamptz":
-		metaType.GoType = "[]time.Time"
-		metaType.SQLNullableType = "sql.Null[[]time.Time]"
-		metaType.GureguNullableType = "null.Value[[]time.Time]"
-	default:
-		if strings.Contains(baseType, "numeric") ||
-			strings.Contains(baseType, "decimal") {
-			metaType.GoType = "[]float64"
-			metaType.SQLNullableType = "sql.Null[[]float64]"
-			metaType.GureguNullableType = "null.Value[[]float64]"
-		} else if strings.Contains(baseType, "int") {
-			metaType.GoType = "[]int64"
-			metaType.SQLNullableType = "sql.Null[[]int64]"
-			metaType.GureguNullableType = "null.Value[[]int64]"
-		} else {
-			fmt.Printf("unknown array element type : %s (from %s), default to []string\n", baseType, fullType)
-			metaType.GoType = "[]string"
-			metaType.SQLNullableType = "sql.Null[[]string]"
-			metaType.GureguNullableType = "null.Value[[]string]"
-		}
-	}
+	// 所有 PostgreSQL 数组类型统一映射为 string/null.String + jsonb
+	// 原因：GORM 的 PostgreSQL driver 不支持原生数组类型（如 []int64），
+	// sql.Scanner/driver.Valuer 无法正确处理 PostgreSQL 的 '{1,2,3}' 格式。
+	// 使用 JSONB 存储可以确保 GORM 兼容性，应用层通过 json.Marshal/Unmarshal 处理。
+	metaType.GoType = "string"
+	metaType.SQLNullableType = "sql.NullString"
+	metaType.GureguNullableType = "null.String"
 	metaType.ValueFormat = "'%v'"
+	// 标记为数组类型，供模板生成时将 GORM type 替换为 jsonb
+	metaType.IsArray = true
 	return
 }
 

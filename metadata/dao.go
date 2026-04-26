@@ -268,44 +268,49 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectRecordByConditi
 
 func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectPageRecordByCondition(ctx context.Context, condition *{{.ModelPackageName}}.Condition, pageParam *{{.ModelPackageName}}.Pagination,
 	selectFields ...{{.ModelPackageName}}.{{.ModelStructName}}Field) (records []*{{.ModelPackageName}}.{{.ModelStructName}}, err error) {
-	tx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
+	baseTx := {{.ModelShortName}}.tx(ctx).WithContext(ctx).
 		Model(&{{.ModelPackageName}}.{{.ModelStructName}}{})
 	if len(selectFields) > 0 {
-		columns := make([]string, 0)
+		columns := make([]string, 0, len(selectFields))
 		for _, field := range selectFields {
 			columns = append(columns, string(field))
 		}
-		tx = tx.Select(strings.Join(columns, ","))
+		baseTx = baseTx.Select(strings.Join(columns, ","))
 	}
 	if condition != nil {
 		if len(condition.StringCondition) > 0 {
+			argsCopy := make([]interface{}, len(condition.Args))
+			copy(argsCopy, condition.Args)
+
 			paramIndex := 0
 			for _, strCondition := range condition.StringCondition {
 				paramCount := strings.Count(strCondition, "?")
-				var args []interface{}
-				if paramIndex+paramCount <= len(condition.Args) {
-					args = condition.Args[paramIndex : paramIndex+paramCount]
+				if paramIndex+paramCount <= len(argsCopy) {
+					args = argsCopy[paramIndex : paramIndex+paramCount]
+					baseTx = baseTx.Where(strCondition, args...)
 					paramIndex += paramCount
 				}
-				tx = tx.Where(strCondition, args...)
 			}
 		}
 		if len(condition.MapCondition) > 0 {
-			tx = tx.Where(condition.MapCondition)
+			baseTx = baseTx.Where(condition.MapCondition)
 		}
 		for _, order := range condition.OrderByClause {
-			tx = tx.Order(order)
+			baseTx = baseTx.Order(order)
 		}
 	}
-	var count int64
 	if pageParam != nil {
-		tx = tx.Count(&count).Offset(int(pageParam.CalculateOffset())).Limit(int(pageParam.PageSize))
-	}
-	err = tx.Find(&records).Error
-	if pageParam != nil {
-		pageParam.Total = count
+		countTx := baseTx.Session(&gorm.Session{}).Select("count(*)")
+		if err = countTx.Count(&pageParam.Total).Error; err != nil {
+			return nil, err
+		}
 		pageParam.CalculatePageCount()
+		findTx := baseTx.Session(&gorm.Session{}).
+			Offset(int(pageParam.CalculateOffset())).
+			Limit(int(pageParam.PageSize))
+		return records, findTx.Find(&records).Error
 	}
+	err = baseTx.Find(&records).Error
 	return
 }
 

@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
+	"gorm.io/gorm"
+
 	"github.com/jasonlabz/gentol/gormx"
 )
 
@@ -25,8 +28,8 @@ func (s SqlServerOperator) Close(dbName string) error {
 	return gormx.Close(dbName)
 }
 
-func (s SqlServerOperator) GetDataBySQL(ctx context.Context, dbName, sqlStatement string) (rows []map[string]interface{}, err error) {
-	rows = make([]map[string]interface{}, 0)
+func (s SqlServerOperator) GetDataBySQL(ctx context.Context, dbName, sqlStatement string) (rows []map[string]any, err error) {
+	rows = make([]map[string]any, 0)
 	db, err := gormx.GetDB(dbName)
 	if err != nil {
 		return
@@ -37,8 +40,8 @@ func (s SqlServerOperator) GetDataBySQL(ctx context.Context, dbName, sqlStatemen
 	return
 }
 
-func (s SqlServerOperator) GetTableData(ctx context.Context, dbName, schemaName, tableName string, pageInfo *Pagination) (rows []map[string]interface{}, err error) {
-	rows = make([]map[string]interface{}, 0)
+func (s SqlServerOperator) GetTableData(ctx context.Context, dbName, schemaName, tableName string, pageInfo *Pagination) (rows []map[string]any, err error) {
+	rows = make([]map[string]any, 0)
 	db, err := gormx.GetDB(dbName)
 	if err != nil {
 		return
@@ -48,9 +51,10 @@ func (s SqlServerOperator) GetTableData(ctx context.Context, dbName, schemaName,
 		queryTable = fmt.Sprintf("\"%s\".\"%s\"", schemaName, tableName)
 	}
 	var count int64
+	countDB := db.WithContext(ctx).Table(queryTable).Session(&gorm.Session{})
+	countDB.Count(&count)
 	err = db.WithContext(ctx).
 		Table(queryTable).
-		Count(&count).
 		Offset(int(pageInfo.GetOffset())).
 		Limit(int(pageInfo.PageSize)).
 		Find(&rows).Error
