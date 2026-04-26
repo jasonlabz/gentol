@@ -286,7 +286,7 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectPageRecordByCon
 			for _, strCondition := range condition.StringCondition {
 				paramCount := strings.Count(strCondition, "?")
 				if paramIndex+paramCount <= len(argsCopy) {
-					args = argsCopy[paramIndex : paramIndex+paramCount]
+					args := argsCopy[paramIndex : paramIndex+paramCount]
 					baseTx = baseTx.Where(strCondition, args...)
 					paramIndex += paramCount
 				}
