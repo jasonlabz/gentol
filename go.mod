@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/gobuffalo/packr/v2 v2.8.3
-	github.com/jasonlabz/gorm-dm-driver v0.1.3
+	github.com/jasonlabz/gorm-dm-driver v0.1.5
 	github.com/jasonlabz/oracle v1.1.1-0.20240609161033-cf780c860ebb
 	github.com/jasonlabz/sqlite v1.11.1
 	github.com/pborman/getopt/v2 v2.1.0
@@ -30,7 +30,7 @@ require (
 	github.com/godror/knownpb v0.1.1 // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
-	github.com/golang/snappy v0.0.4 // indirect
+	github.com/golang/snappy v1.0.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
