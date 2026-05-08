@@ -26,6 +26,7 @@ import (
 	"github.com/jasonlabz/potato/cryptox/aes"
 	"github.com/jasonlabz/potato/cryptox/des"
 	"github.com/jasonlabz/potato/gormx"
+	"github.com/jasonlabz/potato/grpcx"
 	"github.com/jasonlabz/potato/httpx"
 	"github.com/jasonlabz/potato/log"
 	"github.com/jasonlabz/potato/utils"
@@ -130,16 +131,26 @@ func initConfig(_ context.Context) {
 func initServicer(_ context.Context) {
 	filePaths, _ := utils.ListDir(filepath.Join("conf", "servicer"), ".yaml")
 	for _, filePath := range filePaths {
+		// 先解析为 httpx.Config 获取 Protocol 字段
 		info := &httpx.Config{}
-		err := configx.ParseConfigByViper(filePath, info)
-		if err != nil {
+		if err := configx.ParseConfigByViper(filePath, info); err != nil {
 			continue
 		}
 		service := filepath.Base(filePath)
 		if info.Name != "" {
 			service = info.Name
 		}
-		httpx.Store(service, info)
+		// 按 Protocol 分流：grpc/grpcs 重新解析为 grpcx.Config，其余直接注册 httpx
+		switch info.Protocol {
+		case "grpc", "grpcs":
+			grpcCfg := &grpcx.Config{}
+			if err := configx.ParseConfigByViper(filePath, grpcCfg); err != nil {
+				continue
+			}
+			grpcx.Store(service, grpcCfg)
+		default:
+			httpx.Store(service, info)
+		}
 	}
 }
 `
