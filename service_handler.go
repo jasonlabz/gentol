@@ -23,6 +23,12 @@ import (
 	"github.com/jasonlabz/gentol/metadata"
 )
 
+// TemplateConfig 模板渲染配置
+type TemplateConfig struct {
+	TemplateName string
+	FilePath     string
+}
+
 // initServiceMeta 初始化服务元数据
 func initServiceMeta(serviceName string, isManager bool) *metadata.ProjectMeta {
 	serviceMeta := &metadata.ProjectMeta{

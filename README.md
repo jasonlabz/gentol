@@ -41,6 +41,7 @@ gentol new github.com/myorg/myapp
 |------|------|
 | `--template_repo=<git_url>` | 从指定 Git 仓库克隆模板 |
 | `--template_dir=<local_path>` | 从本地目录加载模板 |
+| `--offline` | 离线模式，仅使用本地缓存，不访问网络 |
 
 ```shell
 # 从指定 Git 仓库克隆模板
@@ -48,6 +49,9 @@ gentol new github.com/myorg/myapp --template_repo=https://github.com/xxx/my-temp
 
 # 从本地目录加载模板（开发调试用）
 gentol new github.com/myorg/myapp --template_dir=/path/to/template
+
+# 离线模式：不访问网络，仅使用本地缓存
+gentol new github.com/myorg/myapp --offline
 ```
 
 ### 1.3 替换规则
@@ -113,11 +117,64 @@ server/manager/
 项目生成采用内存化处理，不产生临时目录残留：
 
 ```
-加载模板到内存（git clone / 本地读取）
+加载模板到内存（git clone / 本地读取 / 缓存读取）
   → 内存中替换模块路径 + 项目名 + 文件路径
   → 一次性写入磁盘目标目录
   → 执行 go mod tidy
 ```
+
+### 1.7 离线缓存机制
+
+gentol 内置模板缓存机制，支持离线使用：
+
+**自动缓存**：每次通过网络成功 clone 模板后，自动将模板文件缓存到 `~/.gentol/cache/<hash>/` 目录（tar.gz 格式）。
+
+**离线模式**（`--offline`）：跳过网络请求，直接从本地缓存读取模板。适用于无网络或内网环境。
+
+```shell
+# 首次在有网络的环境执行，自动缓存模板
+gentol new myapp
+
+# 之后在离线环境执行，使用缓存
+gentol new another-app --offline
+
+# 离线更新项目
+gentol update --offline
+```
+
+**自动回退**：即使不指定 `--offline`，当网络不可用时 gentol 会自动尝试回退到本地缓存，无需手动干预。
+
+```
+有网络 → clone 成功 → 缓存到本地 → 生成项目
+无网络 → clone 失败 → 自动回退缓存 → 生成项目
+--offline → 跳过网络 → 直接读缓存 → 生成项目
+```
+
+### 1.8 嵌入式模板（完全离线）
+
+gentol 支持将模板预编译进二进制文件，实现**开箱即用的完全离线**体验：
+
+```shell
+# 1. 更新嵌入式模板（从模板仓库下载并打包）
+bash scripts/update_template.sh           # Linux/macOS
+scripts\update_template.bat               # Windows
+
+# 2. 重新编译 gentol（模板会通过 //go:embed 编译进二进制）
+go build .
+
+# 3. 之后 gentol new 无需任何网络即可使用
+gentol new myapp            # 直接从嵌入数据创建，无需网络
+```
+
+**加载优先级**（默认模板）：
+
+```
+嵌入式数据（编译时内置）→ 网络 clone → 本地缓存
+```
+
+- 嵌入式数据非空时，默认模板**优先使用嵌入数据**，无需网络
+- 当嵌入式数据为空（placeholder）时，自动回退到网络 → 缓存
+- 自定义 `--template_repo` 仍走 网络 → 缓存 路径
 
 ### 1.7 模板项目维护
 

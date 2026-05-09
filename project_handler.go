@@ -11,18 +11,6 @@ import (
 	"github.com/jasonlabz/gentol/metadata"
 )
 
-// TemplateConfig 模板配置结构体
-type TemplateConfig struct {
-	TemplateName string
-	FilePath     string
-}
-
-// PathConfig 路径配置结构体
-type PathConfig struct {
-	Path  string
-	Files []TemplateConfig
-}
-
 func getModuleName(modFile string) (string, bool) {
 	if !IsExist(modFile) {
 		return "", false
@@ -44,13 +32,34 @@ func getModuleName(modFile string) (string, bool) {
 	return "", false
 }
 
-func updateProject(projectName string, templateRepo string, templateDir string) {
+// handleNewProject 处理新项目创建
+// 使用 clone+replace 模式（从模板仓库克隆到内存，替换后写入磁盘）
+func handleNewProject(projectName string, templateRepo string, templateDir string, offline bool) {
+	projectMeta := initProjectMeta(projectName)
+	if projectMeta == nil {
+		return
+	}
+
+	useLocalDir := templateDir != ""
+	source := templateDir
+	if source == "" {
+		source = templateRepo // 为空时 cloneAndReplaceProject 会使用 DefaultTemplateRepoURL
+	}
+
+	if err := cloneAndReplaceProject(projectMeta.ModulePath, source, useLocalDir, offline); err != nil {
+		log.Fatalf("Failed to create project: %v\n", err)
+	}
+
+	log.Println("Project created successfully!")
+}
+
+// updateProject 处理项目更新
+// 使用 clone+replace 模式，覆盖同名文件，保留项目中自定义文件
+func updateProject(projectName string, templateRepo string, templateDir string, offline bool) {
 	currentDir, _ := os.Getwd()
 	var projectDir string
 
-	// 确定项目目录和模块路径
 	if projectName == "" {
-		// 当前目录模式：从 go.mod 读取模块路径
 		modFile := filepath.Join(currentDir, "go.mod")
 		if moduleName, found := getModuleName(modFile); found {
 			projectName = moduleName
@@ -59,7 +68,6 @@ func updateProject(projectName string, templateRepo string, templateDir string) 
 			log.Fatal("project name is needed or go.mod not found in current directory")
 		}
 	} else {
-		// 指定项目名称模式
 		projectMeta := initProjectMeta(projectName)
 		if projectMeta == nil {
 			return
@@ -79,74 +87,17 @@ func updateProject(projectName string, templateRepo string, templateDir string) 
 		log.Fatalf("project directory not found: %s", projectDir)
 	}
 
-	// 确定 clone+replace 的源
 	useLocalDir := templateDir != ""
 	source := templateDir
 	if source == "" {
-		source = templateRepo // 为空时 updateProjectFromTemplate 会使用 DefaultTemplateRepoURL
+		source = templateRepo
 	}
 
-	// 使用 clone+replace 模式更新项目
-	if err := updateProjectFromTemplate(projectDir, projectName, source, useLocalDir); err != nil {
+	if err := updateProjectFromTemplate(projectDir, projectName, source, useLocalDir, offline); err != nil {
 		log.Fatalf("Failed to update project: %v\n", err)
 	}
 
 	log.Println("Project updated successfully!")
-}
-
-// handleNewProject 处理新项目创建
-// 默认使用 clone+replace 模式（从 DefaultTemplateRepoURL 克隆）
-// 指定 --template_repo 或 --template_dir 时，使用指定的模板源
-func handleNewProject(projectName string, templateRepo string, templateDir string) {
-	// 初始化项目元数据
-	projectMeta := initProjectMeta(projectName)
-	if projectMeta == nil {
-		return
-	}
-
-	// 确定 clone+replace 的源
-	useLocalDir := templateDir != ""
-	source := templateDir
-	if source == "" {
-		source = templateRepo // 为空时 cloneAndReplaceProject 会使用 DefaultTemplateRepoURL
-	}
-
-	// 使用 clone+replace 模式创建项目
-	if err := cloneAndReplaceProject(projectMeta.ModulePath, source, useLocalDir); err != nil {
-		log.Fatalf("Failed to create project: %v\n", err)
-	}
-
-	log.Println("Project created successfully!")
-}
-
-// handleNewProjectFromTemplates 使用旧的模板渲染方式创建项目（fallback）
-func handleNewProjectFromTemplates(meta *metadata.ProjectMeta) {
-	// 创建项目根目录
-	if !createProjectRoot(meta.ProjectName, false) {
-		return
-	}
-
-	// 执行各模块的创建步骤
-	createSteps := []func(*metadata.ProjectMeta, bool) bool{
-		createCmdStructure,
-		createConfStructure,
-		createBootstrap,
-		createCommonStructure,
-		createDocs,
-		createGlobalResource,
-		createServerStructure,
-		createIDL,
-		createScriptFile,
-		createRootFiles,
-	}
-
-	for _, step := range createSteps {
-		if !step(meta, false) {
-			return
-		}
-	}
-
-	log.Println("Project created successfully!")
 }
 
 // initProjectMeta 初始化项目元数据
@@ -162,7 +113,6 @@ func initProjectMeta(projectName string) *metadata.ProjectMeta {
 		return projectMeta
 	}
 
-	// 从路径中提取项目名
 	for i := len(splitProjects) - 1; i >= 0; i-- {
 		if len(splitProjects[i]) > 0 {
 			projectMeta.ProjectName = splitProjects[i]
@@ -173,24 +123,7 @@ func initProjectMeta(projectName string) *metadata.ProjectMeta {
 	return projectMeta
 }
 
-// createProjectRoot 创建项目根目录
-func createProjectRoot(projectName string, update bool) bool {
-	projectDir := filepath.Base(projectName)
-
-	if IsExist(projectDir) && !update {
-		log.Printf("[tips] project is already exist, please clear dir: %s, and try again\n", projectDir)
-		return false
-	}
-
-	if err := os.MkdirAll(projectDir, 0755); err != nil {
-		log.Printf("Error creating project directory: %v\n", err)
-		return false
-	}
-
-	return true
-}
-
-// createDirectory 创建目录
+// createDirectory 创建目录（被 service_handler.go 使用）
 func createDirectory(path string) bool {
 	if IsExist(path) {
 		return true
@@ -202,7 +135,7 @@ func createDirectory(path string) bool {
 	return true
 }
 
-// renderTemplate 渲染模板到文件
+// renderTemplate 渲染模板到文件（被 service_handler.go 使用）
 func renderTemplate(templateName string, meta *metadata.ProjectMeta, filePath string, update bool) bool {
 	tpl, ok := metadata.LoadTpl(templateName)
 	if !ok {
@@ -213,256 +146,6 @@ func renderTemplate(templateName string, meta *metadata.ProjectMeta, filePath st
 	if err := RenderingTemplate(tpl, meta, filePath, update); err != nil {
 		log.Printf("Error rendering template %s to %s: %v\n", templateName, filePath, err)
 		return false
-	}
-
-	return true
-}
-
-// createCmdStructure 创建cmd目录结构
-func createCmdStructure(meta *metadata.ProjectMeta, update bool) bool {
-	basePath := filepath.Base(meta.ProjectName)
-	cmdPath := filepath.Join(basePath, "cmd")
-	demoPath := filepath.Join(cmdPath, "demo_program")
-
-	if !createDirectory(demoPath) {
-		return false
-	}
-
-	return renderTemplate("main", meta, filepath.Join(demoPath, "main.go"), update)
-}
-
-// createConfStructure 创建conf目录结构
-func createConfStructure(meta *metadata.ProjectMeta, update bool) bool {
-	basePath := filepath.Base(meta.ProjectName)
-	confPath := filepath.Join(basePath, "conf")
-
-	// 创建conf子目录
-	confDirs := []string{
-		confPath,
-		filepath.Join(confPath, "log"),
-		filepath.Join(confPath, "servicer"),
-		filepath.Join(confPath, "schema"),
-	}
-
-	for _, dir := range confDirs {
-		if !createDirectory(dir) {
-			return false
-		}
-	}
-
-	// 创建conf目录下的文件
-	confFiles := []TemplateConfig{
-		{"conf", filepath.Join(confPath, "application.yaml")},
-		{"log", filepath.Join(confPath, "log", "service.yaml")},
-		{"servicer", filepath.Join(confPath, "servicer", "demo.yaml")},
-	}
-
-	for _, file := range confFiles {
-		if !renderTemplate(file.TemplateName, meta, file.FilePath, update) {
-			return false
-		}
-	}
-
-	return true
-}
-
-// createBootstrap 创建bootstrap
-func createBootstrap(meta *metadata.ProjectMeta, update bool) bool {
-	basePath := filepath.Base(meta.ProjectName)
-	bootstrapPath := filepath.Join(basePath, "bootstrap")
-
-	if !createDirectory(bootstrapPath) {
-		return false
-	}
-	// 创建bootstrap目录下的文件
-	bootstrapFiles := []TemplateConfig{
-		{"bootstrap", filepath.Join(bootstrapPath, "bootstrap.go")},
-		{"server_config", filepath.Join(bootstrapPath, "config.go")},
-	}
-	for _, file := range bootstrapFiles {
-		if !renderTemplate(file.TemplateName, meta, file.FilePath, update) {
-			return false
-		}
-	}
-
-	return true
-}
-
-// createCommonStructure 创建common目录结构
-func createCommonStructure(meta *metadata.ProjectMeta, update bool) bool {
-	basePath := filepath.Base(meta.ProjectName)
-	commonPath := filepath.Join(basePath, "common")
-
-	// 创建common子目录
-	commonDirs := []string{
-		commonPath,
-		filepath.Join(commonPath, "consts"),
-		filepath.Join(commonPath, "ginx"),
-		filepath.Join(commonPath, "helper"),
-	}
-
-	for _, dir := range commonDirs {
-		if !createDirectory(dir) {
-			return false
-		}
-	}
-
-	// 创建common目录下的文件
-	commonFiles := []TemplateConfig{
-		{"constant", filepath.Join(commonPath, "consts", "constant.go")},
-		{"ginx", filepath.Join(commonPath, "ginx", "response.go")},
-		{"page", filepath.Join(commonPath, "ginx", "page.go")},
-		{"helper", filepath.Join(commonPath, "helper", "context.go")},
-	}
-
-	for _, file := range commonFiles {
-		if !renderTemplate(file.TemplateName, meta, file.FilePath, update) {
-			return false
-		}
-	}
-
-	return true
-}
-
-// createDocs 创建docs
-func createDocs(meta *metadata.ProjectMeta, update bool) bool {
-	basePath := filepath.Base(meta.ProjectName)
-	docsPath := filepath.Join(basePath, "docs")
-
-	if !createDirectory(docsPath) {
-		return false
-	}
-
-	return renderTemplate("docs", meta, filepath.Join(docsPath, "docs.go"), update)
-}
-
-// createGlobalResource 创建global/resource
-func createGlobalResource(meta *metadata.ProjectMeta, update bool) bool {
-	basePath := filepath.Base(meta.ProjectName)
-	resourcePath := filepath.Join(basePath, "global", "resource")
-
-	if !createDirectory(resourcePath) {
-		return false
-	}
-
-	return renderTemplate("resource", meta, filepath.Join(resourcePath, "resource.go"), update)
-}
-
-// createIDL 创建idl/client、idl/server
-func createIDL(meta *metadata.ProjectMeta, update bool) bool {
-	basePath := filepath.Base(meta.ProjectName)
-	idlPath := filepath.Join(basePath, "idl")
-	// 创建idl子目录
-	idlDirs := []string{
-		idlPath,
-		filepath.Join(idlPath, "client"),
-		filepath.Join(idlPath, "server"),
-	}
-
-	for _, dir := range idlDirs {
-		if !createDirectory(dir) {
-			return false
-		}
-	}
-	// 创建idl目录下的文件
-	idlFiles := []TemplateConfig{
-		{"idl_client", filepath.Join(idlPath, "client", "demo.thrift")},
-		{"idl_server", filepath.Join(idlPath, "server", "demo.thrift")},
-	}
-
-	for _, file := range idlFiles {
-		if !renderTemplate(file.TemplateName, meta, file.FilePath, update) {
-			return false
-		}
-	}
-	return true
-}
-
-// createScriptFile 创建script
-func createScriptFile(meta *metadata.ProjectMeta, update bool) bool {
-	basePath := filepath.Base(meta.ProjectName)
-	scriptPath := filepath.Join(basePath, "script")
-
-	if !createDirectory(scriptPath) {
-		return false
-	}
-	// 创建script目录下的文件
-	scriptFiles := []TemplateConfig{
-		{"script_gentol", filepath.Join(scriptPath, "gentol.sh")},
-		{"script_gentol_ps1", filepath.Join(scriptPath, "gentol.ps1")},
-		{"script_kitex", filepath.Join(scriptPath, "generate_idl.sh")},
-		{"script_kitex_ps1", filepath.Join(scriptPath, "generate_idl.ps1")},
-		{"script_swag", filepath.Join(scriptPath, "swag.sh")},
-		{"script_swag_ps1", filepath.Join(scriptPath, "swag.ps1")},
-		{"script_readme", filepath.Join(scriptPath, "README.md")},
-	}
-
-	for _, file := range scriptFiles {
-		if !renderTemplate(file.TemplateName, meta, file.FilePath, update) {
-			return false
-		}
-	}
-	return true
-}
-
-// createServerStructure 创建server目录结构
-func createServerStructure(meta *metadata.ProjectMeta, update bool) bool {
-	basePath := filepath.Base(meta.ProjectName)
-	serverPath := filepath.Join(basePath, "server")
-
-	// 创建server子目录
-	serverDirs := []string{
-		serverPath,
-		filepath.Join(serverPath, "controller"),
-		filepath.Join(serverPath, "middleware"),
-		filepath.Join(serverPath, "routers"),
-		filepath.Join(serverPath, "service"),
-		filepath.Join(serverPath, "service", "health_check"),
-		filepath.Join(serverPath, "service", "health_check", "body"),
-	}
-
-	for _, dir := range serverDirs {
-		if !createDirectory(dir) {
-			return false
-		}
-	}
-
-	// 创建server目录下的文件
-	serverFiles := []TemplateConfig{
-		{"controller", filepath.Join(serverPath, "controller", "health_check.go")},
-		{"loggerMiddleware", filepath.Join(serverPath, "middleware", "logger.go")},
-		{"contextMiddleware", filepath.Join(serverPath, "middleware", "context.go")},
-		{"router", filepath.Join(serverPath, "routers", "router.go")},
-		{"service", filepath.Join(serverPath, "service", "health_check.go")},
-		{"serviceImpl", filepath.Join(serverPath, "service", "health_check", "health_check_impl.go")},
-		{"reqDTO", filepath.Join(serverPath, "service", "health_check", "body", "request.go")},
-		{"resDto", filepath.Join(serverPath, "service", "health_check", "body", "response.go")},
-	}
-
-	for _, file := range serverFiles {
-		if !renderTemplate(file.TemplateName, meta, file.FilePath, update) {
-			return false
-		}
-	}
-
-	return true
-}
-
-// createRootFiles 创建根目录文件
-func createRootFiles(meta *metadata.ProjectMeta, update bool) bool {
-	basePath := filepath.Base(meta.ProjectName)
-
-	rootFiles := []TemplateConfig{
-		{"makefile", filepath.Join(basePath, "Makefile")},
-		{"gomod", filepath.Join(basePath, "go.mod")},
-		{"main", filepath.Join(basePath, "main.go")},
-		{"readme", filepath.Join(basePath, "README.md")},
-	}
-
-	for _, file := range rootFiles {
-		if !renderTemplate(file.TemplateName, meta, file.FilePath, update) {
-			return false
-		}
 	}
 
 	return true

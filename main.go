@@ -34,12 +34,12 @@ func main() {
 		if !isValidProjectName(projectName) {
 			log.Fatal("项目名称无效，只允许字母、数字、斜杠、下划线和连字符")
 		}
-		templateRepo, templateDir := getTemplateFlags()
-		handleNewProject(projectName, templateRepo, templateDir)
+		templateRepo, templateDir, offline := getTemplateFlags()
+		handleNewProject(projectName, templateRepo, templateDir, offline)
 	case "update":
 		// 项目更新
-		templateRepo, templateDir := getTemplateFlags()
-		updateProject(getProjectName(), templateRepo, templateDir)
+		templateRepo, templateDir, offline := getTemplateFlags()
+		updateProject(getProjectName(), templateRepo, templateDir, offline)
 	case "add":
 		// 增加service模板
 		handleService(getServiceInfo())
@@ -87,8 +87,8 @@ func isValidProjectName(name string) bool {
 	return match
 }
 
-// getTemplateFlags 从命令行参数中解析 --template_repo 和 --template_dir 标志
-func getTemplateFlags() (templateRepo string, templateDir string) {
+// getTemplateFlags 从命令行参数中解析 --template_repo、--template_dir 和 --offline 标志
+func getTemplateFlags() (templateRepo string, templateDir string, offline bool) {
 	args := os.Args[2:]
 	for i := 0; i < len(args); i++ {
 		if strings.HasPrefix(args[i], "--template_repo=") {
@@ -101,6 +101,8 @@ func getTemplateFlags() (templateRepo string, templateDir string) {
 		} else if args[i] == "--template_dir" && i+1 < len(args) {
 			i++
 			templateDir = args[i]
+		} else if args[i] == "--offline" {
+			offline = true
 		}
 	}
 	return
