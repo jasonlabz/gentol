@@ -44,19 +44,19 @@ func getModuleName(modFile string) (string, bool) {
 	return "", false
 }
 
-func updateProject(projectName string) {
-	var isProjectDir bool
+func updateProject(projectName string, templateRepo string, templateDir string) {
 	currentDir, _ := os.Getwd()
+	var projectDir string
 
-	// 确定项目名称和位置
+	// 确定项目目录和模块路径
 	if projectName == "" {
-		// 当前目录模式
+		// 当前目录模式：从 go.mod 读取模块路径
 		modFile := filepath.Join(currentDir, "go.mod")
 		if moduleName, found := getModuleName(modFile); found {
 			projectName = moduleName
-			isProjectDir = true
+			projectDir = currentDir
 		} else {
-			log.Fatal("project name is needed or go.mod not found")
+			log.Fatal("project name is needed or go.mod not found in current directory")
 		}
 	} else {
 		// 指定项目名称模式
@@ -65,67 +65,64 @@ func updateProject(projectName string) {
 			return
 		}
 
-		modFile := filepath.Join(currentDir, projectMeta.ProjectName, "go.mod")
+		projectDir = filepath.Join(currentDir, projectMeta.ProjectName)
+		modFile := filepath.Join(projectDir, "go.mod")
 		if moduleName, found := getModuleName(modFile); found {
 			projectName = moduleName
 		} else {
-			log.Fatal(fmt.Errorf("[%s] is not a project, because [%s] not found, use gentol init|new first",
-				projectMeta.ProjectName, modFile))
+			log.Fatalf("[%s] is not a project, because [%s] not found, use gentol init|new first",
+				projectMeta.ProjectName, modFile)
 		}
 	}
 
-	// 切换到父目录（如果需要）
-	if isProjectDir {
-		parentDir := getParentPath(currentDir)
-		if err := os.Chdir(parentDir); err != nil {
-			log.Fatal(fmt.Errorf("chdir error: %s", err))
-		}
+	if !IsExist(projectDir) {
+		log.Fatalf("project directory not found: %s", projectDir)
 	}
 
-	// 初始化项目元数据
-	projectMeta := initProjectMeta(projectName)
-	if projectMeta == nil {
-		return
+	// 确定 clone+replace 的源
+	useLocalDir := templateDir != ""
+	source := templateDir
+	if source == "" {
+		source = templateRepo // 为空时 updateProjectFromTemplate 会使用 DefaultTemplateRepoURL
 	}
 
-	// 创建项目根目录
-	if !createProjectRoot(projectMeta.ProjectName, true) {
-		return
-	}
-
-	// 执行各模块的创建步骤
-	createSteps := []func(*metadata.ProjectMeta, bool) bool{
-		createCmdStructure,
-		createConfStructure,
-		createBootstrap,
-		createCommonStructure,
-		createDocs,
-		createGlobalResource,
-		createServerStructure,
-		createIDL,
-		createScriptFile,
-		createRootFiles,
-	}
-
-	for _, step := range createSteps {
-		if !step(projectMeta, true) {
-			return
-		}
+	// 使用 clone+replace 模式更新项目
+	if err := updateProjectFromTemplate(projectDir, projectName, source, useLocalDir); err != nil {
+		log.Fatalf("Failed to update project: %v\n", err)
 	}
 
 	log.Println("Project updated successfully!")
 }
 
 // handleNewProject 处理新项目创建
-func handleNewProject(projectName string) {
+// 默认使用 clone+replace 模式（从 DefaultTemplateRepoURL 克隆）
+// 指定 --template_repo 或 --template_dir 时，使用指定的模板源
+func handleNewProject(projectName string, templateRepo string, templateDir string) {
 	// 初始化项目元数据
 	projectMeta := initProjectMeta(projectName)
 	if projectMeta == nil {
 		return
 	}
 
+	// 确定 clone+replace 的源
+	useLocalDir := templateDir != ""
+	source := templateDir
+	if source == "" {
+		source = templateRepo // 为空时 cloneAndReplaceProject 会使用 DefaultTemplateRepoURL
+	}
+
+	// 使用 clone+replace 模式创建项目
+	if err := cloneAndReplaceProject(projectMeta.ModulePath, source, useLocalDir); err != nil {
+		log.Fatalf("Failed to create project: %v\n", err)
+	}
+
+	log.Println("Project created successfully!")
+}
+
+// handleNewProjectFromTemplates 使用旧的模板渲染方式创建项目（fallback）
+func handleNewProjectFromTemplates(meta *metadata.ProjectMeta) {
 	// 创建项目根目录
-	if !createProjectRoot(projectMeta.ProjectName, false) {
+	if !createProjectRoot(meta.ProjectName, false) {
 		return
 	}
 
@@ -144,7 +141,7 @@ func handleNewProject(projectName string) {
 	}
 
 	for _, step := range createSteps {
-		if !step(projectMeta, false) {
+		if !step(meta, false) {
 			return
 		}
 	}

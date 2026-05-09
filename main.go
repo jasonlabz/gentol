@@ -34,10 +34,12 @@ func main() {
 		if !isValidProjectName(projectName) {
 			log.Fatal("项目名称无效，只允许字母、数字、斜杠、下划线和连字符")
 		}
-		handleNewProject(projectName)
+		templateRepo, templateDir := getTemplateFlags()
+		handleNewProject(projectName, templateRepo, templateDir)
 	case "update":
 		// 项目更新
-		updateProject(getProjectName())
+		templateRepo, templateDir := getTemplateFlags()
+		updateProject(getProjectName(), templateRepo, templateDir)
 	case "add":
 		// 增加service模板
 		handleService(getServiceInfo())
@@ -46,11 +48,17 @@ func main() {
 	}
 }
 
-// getProjectName 获取并验证项目名称
+// getProjectName 获取并验证项目名称（跳过 -- 开头的标志参数）
 func getProjectName() string {
 	projectName := ""
 	if len(os.Args) > 2 {
-		projectName = os.Args[2]
+		// 取第一个非标志参数作为项目名称
+		for _, arg := range os.Args[2:] {
+			if !strings.HasPrefix(arg, "--") {
+				projectName = arg
+				break
+			}
+		}
 	}
 	return projectName
 }
@@ -77,4 +85,23 @@ func isValidProjectName(name string) bool {
 	}
 	match, _ := regexp.MatchString("^[/.a-zA-Z0-9_-]+$", name)
 	return match
+}
+
+// getTemplateFlags 从命令行参数中解析 --template_repo 和 --template_dir 标志
+func getTemplateFlags() (templateRepo string, templateDir string) {
+	args := os.Args[2:]
+	for i := 0; i < len(args); i++ {
+		if strings.HasPrefix(args[i], "--template_repo=") {
+			templateRepo = strings.TrimPrefix(args[i], "--template_repo=")
+		} else if args[i] == "--template_repo" && i+1 < len(args) {
+			i++
+			templateRepo = args[i]
+		} else if strings.HasPrefix(args[i], "--template_dir=") {
+			templateDir = strings.TrimPrefix(args[i], "--template_dir=")
+		} else if args[i] == "--template_dir" && i+1 < len(args) {
+			i++
+			templateDir = args[i]
+		}
+	}
+	return
 }
