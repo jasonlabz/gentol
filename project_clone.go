@@ -16,10 +16,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-git/go-billy/v5"
-	"github.com/go-git/go-billy/v5/memfs"
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/jasonlabz/gentol/embedded"
 )
 
@@ -57,79 +53,25 @@ type memoryFile struct {
 	Mode    fs.FileMode
 }
 
-// cloneToMemory 从 git 仓库克隆到内存文件系统
-func cloneToMemory(repoURL string) ([]*memoryFile, error) {
+// cloneToMemory 使用系统 git 克隆到临时目录，然后加载到内存
+// 使用系统 git（而非 go-git）以复用 gitconfig 中的代理等配置
+func cloneToMemory(repoURL string) (files []*memoryFile, err error) {
 	log.Printf("Cloning template from repository: %s\n", repoURL)
 
-	fs := memfs.New()
-	_, err := git.Clone(memory.NewStorage(), fs, &git.CloneOptions{
-		URL:      repoURL,
-		Depth:    1,
-		Progress: nil, // 不输出进度
-	})
+	tmpDir, err := os.MkdirTemp("", "gentol-clone-*")
 	if err != nil {
+		return nil, fmt.Errorf("create temp dir failed: %w", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	cmd := exec.Command("git", "clone", "--depth", "1", repoURL, tmpDir)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
 		return nil, fmt.Errorf("git clone %s failed: %w", repoURL, err)
 	}
 
-	return readMemoryFS(fs, ""), nil
-}
-
-// readMemoryFS 递归读取 billy 内存文件系统
-func readMemoryFS(bfs billy.Filesystem, dir string) []*memoryFile {
-	var files []*memoryFile
-
-	entries, err := bfs.ReadDir(dir)
-	if err != nil {
-		return files
-	}
-
-	for _, entry := range entries {
-		fullPath := dir + "/" + entry.Name()
-		if dir == "" {
-			fullPath = entry.Name()
-		}
-
-		// 跳过 .git 目录
-		if entry.Name() == ".git" {
-			continue
-		}
-
-		if entry.IsDir() {
-			files = append(files, readMemoryFS(bfs, fullPath)...)
-			continue
-		}
-
-		// 跳过 go.sum
-		if entry.Name() == "go.sum" {
-			continue
-		}
-
-		f, err := bfs.Open(fullPath)
-		if err != nil {
-			log.Printf("Warning: failed to open %s in memory: %v\n", fullPath, err)
-			continue
-		}
-		defer f.Close()
-
-		content, err := io.ReadAll(f)
-		if err != nil {
-			log.Printf("Warning: failed to read %s in memory: %v\n", fullPath, err)
-			continue
-		}
-
-		// 跳过二进制文件
-		if isBinaryContent(content) {
-			continue
-		}
-
-		files = append(files, &memoryFile{
-			Path:    fullPath,
-			Content: content,
-			Mode:    entry.Mode(),
-		})
-	}
-
-	return files
+	return loadDirToMemory(tmpDir)
 }
 
 // loadDirToMemory 从本地目录读取文件到内存
@@ -294,16 +236,6 @@ func replaceGoModModulePath(content []byte, oldModulePath, newModulePath string)
 		}
 	}
 	return bytes.Join(lines, []byte("\n"))
-}
-
-// isBinaryContent 检测内容是否为二进制
-func isBinaryContent(content []byte) bool {
-	// 检查前 512 字节中是否包含空字节
-	checkLen := len(content)
-	if checkLen > 512 {
-		checkLen = 512
-	}
-	return bytes.IndexByte(content[:checkLen], 0) >= 0
 }
 
 // isBinaryFile 检测文件是否为二进制文件
