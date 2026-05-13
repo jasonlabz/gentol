@@ -43,6 +43,9 @@ func main() {
 	case "add":
 		// 增加service模板
 		handleService(getServiceInfo())
+	case "ddl":
+		// 执行DDL语句
+		processDDL()
 	default:
 		processDB()
 	}

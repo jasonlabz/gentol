@@ -719,13 +719,28 @@ func loadEmbeddedTemplate() ([]*memoryFile, error) {
 
 // loadTemplateWithCache 带缓存和嵌入机制的模板加载
 // 加载优先级：
-//   - 默认模板：嵌入数据 → 网络 → 本地缓存
-//   - 自定义模板：网络 → 本地缓存
+//   - 默认模板（在线）：远程 git → 嵌入数据 → 本地缓存
+//   - 自定义模板（在线）：远程 git → 本地缓存
 //   - --offline 模式：嵌入数据 → 本地缓存（跳过网络）
 func loadTemplateWithCache(repoURL string, offline bool) ([]*memoryFile, error) {
 	isDefaultTemplate := (repoURL == "" || repoURL == DefaultTemplateRepoURL)
 
-	// 1. 对于默认模板，优先尝试嵌入数据（编译时内置，始终可用）
+	// 1. 在线模式：优先尝试远程 git clone（获取最新模板）
+	var cloneErr error
+	if !offline {
+		memFiles, err := cloneToMemory(repoURL)
+		if err == nil {
+			// clone 成功，更新缓存
+			if cacheErr := saveTemplateCache(repoURL, memFiles); cacheErr != nil {
+				log.Printf("Warning: failed to save template cache: %v\n", cacheErr)
+			}
+			return memFiles, nil
+		}
+		cloneErr = err
+		log.Printf("Remote clone failed: %v\n", cloneErr)
+	}
+
+	// 2. 对于默认模板，尝试嵌入数据（编译时内置的快照）
 	if isDefaultTemplate {
 		files, err := loadEmbeddedTemplate()
 		if err != nil {
@@ -735,7 +750,7 @@ func loadTemplateWithCache(repoURL string, offline bool) ([]*memoryFile, error) 
 		}
 	}
 
-	// 2. 离线模式：仅从缓存读取
+	// 3. 回退到本地缓存
 	if offline {
 		files, err := loadTemplateCache(repoURL)
 		if err != nil {
@@ -747,26 +762,14 @@ func loadTemplateWithCache(repoURL string, offline bool) ([]*memoryFile, error) 
 		return files, nil
 	}
 
-	// 3. 在线模式：尝试网络 clone
-	memFiles, err := cloneToMemory(repoURL)
-	if err == nil {
-		// clone 成功，更新缓存
-		if cacheErr := saveTemplateCache(repoURL, memFiles); cacheErr != nil {
-			log.Printf("Warning: failed to save template cache: %v\n", cacheErr)
-		}
-		return memFiles, nil
-	}
-
-	// 4. 网络失败，尝试回退到缓存
-	log.Printf("Network clone failed: %v\n", err)
+	// 在线模式但网络和嵌入都失败了，最后尝试本地缓存
 	log.Printf("Falling back to local cache...\n")
-
 	files, cacheErr := loadTemplateCache(repoURL)
 	if cacheErr != nil {
-		return nil, fmt.Errorf("network clone failed (%v) and cache read failed (%w)", err, cacheErr)
+		return nil, fmt.Errorf("remote clone failed (%v), embedded template unavailable, and cache read failed (%w)", cloneErr, cacheErr)
 	}
 	if files == nil {
-		return nil, fmt.Errorf("network clone failed (%v) and no cache available, please check network connection", err)
+		return nil, fmt.Errorf("remote clone failed (%v) and no cache available, please check network connection", cloneErr)
 	}
 
 	return files, nil
