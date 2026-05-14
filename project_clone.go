@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/tar"
+	"bufio"
 	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
@@ -335,26 +336,25 @@ func extractProjectName(modulePath string) string {
 	return modulePath
 }
 
-// getTemplateModuleInfo 获取模板项目的模块路径和项目名
-func getTemplateModuleInfo(templateSource string, useLocalDir bool) (templateModulePath, templateProjectName string, err error) {
-	if useLocalDir && templateSource != "" {
-		// 从本地目录的 go.mod 读取模块路径
-		modFile := filepath.Join(templateSource, "go.mod")
-		if modPath, found := getModuleName(modFile); found {
-			return modPath, extractProjectName(modPath), nil
+// getModulePathFromMemory 从内存文件列表中提取 go.mod 中的模块路径
+func getModulePathFromMemory(files []*memoryFile) (modulePath string, found bool) {
+	for _, f := range files {
+		if f.Path == "go.mod" {
+			scanner := bufio.NewScanner(bytes.NewReader(f.Content))
+			for scanner.Scan() {
+				line := strings.TrimSpace(scanner.Text())
+				if strings.HasPrefix(line, "module ") {
+					return strings.TrimPrefix(line, "module "), true
+				}
+			}
+			break
 		}
-		// 无法读取 go.mod，使用默认值
-		log.Printf("Warning: cannot read module path from %s, using default: %s\n", modFile, DefaultTemplateModulePath)
-		return DefaultTemplateModulePath, DefaultTemplateProjectName, nil
 	}
-
-	// 从 git 仓库：使用默认的模板模块路径
-	// （模板仓库的 go.mod 中 module 必须与 DefaultTemplateModulePath 一致）
-	return DefaultTemplateModulePath, DefaultTemplateProjectName, nil
+	return "", false
 }
 
 // cloneAndReplaceProject 从模板创建新项目（内存化流程）
-// 整个流程：加载模板到内存 → 内存中替换 → 写入磁盘
+// 整个流程：加载模板到内存 → 从 go.mod 读取真实模块路径 → 内存中替换 → 写入磁盘
 // offline=true 时仅使用本地缓存，不访问网络
 func cloneAndReplaceProject(newModulePath, templateSource string, useLocalDir bool, offline bool) error {
 	newProjectName := extractProjectName(newModulePath)
@@ -362,14 +362,9 @@ func cloneAndReplaceProject(newModulePath, templateSource string, useLocalDir bo
 		return fmt.Errorf("invalid project name from module path: %s", newModulePath)
 	}
 
-	// 确定模板模块路径和项目名
-	templateModulePath, templateProjectName, err := getTemplateModuleInfo(templateSource, useLocalDir)
-	if err != nil {
-		return err
-	}
-
 	// 阶段1：加载模板到内存（不写入磁盘）
 	var memFiles []*memoryFile
+	var err error
 
 	if useLocalDir && templateSource != "" {
 		memFiles, err = loadDirToMemory(templateSource)
@@ -386,12 +381,21 @@ func cloneAndReplaceProject(newModulePath, templateSource string, useLocalDir bo
 
 	log.Printf("Template loaded: %d files\n", len(memFiles))
 
-	// 阶段2：在内存中执行替换（模块路径 + 项目名 + 文件路径）
+	// 阶段2：从内存中 go.mod 读取模板的真实模块路径
+	templateModulePath, found := getModulePathFromMemory(memFiles)
+	if !found {
+		return fmt.Errorf("cannot find go.mod in template, unable to determine template module path")
+	}
+	templateProjectName := extractProjectName(templateModulePath)
+
+	log.Printf("Detected template module path: %s, project name: %s\n", templateModulePath, templateProjectName)
+
+	// 阶段3：在内存中执行替换（模块路径 + 项目名 + 文件路径）
 	log.Printf("Replacing module path: %s -> %s\n", templateModulePath, newModulePath)
 	log.Printf("Replacing project name: %s -> %s\n", templateProjectName, newProjectName)
 	replaceInMemoryFiles(memFiles, templateModulePath, newModulePath, templateProjectName, newProjectName)
 
-	// 阶段3：写入磁盘目标目录
+	// 阶段4：写入磁盘目标目录
 	targetDir := filepath.Join(".", newProjectName)
 	if IsExist(targetDir) {
 		return fmt.Errorf("project directory already exists: %s, please remove it and try again", targetDir)
@@ -401,7 +405,7 @@ func cloneAndReplaceProject(newModulePath, templateSource string, useLocalDir bo
 		return fmt.Errorf("write project failed: %w", err)
 	}
 
-	// 阶段4：执行 go mod tidy
+	// 阶段5：执行 go mod tidy
 	log.Println("Running go mod tidy...")
 	if err := runGoModTidy(targetDir); err != nil {
 		log.Printf("Warning: go mod tidy failed (you may need to run it manually): %v\n", err)
@@ -414,14 +418,10 @@ func cloneAndReplaceProject(newModulePath, templateSource string, useLocalDir bo
 // 与 new 的区别：目标目录已存在，模板文件覆盖同名文件，已有项目中的其他文件保持不变
 // offline=true 时仅使用本地缓存，不访问网络
 func updateProjectFromTemplate(projectDir, currentModulePath, templateSource string, useLocalDir bool, offline bool) error {
-	// 确定模板模块路径和项目名
-	templateModulePath, templateProjectName, err := getTemplateModuleInfo(templateSource, useLocalDir)
-	if err != nil {
-		return err
-	}
 
 	// 阶段1：加载模板到内存
 	var memFiles []*memoryFile
+	var err error
 
 	if useLocalDir && templateSource != "" {
 		memFiles, err = loadDirToMemory(templateSource)
@@ -438,18 +438,27 @@ func updateProjectFromTemplate(projectDir, currentModulePath, templateSource str
 
 	log.Printf("Template loaded: %d files\n", len(memFiles))
 
-	// 阶段2：在内存中执行替换（用当前项目的模块路径替换模板的）
+	// 阶段2：从内存中 go.mod 读取模板的真实模块路径
+	templateModulePath, found := getModulePathFromMemory(memFiles)
+	if !found {
+		return fmt.Errorf("cannot find go.mod in template, unable to determine template module path")
+	}
+	templateProjectName := extractProjectName(templateModulePath)
+
+	log.Printf("Detected template module path: %s, project name: %s\n", templateModulePath, templateProjectName)
+
+	// 阶段3：在内存中执行替换（用当前项目的模块路径替换模板的）
 	currentProjectName := extractProjectName(currentModulePath)
 	log.Printf("Replacing module path: %s -> %s\n", templateModulePath, currentModulePath)
 	log.Printf("Replacing project name: %s -> %s\n", templateProjectName, currentProjectName)
 	replaceInMemoryFiles(memFiles, templateModulePath, currentModulePath, templateProjectName, currentProjectName)
 
-	// 阶段3：写入已有项目目录（覆盖同名文件，不删除项目中已有但模板中没有的文件）
+	// 阶段4：写入已有项目目录（覆盖同名文件，不删除项目中已有但模板中没有的文件）
 	if err := writeProjectFromMemory(memFiles, projectDir); err != nil {
 		return fmt.Errorf("update project failed: %w", err)
 	}
 
-	// 阶段4：执行 go mod tidy
+	// 阶段5：执行 go mod tidy
 	log.Println("Running go mod tidy...")
 	if err := runGoModTidy(projectDir); err != nil {
 		log.Printf("Warning: go mod tidy failed (you may need to run it manually): %v\n", err)
