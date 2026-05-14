@@ -32,7 +32,7 @@ const ddlDBName = "_ddl_db_"
 
 func processDDL() {
 	if len(os.Args) < 3 || strings.HasPrefix(os.Args[2], "--") {
-		log.Fatal("用法: gentol ddl <sql文件路径> [--db_type=...] [--dsn=...] [--host=...] [--port=...] [--username=...] [--password=...] [--database=...]")
+		log.Fatal("用法: gentol ddl <sql文件路径> [--db_type=...] [--dsn=...] [--host=...] [--port=...] [--username=...] [--password=...] [--database=...] [--schema=...]")
 	}
 
 	sqlFilePath := os.Args[2]
@@ -152,6 +152,8 @@ func parseDDLArgs() *gormx.Config {
 				config.Password = val
 			case "database":
 				config.Database = val
+			case "schema":
+				config.Schema = val
 			}
 		}
 	}

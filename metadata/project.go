@@ -6,6 +6,7 @@ type ProjectMeta struct {
 	ServiceName        string
 	ServicePackageName string
 	ServiceStructName  string
+	ServiceDir         string
 }
 
 func (p *ProjectMeta) GenRenderData() map[string]any {
@@ -15,6 +16,7 @@ func (p *ProjectMeta) GenRenderData() map[string]any {
 		"ServiceName":        p.ServiceName,
 		"ServiceStructName":  p.ServiceStructName,
 		"ServicePackageName": p.ServicePackageName,
+		"ServiceDir":         p.ServiceDir,
 	}
 	return result
 }

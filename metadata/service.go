@@ -25,7 +25,7 @@ const AddServiceImpl = `package {{.ServiceName}}
 import (
 	"sync"
 
-	"{{.ModulePath}}/server/{{.ServicePackageName}}"
+	"{{.ModulePath}}/server/{{.ServicePackageName}}{{.ServiceDir}}"
 )
 
 var svc *Service

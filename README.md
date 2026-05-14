@@ -94,6 +94,22 @@ gentol add user_service    # 同上
 gentol add user_manager
 ```
 
+**`--service` 参数：指定输出子目录**
+
+```shell
+# 默认输出到 server/service/
+gentol add user
+
+# 指定子目录，输出到 server/service/workflow/
+gentol add user --service workflow
+
+# manager 同样支持
+gentol add user_manager --service workflow    # 输出到 server/manager/workflow/
+
+# 支持多级目录
+gentol add user --service workflow/sub
+```
+
 生成的文件结构：
 
 ```
@@ -106,17 +122,23 @@ server/service/
         ├── response.go
         ├── vo.go
         └── dto.go
+```
 
-server/manager/
-├── user_manager.go               # 接口定义 + sync.Once 单例 Getter
+使用 `--service workflow` 后：
+
+```
+server/service/workflow/
+├── user_service.go               # 接口定义 + sync.Once 单例 Getter
 └── user/
-    ├── user_manager_impl.go      # 实现
+    ├── user_service_impl.go      # 实现（import 路径自动包含 /workflow）
     └── body/
         ├── request.go
         ├── response.go
         ├── vo.go
         └── dto.go
 ```
+
+Manager 模式同理，输出到 `server/manager/` 或 `server/manager/<subdir>/`。
 
 ### 1.6 工作流程
 
@@ -167,9 +189,68 @@ gentol new myapp            # 直接从嵌入数据创建
 
 ---
 
-## 二、数据库代码生成
+## 二、DDL 执行
 
 ### 2.1 基本用法
+
+通过 `gentol ddl` 子命令直接对数据库执行 DDL 文件（仅允许 CREATE / ALTER / DROP / TRUNCATE / RENAME / COMMENT 语句）：
+
+```shell
+gentol ddl <sql文件路径> [--db_type=...] [--host=...] [--port=...] [--username=...] [--password=...] [--database=...] [--schema=...]
+```
+
+也可以直接提供 DSN：
+
+```shell
+gentol ddl schema.sql --db_type=postgres --dsn="user=postgres password=XXX host=127.0.0.1 port=5432 dbname=mydb sslmode=disable"
+```
+
+### 2.2 参数说明
+
+| 参数 | 说明 |
+|------|------|
+| `--db_type` | 数据库类型（必填）：mysql, postgres, sqlserver, oracle, greenplum, sqlite, dm |
+| `--dsn` | 数据库连接字符串，提供后无需 host/port 等参数 |
+| `--host` | 数据库主机 |
+| `--port` | 数据库端口 |
+| `--username` | 数据库用户名 |
+| `--password` | 数据库密码 |
+| `--database` | 数据库名 |
+| `--schema` | Schema 名（PostgreSQL/Oracle/DM 等），用于 DAO/Model 层的 schema 标识 |
+
+### 2.3 使用示例
+
+```shell
+# PostgreSQL（指定 schema）
+gentol ddl conf/sql/pg.sql \
+  --db_type=postgres \
+  --host=127.0.0.1 --port=5432 \
+  --username=postgres --password=XXX \
+  --database=mydb --schema=myschema
+
+# MySQL
+gentol ddl conf/sql/mysql.sql \
+  --db_type=mysql \
+  --host=127.0.0.1 --port=3306 \
+  --username=root --password=XXX \
+  --database=mydb
+
+# 使用 DSN
+gentol ddl migration.sql --db_type=postgres \
+  --dsn="user=postgres password=XXX host=127.0.0.1 port=5432 dbname=mydb sslmode=disable"
+```
+
+### 2.4 安全限制
+
+- DDL 执行前会校验 SQL 内容，**仅允许**以下语句：`CREATE`、`ALTER`、`DROP`、`TRUNCATE`、`RENAME`、`COMMENT`
+- 包含 DML 语句（INSERT / UPDATE / DELETE / SELECT 等）会被拒绝
+- 建议建表 SQL 使用 `CREATE TABLE IF NOT EXISTS`，加列使用 `IF NOT EXISTS`，保证幂等
+
+---
+
+## 三、数据库代码生成
+
+### 3.1 基本用法
 
 不指定子命令时进入 DB 代码生成模式：
 
@@ -179,7 +260,7 @@ gentol --db_type=<type> --dsn=<connection_string> [options...]
 
 也可以通过 YAML 配置文件（`conf/table.yaml` 或 `./table.yaml`）指定生成参数。
 
-### 2.2 参数说明
+### 3.2 参数说明
 
 | 参数 | 简写 | 默认值 | 说明 |
 |------|------|--------|------|
@@ -204,7 +285,7 @@ gentol --db_type=<type> --dsn=<connection_string> [options...]
 | `--proto` | | | 添加 Protobuf 注解 |
 | `--rungofmt` | | | 生成后执行 gofmt |
 
-### 2.3 各数据库连接示例
+### 3.3 各数据库连接示例
 
 **PostgreSQL**
 
@@ -270,7 +351,7 @@ var DatabaseDsnMap = map[DBType]string{
 }
 ```
 
-### 2.4 生成结果
+### 3.4 生成结果
 
 每张表生成以下文件：
 

@@ -42,7 +42,8 @@ func main() {
 		updateProject(getProjectName(), templateRepo, templateDir, offline)
 	case "add":
 		// 增加service模板
-		handleService(getServiceInfo())
+		serviceName, isManager, serviceDir := getServiceInfo()
+		handleService(serviceName, isManager, serviceDir)
 	case "ddl":
 		// 执行DDL语句
 		processDDL()
@@ -66,19 +67,26 @@ func getProjectName() string {
 	return projectName
 }
 
-// getServiceInfo 获取并验证服务名称，是否为manager（包含多个service的逻辑整合）
-func getServiceInfo() (string, bool) {
-	serviceName := ""
-	if len(os.Args) > 2 {
-		serviceName = os.Args[2]
+// getServiceInfo 获取并验证服务名称，是否为manager（包含多个service的逻辑整合），以及 --service 子目录
+func getServiceInfo() (serviceName string, isManager bool, serviceDir string) {
+	args := os.Args[2:]
+	for i := 0; i < len(args); i++ {
+		if strings.HasPrefix(args[i], "--service=") {
+			serviceDir = strings.TrimPrefix(args[i], "--service=")
+		} else if args[i] == "--service" && i+1 < len(args) {
+			i++
+			serviceDir = args[i]
+		} else if serviceName == "" {
+			serviceName = args[i]
+		}
 	}
 	if strings.HasSuffix(serviceName, "_manager") {
-		return strings.TrimSuffix(serviceName, "_manager"), true
+		return strings.TrimSuffix(serviceName, "_manager"), true, serviceDir
 	}
 	if strings.HasSuffix(serviceName, "_service") {
-		return strings.TrimSuffix(serviceName, "_service"), false
+		return strings.TrimSuffix(serviceName, "_service"), false, serviceDir
 	}
-	return serviceName, false
+	return serviceName, false, serviceDir
 }
 
 // isValidProjectName 验证项目名称格式

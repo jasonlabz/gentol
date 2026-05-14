@@ -30,7 +30,12 @@ type TemplateConfig struct {
 }
 
 // initServiceMeta 初始化服务元数据
-func initServiceMeta(serviceName string, isManager bool) *metadata.ProjectMeta {
+func initServiceMeta(serviceName string, isManager bool, serviceDir string) *metadata.ProjectMeta {
+	serviceDirPart := ""
+	if serviceDir != "" {
+		serviceDirPart = "/" + serviceDir
+	}
+
 	serviceMeta := &metadata.ProjectMeta{
 		ServiceName: serviceName,
 		ServicePackageName: func() string {
@@ -45,16 +50,17 @@ func initServiceMeta(serviceName string, isManager bool) *metadata.ProjectMeta {
 			}
 			return metadata.UnderscoreToUpperCamelCase(serviceName + "_service")
 		}(),
+		ServiceDir: serviceDirPart,
 	}
 
 	return serviceMeta
 }
 
-func handleService(service string, isManager bool) {
-	serviceMeta := initServiceMeta(service, isManager)
+func handleService(service string, isManager bool, serviceDir string) {
+	serviceMeta := initServiceMeta(service, isManager, serviceDir)
 
 	// 检查目录是否存在
-	moduleName, serverPath := checkServiceDir(isManager)
+	moduleName, serverPath := checkServiceDir(isManager, serviceDir)
 	serviceMeta.ModulePath = moduleName
 	// 执行各模块的创建步骤
 	createSteps := []func(*metadata.ProjectMeta, string, bool) bool{
@@ -71,7 +77,7 @@ func handleService(service string, isManager bool) {
 }
 
 // checkServiceDir 检查service目录
-func checkServiceDir(isManager bool) (string, string) {
+func checkServiceDir(isManager bool, serviceDir string) (string, string) {
 	var moduleName string
 	var found bool
 	dir, _ := os.Getwd()
@@ -80,21 +86,21 @@ func checkServiceDir(isManager bool) (string, string) {
 		log.Fatal("Please run this command from your project directory (where go.mod is located).")
 	}
 
-	serverDir := filepath.Join(dir, "server")
-	serviceDir := filepath.Join(serverDir, "service")
-	managerDir := filepath.Join(serverDir, "manager")
-
+	var baseDir string
 	if isManager {
-		if !IsExist(managerDir) {
-			createDirectory(managerDir)
-		}
-		return moduleName, managerDir
+		baseDir = filepath.Join(dir, "server", "manager")
+	} else {
+		baseDir = filepath.Join(dir, "server", "service")
 	}
 
-	if !IsExist(serviceDir) {
-		createDirectory(serviceDir)
+	if serviceDir != "" {
+		baseDir = filepath.Join(baseDir, serviceDir)
 	}
-	return moduleName, serviceDir
+
+	if !IsExist(baseDir) {
+		createDirectory(baseDir)
+	}
+	return moduleName, baseDir
 }
 
 func createService(serviceMeta *metadata.ProjectMeta, servicePath string, isManager bool) bool {
