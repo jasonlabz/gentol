@@ -31,26 +31,26 @@ type TemplateConfig struct {
 
 // initServiceMeta 初始化服务元数据
 func initServiceMeta(serviceName string, isManager bool, serviceDir string) *metadata.ProjectMeta {
-	serviceDirPart := ""
-	if serviceDir != "" {
-		serviceDirPart = "/" + serviceDir
-	}
-
 	serviceMeta := &metadata.ProjectMeta{
 		ServiceName: serviceName,
-		ServicePackageName: func() string {
-			if isManager {
-				return "manager"
-			}
-			return "service"
-		}(),
 		ServiceStructName: func() string {
 			if isManager {
 				return metadata.UnderscoreToUpperCamelCase(serviceName + "_manager")
 			}
 			return metadata.UnderscoreToUpperCamelCase(serviceName + "_service")
 		}(),
-		ServiceDir: serviceDirPart,
+	}
+
+	// --service 指定的是相对项目根目录的完整路径
+	if serviceDir != "" {
+		serviceMeta.ServiceDir = "/" + serviceDir
+		serviceMeta.ServicePackageName = filepath.Base(serviceDir)
+	} else if isManager {
+		serviceMeta.ServiceDir = "/server/manager"
+		serviceMeta.ServicePackageName = "manager"
+	} else {
+		serviceMeta.ServiceDir = "/server/service"
+		serviceMeta.ServicePackageName = "service"
 	}
 
 	return serviceMeta
@@ -87,14 +87,13 @@ func checkServiceDir(isManager bool, serviceDir string) (string, string) {
 	}
 
 	var baseDir string
-	if isManager {
+	// --service 指定的是相对项目根目录的完整路径，不再限定在 server/service 或 server/manager 下
+	if serviceDir != "" {
+		baseDir = filepath.Join(dir, serviceDir)
+	} else if isManager {
 		baseDir = filepath.Join(dir, "server", "manager")
 	} else {
 		baseDir = filepath.Join(dir, "server", "service")
-	}
-
-	if serviceDir != "" {
-		baseDir = filepath.Join(baseDir, serviceDir)
 	}
 
 	if !IsExist(baseDir) {
