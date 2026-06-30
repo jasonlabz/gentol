@@ -77,6 +77,7 @@ func (m *ModelMeta) GenRenderData() map[string]any {
 		columnInfo.SQLNullableType = metaType.SQLNullableType
 
 		columnInfo.GoColumnName = UnderscoreToUpperCamelCase(columnInfo.ColumnName)
+		columnInfo.Comment = normalizeComment(columnInfo.Comment)
 		columnInfo.TitleTableName = m.ModelStructName
 		columnInfo.GoUpperColumnName = ToUpper(columnInfo.ColumnName)
 		columnInfo.UpperTableName = ToUpper(m.ModelStructName)
@@ -308,6 +309,10 @@ func contains(slice []string, item string) bool {
 		}
 	}
 	return false
+}
+
+func normalizeComment(comment string) string {
+	return strings.Join(strings.Fields(comment), " ")
 }
 
 // Model used as a variable because it cannot load template file after packed, params still can pass file
