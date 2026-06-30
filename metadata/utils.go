@@ -278,7 +278,7 @@ func PostgresTrans(columnType string) (metaType MetaType) {
 		metaType.SQLNullableType = "sql.RawBytes"
 		metaType.GureguNullableType = "[]byte"
 		metaType.ValueFormat = "'%v'"
-	case "char", "varchar", "character", "text", "json", "xml", "jsonb",
+	case "char", "bpchar", "varchar", "character", "text", "json", "xml", "jsonb",
 		"uuid", "cidr", "inet", "macaddr", "tsvector", "tsquery", "point", "box", "path", "polygon", "circle", "line", "lseg":
 		metaType.GoType = "string"
 		metaType.SQLNullableType = "sql.NullString"
@@ -296,7 +296,8 @@ func PostgresTrans(columnType string) (metaType MetaType) {
 			metaType.SQLNullableType = "sql.NullFloat64"
 			metaType.GureguNullableType = "null.Float"
 			metaType.ValueFormat = "%v"
-		} else if strings.Contains(columnType, "character") {
+		} else if strings.Contains(columnType, "character") ||
+			strings.Contains(columnType, "char") {
 			metaType.GoType = "string"
 			metaType.SQLNullableType = "sql.NullString"
 			metaType.GureguNullableType = "null.String"
