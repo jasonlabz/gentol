@@ -103,18 +103,17 @@ func checkServiceDir(isManager bool, serviceDir string) (string, string) {
 }
 
 func createService(serviceMeta *metadata.ProjectMeta, servicePath string, isManager bool) bool {
-	// 创建service目录下的文件
 	interfaceFileName := fmt.Sprintf("%s_service", serviceMeta.ServiceName)
+	implFileName := "service_impl"
 	if isManager {
 		interfaceFileName = fmt.Sprintf("%s_manager", serviceMeta.ServiceName)
+		implFileName = "manager_impl"
 	}
 	serviceFiles := []TemplateConfig{
 		{"add_service", filepath.Join(servicePath, fmt.Sprintf("%s.go", interfaceFileName))},
-		{"add_service_impl", filepath.Join(servicePath, serviceMeta.ServiceName, fmt.Sprintf("%s_impl.go", interfaceFileName))},
-		{"empty", filepath.Join(servicePath, serviceMeta.ServiceName, "body", "request.go")},
-		{"empty", filepath.Join(servicePath, serviceMeta.ServiceName, "body", "response.go")},
-		{"empty", filepath.Join(servicePath, serviceMeta.ServiceName, "body", "vo.go")},
-		{"empty", filepath.Join(servicePath, serviceMeta.ServiceName, "body", "dto.go")},
+		{"add_service_impl", filepath.Join(servicePath, serviceMeta.ServiceName, fmt.Sprintf("%s.go", implFileName))},
+		{"add_dto", filepath.Join(servicePath, serviceMeta.ServiceName, "dto.go")},
+		{"add_helper", filepath.Join(servicePath, serviceMeta.ServiceName, "helper.go")},
 	}
 	for _, file := range serviceFiles {
 		if !renderTemplate(file.TemplateName, serviceMeta, file.FilePath, false) {

@@ -34,7 +34,7 @@ func getModuleName(modFile string) (string, bool) {
 
 // handleNewProject 处理新项目创建
 // 使用 clone+replace 模式（从模板仓库克隆到内存，替换后写入磁盘）
-func handleNewProject(projectName string, templateRepo string, templateDir string, offline bool) {
+func handleNewProject(projectName string, templateRepo string, templateDir string) {
 	projectMeta := initProjectMeta(projectName)
 	if projectMeta == nil {
 		return
@@ -46,7 +46,7 @@ func handleNewProject(projectName string, templateRepo string, templateDir strin
 		source = templateRepo // 为空时 cloneAndReplaceProject 会使用 DefaultTemplateRepoURL
 	}
 
-	if err := cloneAndReplaceProject(projectMeta.ModulePath, source, useLocalDir, offline); err != nil {
+	if err := cloneAndReplaceProject(projectMeta.ModulePath, source, useLocalDir); err != nil {
 		log.Fatalf("Failed to create project: %v\n", err)
 	}
 
@@ -55,7 +55,7 @@ func handleNewProject(projectName string, templateRepo string, templateDir strin
 
 // updateProject 处理项目更新
 // 使用 clone+replace 模式，覆盖同名文件，保留项目中自定义文件
-func updateProject(projectName string, templateRepo string, templateDir string, offline bool) {
+func updateProject(projectName string, templateRepo string, templateDir string) {
 	currentDir, _ := os.Getwd()
 	var projectDir string
 
@@ -93,7 +93,7 @@ func updateProject(projectName string, templateRepo string, templateDir string, 
 		source = templateRepo
 	}
 
-	if err := updateProjectFromTemplate(projectDir, projectName, source, useLocalDir, offline); err != nil {
+	if err := updateProjectFromTemplate(projectDir, projectName, source, useLocalDir); err != nil {
 		log.Fatalf("Failed to update project: %v\n", err)
 	}
 

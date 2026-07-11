@@ -5,8 +5,6 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
-	"crypto/sha256"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/fs"
@@ -15,7 +13,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/jasonlabz/gentol/embedded"
 )
@@ -28,24 +25,6 @@ const DefaultTemplateProjectName = "generate-example-project"
 
 // 默认模板仓库地址（可被 --template_repo 覆盖）
 const DefaultTemplateRepoURL = "https://github.com/jasonlabz/generate-example-project.git"
-
-// 离线缓存目录（~/.gentol/cache/）
-var gentolCacheDir string
-
-func init() {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		homeDir = "."
-	}
-	gentolCacheDir = filepath.Join(homeDir, ".gentol", "cache")
-}
-
-// cacheMeta 缓存元数据，记录缓存来源和创建时间
-type cacheMeta struct {
-	SourceURL string    `json:"source_url"`
-	CreatedAt time.Time `json:"created_at"`
-	FileCount int       `json:"file_count"`
-}
 
 // memoryFile 表示内存中的一个文件
 type memoryFile struct {
@@ -355,8 +334,7 @@ func getModulePathFromMemory(files []*memoryFile) (modulePath string, found bool
 
 // cloneAndReplaceProject 从模板创建新项目（内存化流程）
 // 整个流程：加载模板到内存 → 从 go.mod 读取真实模块路径 → 内存中替换 → 写入磁盘
-// offline=true 时仅使用本地缓存，不访问网络
-func cloneAndReplaceProject(newModulePath, templateSource string, useLocalDir bool, offline bool) error {
+func cloneAndReplaceProject(newModulePath, templateSource string, useLocalDir bool) error {
 	newProjectName := extractProjectName(newModulePath)
 	if newProjectName == "" {
 		return fmt.Errorf("invalid project name from module path: %s", newModulePath)
@@ -373,7 +351,7 @@ func cloneAndReplaceProject(newModulePath, templateSource string, useLocalDir bo
 		if repoURL == "" {
 			repoURL = DefaultTemplateRepoURL
 		}
-		memFiles, err = loadTemplateWithCache(repoURL, offline)
+		memFiles, err = loadTemplate(repoURL, templateSource == "")
 	}
 	if err != nil {
 		return fmt.Errorf("load template failed: %w", err)
@@ -416,8 +394,7 @@ func cloneAndReplaceProject(newModulePath, templateSource string, useLocalDir bo
 
 // updateProjectFromTemplate 从模板更新已有项目（内存化流程）
 // 与 new 的区别：目标目录已存在，模板文件覆盖同名文件，已有项目中的其他文件保持不变
-// offline=true 时仅使用本地缓存，不访问网络
-func updateProjectFromTemplate(projectDir, currentModulePath, templateSource string, useLocalDir bool, offline bool) error {
+func updateProjectFromTemplate(projectDir, currentModulePath, templateSource string, useLocalDir bool) error {
 
 	// 阶段1：加载模板到内存
 	var memFiles []*memoryFile
@@ -430,7 +407,7 @@ func updateProjectFromTemplate(projectDir, currentModulePath, templateSource str
 		if repoURL == "" {
 			repoURL = DefaultTemplateRepoURL
 		}
-		memFiles, err = loadTemplateWithCache(repoURL, offline)
+		memFiles, err = loadTemplate(repoURL, templateSource == "")
 	}
 	if err != nil {
 		return fmt.Errorf("load template failed: %w", err)
@@ -465,137 +442,6 @@ func updateProjectFromTemplate(projectDir, currentModulePath, templateSource str
 	}
 
 	return nil
-}
-
-// --- 缓存相关函数 ---
-
-// cacheKey 根据仓库 URL 生成缓存键（SHA256 前16位）
-func cacheKey(repoURL string) string {
-	h := sha256.Sum256([]byte(repoURL))
-	return fmt.Sprintf("%x", h[:8])
-}
-
-// saveTemplateCache 将内存文件缓存到本地磁盘
-// 缓存格式：~/.gentol/cache/<key>/template.tar.gz + meta.json
-func saveTemplateCache(repoURL string, files []*memoryFile) error {
-	key := cacheKey(repoURL)
-	cacheDir := filepath.Join(gentolCacheDir, key)
-	if err := os.MkdirAll(cacheDir, 0755); err != nil {
-		return fmt.Errorf("create cache directory %s failed: %w", cacheDir, err)
-	}
-
-	// 写入 meta.json
-	meta := &cacheMeta{
-		SourceURL: repoURL,
-		CreatedAt: time.Now(),
-		FileCount: len(files),
-	}
-	metaData, err := json.MarshalIndent(meta, "", "  ")
-	if err != nil {
-		return fmt.Errorf("marshal cache meta failed: %w", err)
-	}
-	if err := os.WriteFile(filepath.Join(cacheDir, "meta.json"), metaData, 0644); err != nil {
-		return fmt.Errorf("write cache meta failed: %w", err)
-	}
-
-	// 写入 template.tar.gz
-	tarPath := filepath.Join(cacheDir, "template.tar.gz")
-	tarFile, err := os.Create(tarPath)
-	if err != nil {
-		return fmt.Errorf("create cache tar file failed: %w", err)
-	}
-	defer tarFile.Close()
-
-	gw := gzip.NewWriter(tarFile)
-	defer gw.Close()
-
-	tw := tar.NewWriter(gw)
-	defer tw.Close()
-
-	for _, f := range files {
-		hdr := &tar.Header{
-			Name:    f.Path,
-			Mode:    int64(f.Mode),
-			Size:    int64(len(f.Content)),
-			ModTime: time.Now(),
-		}
-		if hdr.Mode == 0 {
-			hdr.Mode = 0644
-		}
-		if err := tw.WriteHeader(hdr); err != nil {
-			return fmt.Errorf("write tar header for %s failed: %w", f.Path, err)
-		}
-		if _, err := tw.Write(f.Content); err != nil {
-			return fmt.Errorf("write tar content for %s failed: %w", f.Path, err)
-		}
-	}
-
-	log.Printf("Template cached to %s (%d files)\n", cacheDir, len(files))
-	return nil
-}
-
-// loadTemplateCache 从本地缓存读取模板文件
-// 返回 nil 表示缓存不存在或读取失败
-func loadTemplateCache(repoURL string) ([]*memoryFile, error) {
-	key := cacheKey(repoURL)
-	cacheDir := filepath.Join(gentolCacheDir, key)
-	tarPath := filepath.Join(cacheDir, "template.tar.gz")
-
-	if !IsExist(tarPath) {
-		return nil, nil // 缓存不存在
-	}
-
-	f, err := os.Open(tarPath)
-	if err != nil {
-		return nil, fmt.Errorf("open cache file failed: %w", err)
-	}
-	defer f.Close()
-
-	gr, err := gzip.NewReader(f)
-	if err != nil {
-		return nil, fmt.Errorf("decompress cache failed: %w", err)
-	}
-	defer gr.Close()
-
-	tr := tar.NewReader(gr)
-
-	var files []*memoryFile
-	for {
-		hdr, err := tr.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, fmt.Errorf("read cache tar failed: %w", err)
-		}
-
-		if hdr.Typeflag != tar.TypeReg {
-			continue
-		}
-
-		content, err := io.ReadAll(tr)
-		if err != nil {
-			return nil, fmt.Errorf("read cache entry %s failed: %w", hdr.Name, err)
-		}
-
-		files = append(files, &memoryFile{
-			Path:    hdr.Name,
-			Content: content,
-			Mode:    fs.FileMode(hdr.Mode),
-		})
-	}
-
-	// 读取元数据打印日志
-	metaData, err := os.ReadFile(filepath.Join(cacheDir, "meta.json"))
-	if err == nil {
-		var meta cacheMeta
-		if json.Unmarshal(metaData, &meta) == nil {
-			log.Printf("Loaded template from cache (cached at %s, %d files)\n",
-				meta.CreatedAt.Format("2006-01-02 15:04:05"), meta.FileCount)
-		}
-	}
-
-	return files, nil
 }
 
 // parseTarGzBytes 解析 tar.gz 字节流为内存文件列表
@@ -658,31 +504,16 @@ func loadEmbeddedTemplate() ([]*memoryFile, error) {
 	return files, nil
 }
 
-// loadTemplateWithCache 带缓存和嵌入机制的模板加载
-// 加载优先级：
-//   - 默认模板（在线）：远程 git → 嵌入数据 → 本地缓存
-//   - 自定义模板（在线）：远程 git → 本地缓存
-//   - --offline 模式：嵌入数据 → 本地缓存（跳过网络）
-func loadTemplateWithCache(repoURL string, offline bool) ([]*memoryFile, error) {
-	isDefaultTemplate := (repoURL == "" || repoURL == DefaultTemplateRepoURL)
-
-	// 1. 在线模式：优先尝试远程 git clone（获取最新模板）
-	var cloneErr error
-	if !offline {
-		memFiles, err := cloneToMemory(repoURL)
-		if err == nil {
-			// clone 成功，更新缓存
-			if cacheErr := saveTemplateCache(repoURL, memFiles); cacheErr != nil {
-				log.Printf("Warning: failed to save template cache: %v\n", cacheErr)
-			}
-			return memFiles, nil
-		}
-		cloneErr = err
-		log.Printf("Remote clone failed: %v\n", cloneErr)
+// loadTemplate 加载模板：远程 git clone → 嵌入数据（默认模板 fallback）
+func loadTemplate(repoURL string, isDefault bool) ([]*memoryFile, error) {
+	memFiles, err := cloneToMemory(repoURL)
+	if err == nil {
+		return memFiles, nil
 	}
+	cloneErr := err
+	log.Printf("Remote clone failed: %v\n", cloneErr)
 
-	// 2. 对于默认模板，尝试嵌入数据（编译时内置的快照）
-	if isDefaultTemplate {
+	if isDefault {
 		files, err := loadEmbeddedTemplate()
 		if err != nil {
 			log.Printf("Warning: embedded template invalid: %v\n", err)
@@ -691,71 +522,7 @@ func loadTemplateWithCache(repoURL string, offline bool) ([]*memoryFile, error) 
 		}
 	}
 
-	// 3. 回退到本地缓存
-	if offline {
-		files, err := loadTemplateCache(repoURL)
-		if err != nil {
-			return nil, fmt.Errorf("offline mode: read cache failed: %w", err)
-		}
-		if files == nil {
-			return nil, fmt.Errorf("offline mode: no cached template found for %s, please run `gentol new` with network first", repoURL)
-		}
-		return files, nil
-	}
-
-	// 在线模式但网络和嵌入都失败了，最后尝试本地缓存
-	log.Printf("Falling back to local cache...\n")
-	files, cacheErr := loadTemplateCache(repoURL)
-	if cacheErr != nil {
-		return nil, fmt.Errorf("remote clone failed (%v), embedded template unavailable, and cache read failed (%w)", cloneErr, cacheErr)
-	}
-	if files == nil {
-		return nil, fmt.Errorf("remote clone failed (%v) and no cache available, please check network connection", cloneErr)
-	}
-
-	return files, nil
-}
-
-// --- 磁盘操作辅助函数 ---
-
-// copyFromDir 从本地目录复制模板项目到目标目录（磁盘方式，用于旧模式兼容）
-func copyFromDir(srcDir, targetDir string) error {
-	return filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		relPath, err := filepath.Rel(srcDir, path)
-		if err != nil {
-			return err
-		}
-
-		// 跳过 .git 目录
-		if relPath == ".git" || strings.HasPrefix(relPath, ".git"+string(filepath.Separator)) {
-			return nil
-		}
-
-		targetPath := filepath.Join(targetDir, relPath)
-
-		if info.IsDir() {
-			return os.MkdirAll(targetPath, info.Mode())
-		}
-
-		srcFile, err := os.Open(path)
-		if err != nil {
-			return err
-		}
-		defer srcFile.Close()
-
-		dstFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, info.Mode())
-		if err != nil {
-			return err
-		}
-		defer dstFile.Close()
-
-		_, err = io.Copy(dstFile, srcFile)
-		return err
-	})
+	return nil, fmt.Errorf("failed to load template: %w", cloneErr)
 }
 
 // 注意：getParentPath 定义在 db_handler.go 中

@@ -257,5 +257,6 @@ func init() {
 	// gentol add service/manager 模板
 	StoreTpl("add_service", AddService)
 	StoreTpl("add_service_impl", AddServiceImpl)
-	StoreTpl("empty", EmptyMeta)
+	StoreTpl("add_dto", AddDto)
+	StoreTpl("add_helper", AddHelper)
 }
