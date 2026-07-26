@@ -42,7 +42,6 @@ gentol new github.com/myorg/myapp
 |------|------|
 | `--template_repo=<git_url>` | 从指定 Git 仓库克隆模板 |
 | `--template_dir=<local_path>` | 从本地目录加载模板 |
-| `--offline` | 离线模式，不访问网络（使用嵌入数据或本地缓存） |
 
 ```shell
 # 从指定 Git 仓库克隆模板
@@ -50,14 +49,15 @@ gentol new github.com/myorg/myapp --template_repo=https://github.com/xxx/my-temp
 
 # 从本地目录加载模板（开发调试用）
 gentol new github.com/myorg/myapp --template_dir=/path/to/template
-
-# 离线模式：不访问网络，使用嵌入数据或本地缓存
-gentol new github.com/myorg/myapp --offline
 ```
 
 ### 1.3 替换规则
 
-gentol 会自动读取模板项目 `go.mod` 中的 `module` 路径，执行以下替换：
+gentol 会自动读取模板项目 `go.mod` 中的 `module` 路径，执行替换。替换策略分两种，由模板本身的 module 路径决定，无需手动指定：
+
+**简单模式**（默认模板 `generate-example-project` 走此模式：module 路径与项目短名不同，如 `github.com/jasonlabz/generate-example-project`）：文件内容全篇统一替换，先替换完整模块路径字符串，再替换短项目名字符串，不区分 import 与非 import 行。
+
+**两阶段模式**（仅当模板 `go.mod` 的 module 名与项目短名相同时触发，如 `module template`）：
 
 | 上下文 | 替换方式 | 示例 |
 |--------|----------|------|
@@ -65,22 +65,23 @@ gentol 会自动读取模板项目 `go.mod` 中的 `module` 路径，执行以�
 | go.mod module 行 | 完整模块路径 | `module template` → `module github.com/myorg/myapp` |
 | Go 文件非 import 行 | 项目短名称 | 注释、字符串中的项目名 |
 | Makefile / YAML / 其他文件 | 项目短名称 | `TARGETNAME = myapp`、`name: myapp` |
-| 文件名 / 目录名 | 项目短名称 | `demo_program/` → `myapp_program/`、`demo.yaml` → `myapp.yaml` |
+
+两种模式下，文件名 / 目录名中出现的项目短名称都会被替换（如 `demo_program/` → `myapp_program/`）。
 
 ### 1.4 更新项目
 
 从模板重新加载文件，覆盖同名文件，保留项目中自定义文件不变。
 
 ```shell
-# 在项目目录内执行
+# 在项目目录内执行（自动从当前目录 go.mod 读取项目模块路径）
 gentol update
 
 # 在外层指定项目名
 gentol update myapp
 gentol update github.com/myorg/myapp
 
-# 离线更新
-gentol update --offline
+# 同样支持 --template_repo / --template_dir 指定模板源
+gentol update --template_repo=https://github.com/xxx/my-template.git
 ```
 
 ### 1.5 添加 Service / Manager
@@ -116,12 +117,9 @@ gentol add user --service workflow/sub
 server/service/
 ├── user_service.go               # 接口定义 + sync.Once 单例 Getter
 └── user/
-    ├── user_service_impl.go      # 实现
-    └── body/
-        ├── request.go
-        ├── response.go
-        ├── vo.go
-        └── dto.go
+    ├── service_impl.go          # 实现
+    ├── dto.go                    # DTO 占位文件
+    └── helper.go                 # 辅助函数占位文件
 ```
 
 使用 `--service workflow` 后：
@@ -130,15 +128,12 @@ server/service/
 server/service/workflow/
 ├── user_service.go               # 接口定义 + sync.Once 单例 Getter
 └── user/
-    ├── user_service_impl.go      # 实现（import 路径自动包含 /workflow）
-    └── body/
-        ├── request.go
-        ├── response.go
-        ├── vo.go
-        └── dto.go
+    ├── service_impl.go          # 实现（import 路径自动包含 /workflow）
+    ├── dto.go
+    └── helper.go
 ```
 
-Manager 模式同理，输出到 `server/manager/` 或 `server/manager/<subdir>/`。
+Manager 模式同理，输出到 `server/manager/` 或 `server/manager/<subdir>/`，实现文件名为 `manager_impl.go`。
 
 ### 1.6 工作流程
 
@@ -151,11 +146,9 @@ Manager 模式同理，输出到 `server/manager/` 或 `server/manager/<subdir>/
   → 执行 go mod tidy
 ```
 
-### 1.7 离线与缓存
+### 1.7 离线与自动回退
 
-gentol 提供三层离线保障，无需网络即可创建项目：
-
-**嵌入式模板**（优先级最高）：通过 `//go:embed` 将模板预编译进二进制，`gentol new` 开箱即用。
+**嵌入式模板**：通过 `//go:embed` 将默认模板预编译进二进制。
 
 ```shell
 # 1. 更新嵌入模板（从模板仓库下载并打包到 embedded/template.tar.gz）
@@ -164,28 +157,24 @@ scripts\update_template.bat               # Windows
 
 # 2. 重新编译（模板编译进二进制）
 go build .
-
-# 3. 之后无需任何网络
-gentol new myapp            # 直接从嵌入数据创建
 ```
 
-**本地缓存**：每次网络 clone 成功后，自动将模板缓存到 `~/.gentol/cache/<hash>/`（tar.gz 格式）。
+**加载顺序**：
 
-**自动回退**：网络不可用时自动尝试缓存，无需手动指定 `--offline`。
+| 场景 | 加载顺序 |
+|------|----------|
+| 默认模板（未指定 `--template_repo`/`--template_dir`） | 网络 git clone → 失败则回退到二进制内嵌数据 |
+| 自定义 `--template_repo` | 只走网络 git clone，失败直接报错，不回退 |
+| 自定义 `--template_dir` | 只读本地目录，路径不存在直接报错 |
 
-**加载优先级**：
-
-| 场景 | 默认模板 | 自定义 `--template_repo` |
-|------|----------|--------------------------|
-| 在线 | 嵌入数据 → 网络 → 缓存 | 网络 → 缓存 |
-| `--offline` | 嵌入数据 → 缓存 | 缓存 |
+当前没有本地缓存机制，也没有 `--offline` 标志；默认模板场景下，只要内嵌数据是最新的，断网时 `gentol new`/`gentol update` 仍可正常工作。
 
 ### 1.8 模板项目维护
 
 只需维护一个标准的 Go 项目作为模板，push 到 Git 仓库即可。模板项目的唯一约定：
 
 - `go.mod` 中的 `module` 行定义了模块路径，gentol 自动读取并替换
-- 建议模板使用完整模块路径（如 `github.com/jasonlabz/gentol-template`），这样替换逻辑最精确
+- 建议模板使用完整模块路径（如 `github.com/jasonlabz/gentol-template`），这样替换逻辑最精确（走 1.3 节的简单模式）
 
 ---
 
