@@ -59,6 +59,7 @@ func argHandler() {
 		// check args
 		getopt.Lookup("db_type").SetGroup("check")
 		getopt.RequiredGroup("check")
+		printSubcommandHint()
 		getopt.ParseV2()
 
 		// fill args

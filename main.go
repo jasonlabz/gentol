@@ -27,8 +27,17 @@ func main() {
 		return
 	}
 
+	if isHelpFlag(os.Args[1]) {
+		printTopLevelUsage()
+		return
+	}
+
 	switch os.Args[1] {
 	case "init", "new":
+		if hasHelpFlag(os.Args[2:]) {
+			printSubUsage(newUsage)
+			return
+		}
 		// 项目生成
 		projectName := getProjectName()
 		if !isValidProjectName(projectName) {
@@ -37,14 +46,26 @@ func main() {
 		templateRepo, templateDir := getTemplateFlags()
 		handleNewProject(projectName, templateRepo, templateDir)
 	case "update":
+		if hasHelpFlag(os.Args[2:]) {
+			printSubUsage(updateUsage)
+			return
+		}
 		// 项目更新
 		templateRepo, templateDir := getTemplateFlags()
 		updateProject(getProjectName(), templateRepo, templateDir)
 	case "add":
+		if hasHelpFlag(os.Args[2:]) {
+			printSubUsage(addUsage)
+			return
+		}
 		// 增加service模板
 		serviceName, isManager, serviceDir := getServiceInfo()
 		handleService(serviceName, isManager, serviceDir)
 	case "ddl":
+		if hasHelpFlag(os.Args[2:]) {
+			printSubUsage(ddlUsage)
+			return
+		}
 		// 执行DDL语句
 		processDDL()
 	default:
