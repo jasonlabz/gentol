@@ -279,17 +279,15 @@ func ({{.ModelShortName}} {{.ModelLowerCamelName}}DaoImpl) SelectPageRecordByCon
 	}
 	if condition != nil {
 		if len(condition.StringCondition) > 0 {
-			argsCopy := make([]interface{}, len(condition.Args))
-			copy(argsCopy, condition.Args)
-
 			paramIndex := 0
 			for _, strCondition := range condition.StringCondition {
 				paramCount := strings.Count(strCondition, "?")
-				if paramIndex+paramCount <= len(argsCopy) {
-					args := argsCopy[paramIndex : paramIndex+paramCount]
-					baseTx = baseTx.Where(strCondition, args...)
+				var args []interface{}
+				if paramIndex+paramCount <= len(condition.Args) {
+					args = condition.Args[paramIndex : paramIndex+paramCount]
 					paramIndex += paramCount
 				}
+				baseTx = baseTx.Where(strCondition, args...)
 			}
 		}
 		if len(condition.MapCondition) > 0 {
