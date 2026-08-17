@@ -8,7 +8,6 @@
 
 - **项目脚手架生成**：从模板仓库 clone 项目骨架到内存，自动替换模块路径和项目名后写入磁盘，一键生成可运行的 Go 项目。模板预编译进二进制（`//go:embed`），开箱即用无需网络
 - **数据库代码生成**：连接数据库自动分析表结构，生成 GORM Model、DAO 接口/实现、流式 Condition Builder 等代码，支持 MySQL / PostgreSQL / SQLite / Oracle / SQL Server / 达梦 等多种数据库
-- **Service / Manager 模板**：在已有项目中快速添加 service 或 manager 代码骨架，遵循 sync.Once 单例 + 接口分离模式
 
 ## 安装
 
@@ -84,58 +83,7 @@ gentol update github.com/myorg/myapp
 gentol update --template_repo=https://github.com/xxx/my-template.git
 ```
 
-### 1.5 添加 Service / Manager
-
-```shell
-# 添加 service（在项目目录内执行）
-gentol add user
-gentol add user_service    # 同上
-
-# 添加 manager（可调用多个 service，位于 controller 和 service 之间）
-gentol add user_manager
-```
-
-**`--service` 参数：指定输出子目录**
-
-```shell
-# 默认输出到 server/service/
-gentol add user
-
-# 指定子目录，输出到 server/service/workflow/
-gentol add user --service workflow
-
-# manager 同样支持
-gentol add user_manager --service workflow    # 输出到 server/manager/workflow/
-
-# 支持多级目录
-gentol add user --service workflow/sub
-```
-
-生成的文件结构：
-
-```
-server/service/
-├── user_service.go               # 接口定义 + sync.Once 单例 Getter
-└── user/
-    ├── service_impl.go          # 实现
-    ├── dto.go                    # DTO 占位文件
-    └── helper.go                 # 辅助函数占位文件
-```
-
-使用 `--service workflow` 后：
-
-```
-server/service/workflow/
-├── user_service.go               # 接口定义 + sync.Once 单例 Getter
-└── user/
-    ├── service_impl.go          # 实现（import 路径自动包含 /workflow）
-    ├── dto.go
-    └── helper.go
-```
-
-Manager 模式同理，输出到 `server/manager/` 或 `server/manager/<subdir>/`，实现文件名为 `manager_impl.go`。
-
-### 1.6 工作流程
+### 1.5 工作流程
 
 项目生成采用内存化处理，不产生临时目录残留：
 
@@ -146,7 +94,7 @@ Manager 模式同理，输出到 `server/manager/` 或 `server/manager/<subdir>/
   → 执行 go mod tidy
 ```
 
-### 1.7 离线与自动回退
+### 1.6 离线与自动回退
 
 **嵌入式模板**：通过 `//go:embed` 将默认模板预编译进二进制。
 
@@ -169,7 +117,7 @@ go build .
 
 当前没有本地缓存机制，也没有 `--offline` 标志；默认模板场景下，只要内嵌数据是最新的，断网时 `gentol new`/`gentol update` 仍可正常工作。
 
-### 1.8 模板项目维护
+### 1.7 模板项目维护
 
 只需维护一个标准的 Go 项目作为模板，push 到 Git 仓库即可。模板项目的唯一约定：
 

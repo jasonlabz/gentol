@@ -123,7 +123,7 @@ func initProjectMeta(projectName string) *metadata.ProjectMeta {
 	return projectMeta
 }
 
-// createDirectory 创建目录（被 service_handler.go 使用）
+// createDirectory 创建目录（供生成逻辑使用）
 func createDirectory(path string) bool {
 	if IsExist(path) {
 		return true
@@ -132,21 +132,5 @@ func createDirectory(path string) bool {
 		log.Printf("Error creating directory %s: %v\n", path, err)
 		return false
 	}
-	return true
-}
-
-// renderTemplate 渲染模板到文件（被 service_handler.go 使用）
-func renderTemplate(templateName string, meta *metadata.ProjectMeta, filePath string, update bool) bool {
-	tpl, ok := metadata.LoadTpl(templateName)
-	if !ok {
-		log.Printf("Undefined template: %s\n", templateName)
-		return false
-	}
-
-	if err := RenderingTemplate(tpl, meta, filePath, update); err != nil {
-		log.Printf("Error rendering template %s to %s: %v\n", templateName, filePath, err)
-		return false
-	}
-
 	return true
 }

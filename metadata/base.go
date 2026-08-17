@@ -253,10 +253,4 @@ func init() {
 	StoreTpl("dao_impl", DaoImpl)
 	StoreTpl("daoExtImpl", DaoExtImpl)
 	StoreTpl("database", Database)
-
-	// gentol add service/manager 模板
-	StoreTpl("add_service", AddService)
-	StoreTpl("add_service_impl", AddServiceImpl)
-	StoreTpl("add_dto", AddDto)
-	StoreTpl("add_helper", AddHelper)
 }

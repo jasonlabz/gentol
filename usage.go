@@ -10,7 +10,6 @@ Usage:
   gentol new <module_path>        create a new project from template
   gentol init <module_path>       alias of "new"
   gentol update [module_path]     update an existing project from template
-  gentol add <name>                add a service/manager module to current project
   gentol ddl <sql_file> [flags]   validate and execute DDL statements from a SQL file
   gentol help | -h | --help       show this help message
 
@@ -44,21 +43,6 @@ Arguments:
 Flags:
       --template_repo=value  git repository URL to use as template (default: built-in template)
       --template_dir=value   local directory to use as template instead of cloning a repo
-`
-
-// addUsage add 子命令帮助信息
-const addUsage = `Usage: gentol add <name>[_service|_manager] [flags]
-
-Add a service or manager module to the current project.
-Must be run from the project root (where go.mod is located).
-
-Arguments:
-  name                      service name; suffix with _manager to generate a manager module
-                            instead of a service module
-
-Flags:
-      --service=value       subdirectory (relative to project root) to place the module in
-                            [server/service, or server/manager for _manager]
 `
 
 // ddlUsage ddl 子命令帮助信息
@@ -106,5 +90,5 @@ func printSubUsage(usage string) {
 
 // printSubcommandHint 在默认模式 usage 前提示子命令的存在
 func printSubcommandHint() {
-	fmt.Println("Tip: run 'gentol -h' to see all subcommands (new, init, update, add, ddl).")
+	fmt.Println("Tip: run 'gentol -h' to see all subcommands (new, init, update, ddl).")
 }
