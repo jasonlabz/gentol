@@ -27,8 +27,9 @@ Arguments:
   module_path              go module path for the new project, e.g. github.com/you/myapp
 
 Flags:
-      --template_repo=value  git repository URL to use as template (default: built-in template)
-      --template_dir=value   local directory to use as template instead of cloning a repo
+      --template_repo=value   git repository URL to use as template (default: built-in template)
+      --template_dir=value    local directory to use as template instead of cloning a repo
+      --template_branch=value branch of the template repo to clone (default: remote default branch)
 `
 
 // updateUsage update 子命令帮助信息
@@ -41,8 +42,9 @@ Arguments:
   module_path               optional; defaults to the module in ./go.mod of the current directory
 
 Flags:
-      --template_repo=value  git repository URL to use as template (default: built-in template)
-      --template_dir=value   local directory to use as template instead of cloning a repo
+      --template_repo=value   git repository URL to use as template (default: built-in template)
+      --template_dir=value    local directory to use as template instead of cloning a repo
+      --template_branch=value branch of the template repo to clone (default: remote default branch)
 `
 
 // ddlUsage ddl 子命令帮助信息

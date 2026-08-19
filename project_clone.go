@@ -35,8 +35,9 @@ type memoryFile struct {
 
 // cloneToMemory 使用系统 git 克隆到临时目录，然后加载到内存
 // 使用系统 git（而非 go-git）以复用 gitconfig 中的代理等配置
-func cloneToMemory(repoURL string) (files []*memoryFile, err error) {
-	log.Printf("Cloning template from repository: %s\n", repoURL)
+// branch 非空时仅拉取指定分支；默认 --single-branch 只拉取单一分支（浅克隆）
+func cloneToMemory(repoURL, branch string) (files []*memoryFile, err error) {
+	log.Printf("Cloning template from repository: %s (branch: %s)\n", repoURL, branch)
 
 	tmpDir, err := os.MkdirTemp("", "gentol-clone-*")
 	if err != nil {
@@ -44,7 +45,13 @@ func cloneToMemory(repoURL string) (files []*memoryFile, err error) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	cmd := exec.Command("git", "clone", "--depth", "1", repoURL, tmpDir)
+	args := []string{"clone", "--depth", "1", "--single-branch"}
+	if branch != "" {
+		args = append(args, "--branch", branch)
+	}
+	args = append(args, repoURL, tmpDir)
+
+	cmd := exec.Command("git", args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -334,7 +341,7 @@ func getModulePathFromMemory(files []*memoryFile) (modulePath string, found bool
 
 // cloneAndReplaceProject 从模板创建新项目（内存化流程）
 // 整个流程：加载模板到内存 → 从 go.mod 读取真实模块路径 → 内存中替换 → 写入磁盘
-func cloneAndReplaceProject(newModulePath, templateSource string, useLocalDir bool) error {
+func cloneAndReplaceProject(newModulePath, templateSource string, useLocalDir bool, templateBranch string) error {
 	newProjectName := extractProjectName(newModulePath)
 	if newProjectName == "" {
 		return fmt.Errorf("invalid project name from module path: %s", newModulePath)
@@ -351,7 +358,7 @@ func cloneAndReplaceProject(newModulePath, templateSource string, useLocalDir bo
 		if repoURL == "" {
 			repoURL = DefaultTemplateRepoURL
 		}
-		memFiles, err = loadTemplate(repoURL, templateSource == "")
+		memFiles, err = loadTemplate(repoURL, templateSource == "", templateBranch)
 	}
 	if err != nil {
 		return fmt.Errorf("load template failed: %w", err)
@@ -394,7 +401,7 @@ func cloneAndReplaceProject(newModulePath, templateSource string, useLocalDir bo
 
 // updateProjectFromTemplate 从模板更新已有项目（内存化流程）
 // 与 new 的区别：目标目录已存在，模板文件覆盖同名文件，已有项目中的其他文件保持不变
-func updateProjectFromTemplate(projectDir, currentModulePath, templateSource string, useLocalDir bool) error {
+func updateProjectFromTemplate(projectDir, currentModulePath, templateSource string, useLocalDir bool, templateBranch string) error {
 
 	// 阶段1：加载模板到内存
 	var memFiles []*memoryFile
@@ -407,7 +414,7 @@ func updateProjectFromTemplate(projectDir, currentModulePath, templateSource str
 		if repoURL == "" {
 			repoURL = DefaultTemplateRepoURL
 		}
-		memFiles, err = loadTemplate(repoURL, templateSource == "")
+		memFiles, err = loadTemplate(repoURL, templateSource == "", templateBranch)
 	}
 	if err != nil {
 		return fmt.Errorf("load template failed: %w", err)
@@ -505,8 +512,8 @@ func loadEmbeddedTemplate() ([]*memoryFile, error) {
 }
 
 // loadTemplate 加载模板：远程 git clone → 嵌入数据（默认模板 fallback）
-func loadTemplate(repoURL string, isDefault bool) ([]*memoryFile, error) {
-	memFiles, err := cloneToMemory(repoURL)
+func loadTemplate(repoURL string, isDefault bool, branch string) ([]*memoryFile, error) {
+	memFiles, err := cloneToMemory(repoURL, branch)
 	if err == nil {
 		return memFiles, nil
 	}

@@ -41,12 +41,16 @@ gentol new github.com/myorg/myapp
 |------|------|
 | `--template_repo=<git_url>` | 从指定 Git 仓库克隆模板 |
 | `--template_dir=<local_path>` | 从本地目录加载模板 |
+| `--template_branch=<branch>` | 克隆模板仓库时指定分支（仅远程仓库生效；默认仓库默认分支，且只拉取单一分支） |
 
 ```shell
-# 从指定 Git 仓库克隆模板
+# 从指定 Git 仓库克隆模板（默认只拉取仓库默认分支的单一分支）
 gentol new github.com/myorg/myapp --template_repo=https://github.com/xxx/my-template.git
 
-# 从本地目录加载模板（开发调试用）
+# 指定模板仓库的特定分支
+gentol new github.com/myorg/myapp --template_repo=https://github.com/xxx/my-template.git --template_branch=dev
+
+# 从本地目录加载模板（开发调试用，不支持 --template_branch）
 gentol new github.com/myorg/myapp --template_dir=/path/to/template
 ```
 
@@ -79,8 +83,9 @@ gentol update
 gentol update myapp
 gentol update github.com/myorg/myapp
 
-# 同样支持 --template_repo / --template_dir 指定模板源
+# 同样支持 --template_repo / --template_dir / --template_branch 指定模板源
 gentol update --template_repo=https://github.com/xxx/my-template.git
+gentol update --template_repo=https://github.com/xxx/my-template.git --template_branch=dev
 ```
 
 ### 1.5 工作流程

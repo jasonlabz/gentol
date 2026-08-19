@@ -43,16 +43,16 @@ func main() {
 		if !isValidProjectName(projectName) {
 			log.Fatal("项目名称无效，只允许字母、数字、斜杠、下划线和连字符")
 		}
-		templateRepo, templateDir := getTemplateFlags()
-		handleNewProject(projectName, templateRepo, templateDir)
+		templateRepo, templateDir, templateBranch := getTemplateFlags()
+		handleNewProject(projectName, templateRepo, templateDir, templateBranch)
 	case "update":
 		if hasHelpFlag(os.Args[2:]) {
 			printSubUsage(updateUsage)
 			return
 		}
 		// 项目更新
-		templateRepo, templateDir := getTemplateFlags()
-		updateProject(getProjectName(), templateRepo, templateDir)
+		templateRepo, templateDir, templateBranch := getTemplateFlags()
+		updateProject(getProjectName(), templateRepo, templateDir, templateBranch)
 	case "ddl":
 		if hasHelpFlag(os.Args[2:]) {
 			printSubUsage(ddlUsage)
@@ -89,8 +89,8 @@ func isValidProjectName(name string) bool {
 	return match
 }
 
-// getTemplateFlags 从命令行参数中解析 --template_repo 和 --template_dir 标志
-func getTemplateFlags() (templateRepo string, templateDir string) {
+// getTemplateFlags 从命令行参数中解析 --template_repo、--template_dir 和 --template_branch 标志
+func getTemplateFlags() (templateRepo string, templateDir string, templateBranch string) {
 	args := os.Args[2:]
 	for i := 0; i < len(args); i++ {
 		if strings.HasPrefix(args[i], "--template_repo=") {
@@ -103,6 +103,11 @@ func getTemplateFlags() (templateRepo string, templateDir string) {
 		} else if args[i] == "--template_dir" && i+1 < len(args) {
 			i++
 			templateDir = args[i]
+		} else if strings.HasPrefix(args[i], "--template_branch=") {
+			templateBranch = strings.TrimPrefix(args[i], "--template_branch=")
+		} else if args[i] == "--template_branch" && i+1 < len(args) {
+			i++
+			templateBranch = args[i]
 		}
 	}
 	return
