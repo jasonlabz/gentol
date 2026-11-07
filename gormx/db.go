@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sync"
 
+	oracle "github.com/godoes/gorm-oracle"
 	dm "github.com/jasonlabz/gorm-dm-driver"
-	"github.com/jasonlabz/oracle"
 	"github.com/jasonlabz/sqlite"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
@@ -25,6 +25,28 @@ type DBWrapper struct {
 	Config *Config
 }
 
+// newDialect 按 DBType 返回对应的 dialector。
+// LoadDBInstance 与 InitConfig 共用同一份映射，避免两处 switch 各自漂移
+// （历史上 InitConfig 就漏了 oracle / sqlite / dm，导致对应 operator 全部不可用）。
+func newDialect(config *Config) (gorm.Dialector, error) {
+	switch config.DBType {
+	case DBTypeMySQL:
+		return mysql.Open(config.DSN), nil
+	case DBTypeGreenplum, DBTypePostgres:
+		return postgres.Open(config.DSN), nil
+	case DBTypeOracle:
+		return oracle.Open(config.DSN), nil
+	case DBTypeSQLite:
+		return sqlite.Open(config.DSN), nil
+	case DBTypeSqlserver:
+		return sqlserver.Open(config.DSN), nil
+	case DBTypeDM:
+		return dm.Open(config.DSN), nil
+	default:
+		return nil, fmt.Errorf("unsupported dbType: %s", config.DBType)
+	}
+}
+
 func LoadDBInstance(config *Config) (*gorm.DB, error) {
 	if config == nil {
 		return nil, errors.New("no db config")
@@ -40,24 +62,9 @@ func LoadDBInstance(config *Config) (*gorm.DB, error) {
 	if ok {
 		return _dbWrapper.(*DBWrapper).DB, nil
 	}
-	var dialect gorm.Dialector
-	switch config.DBType {
-	case DBTypeMySQL:
-		dialect = mysql.Open(config.DSN)
-	case DBTypeGreenplum:
-		fallthrough
-	case DBTypePostgres:
-		dialect = postgres.Open(config.DSN)
-	case DBTypeOracle:
-		dialect = oracle.Open(config.DSN)
-	case DBTypeSQLite:
-		dialect = sqlite.Open(config.DSN)
-	case DBTypeSqlserver:
-		dialect = sqlserver.Open(config.DSN)
-	case DBTypeDM:
-		dialect = dm.Open(config.DSN)
-	default:
-		return nil, errors.New(fmt.Sprintf("unsupported dbType: %s", string(config.DBType)))
+	dialect, err := newDialect(config)
+	if err != nil {
+		return nil, err
 	}
 	if config.MaxOpenConn == 0 {
 		config.MaxOpenConn = defaultMaxOpenConn
@@ -103,20 +110,9 @@ func InitConfig(config *Config) error {
 	if ok {
 		return nil
 	}
-	var dialect gorm.Dialector
-	switch config.DBType {
-	case DBTypeMySQL:
-		dialect = mysql.Open(config.DSN)
-	case DBTypeGreenplum:
-		fallthrough
-	case DBTypePostgres:
-		dialect = postgres.Open(config.DSN)
-	//case DBTypeOracle:
-	//	dialect = oracle.Open(config.DSN)
-	case DBTypeSqlserver:
-		dialect = sqlserver.Open(config.DSN)
-	default:
-		return errors.New(fmt.Sprintf("unsupported dbType: %s", string(config.DBType)))
+	dialect, err := newDialect(config)
+	if err != nil {
+		return err
 	}
 	db, err := gorm.Open(dialect)
 	if err != nil {
